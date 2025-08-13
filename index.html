@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#ff69b4" />
+  <title>ヒメゴト</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>ヒメゴト</h1>
+    <span id="pro-expiry-badge" class="badge">有料版：期限 ー</span>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>有料版の解除</h2>
+      <input id="code-input" placeholder="例：HGT-XXXXXXX" inputmode="latin" />
+      <div class="row">
+        <button id="btn-verify-code" class="btn btn-pink">コード認証</button>
+      </div>
+      <p class="muted">※ 30 / 180 / 360 日チケットに対応。端末変更時はサポートへ。</p>
+    </section>
+
+    <section class="card">
+      <h2>顧客を追加</h2>
+      <input id="name-input" placeholder="例：太郎" />
+      <div class="row">
+        <button id="btn-add" class="btn btn-pink">顧客を追加</button>
+        <span class="btn btn-ghost" style="pointer-events:none">
+          無料版：残り <b id="free-left">5</b> 件
+        </span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>顧客一覧</h2>
+      <div id="customer-list"></div>
+      <p class="muted">「選ぶ」で下の本文の {name} に差し込みます。</p>
+    </section>
+
+    <section class="card">
+      <h2>メッセージ作成</h2>
+      <p class="muted">本文（{name} が選択中の顧客名に置換されます）</p>
+      <textarea id="msg-template">例）{name}さん、今日はありがとう！ また会えるの楽しみにしてるね♡</textarea>
+      <div class="row">
+        <button id="btn-insert-name" class="btn btn-ghost">{name} を挿入</button>
+        <button id="btn-copy" class="btn btn-pink">コピーして送信</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- “処理中”モーダル -->
+  <div id="modal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal">
+      <div class="spinner"></div>
+      <p id="modal-text">認証を処理中です。少しお待ちください…</p>
+      <button id="modal-cancel" class="btn btn-ghost">閉じる</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
