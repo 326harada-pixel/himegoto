@@ -2,7 +2,7 @@
 console.warn('[himegoto] app.js v-fresh-1');
 
 /***** 設定：あなたの最新GAS URLに置き換えてね *****/
-const GAS_URL = "https://script.google.com/macros/s/（あなたの最新のexec）/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxLLNo23ANP9lxzyEJYXDbkiUtTfGlvfN3d3uC1oonZuBf23_qpVndJzbPbBTt0f-Y/exec";
 const DEVICE_ID_KEY = 'himegoto_device_id';
 const FREE_LIMIT = 5;
 const EXP_KEY = 'hime_pro_until_v2'; // 期限保存用（yyyy/MM/dd）
