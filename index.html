@@ -4,51 +4,67 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ヒメゴト</title>
+  <!-- キャッシュ破り用 v=20250214a を付ける -->
+  <link rel="stylesheet" href="style.css?v=20250214a">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css">
+  <script defer src="app.js?v=20250214a"></script>
 </head>
 <body>
-  <!-- ロゴ画像を置くスペース -->
-  <header class="header-space"></header>
-
-  <main class="container">
-    <!-- 有料コード認証 -->
-    <section class="auth-section">
-      <h2>有料版の解錠</h2>
+  <main>
+    <!-- 有料版解除 -->
+    <section id="unlock-section" class="card">
+      <h2>有料版の解除</h2>
       <input type="text" id="codeInput" placeholder="例: HGT-XXXXXXX">
-      <button id="authBtn">コード認証</button>
-      <p id="expiryInfo">有効期限: -</p>
+      <div class="btn-row">
+        <button id="verifyCode">コード認証</button>
+        <button id="recalcDays" class="secondary">残日数を再計算</button>
+      </div>
+      <p id="licenseStatus">無料版（上限あり）</p>
+      <p class="note">※ 30 / 180 / 360 日チケットに対応。端末変更時はサポートへ。</p>
     </section>
 
-    <!-- 顧客名簿 -->
-    <section class="customer-section">
+    <!-- 顧客追加 -->
+    <section id="add-customer-section" class="card">
       <h2>顧客を追加</h2>
-      <input type="text" id="nameInput" placeholder="新規名簿: 送り先名">
-      <button id="addBtn">追加</button>
-      <ul id="nameList"></ul>
+      <input type="text" id="customerNameInput" placeholder="顧客名">
+      <div class="btn-row">
+        <button id="addCustomer">顧客を追加</button>
+        <button id="exportBackup" class="secondary">バックアップ書き出し</button>
+        <button id="importBackup" class="secondary">復元</button>
+      </div>
+      <p class="note">※ 無料版の上限に達すると追加できません（デフォルト5件・有料は無制限）</p>
+    </section>
+
+    <!-- 顧客一覧 -->
+    <section id="customer-list-section" class="card">
+      <h2>顧客一覧</h2>
+      <ul id="customerList"></ul>
     </section>
 
     <!-- メッセージ作成 -->
-    <section class="message-section">
+    <section id="message-section" class="card">
       <h2>メッセージ作成</h2>
-      <textarea id="messageInput" placeholder="{name} さん、本日もよろしくお願いします！"></textarea>
-      <div class="msg-actions">
-        <button id="insertNameBtn">{name} 挿入</button>
-        <button id="sendBtn">送信</button>
-        <button id="copyBtn">コピー</button>
+      <textarea id="messageInput" rows="3"
+        placeholder="{name} が選択中の顧客名に置換されます"></textarea>
+      <div class="btn-row">
+        <button id="sendMessage">送信</button>
+        <button id="copyMessage" class="secondary">コピー</button>
       </div>
+      <p id="previewArea"></p>
+      <p class="note">共有は対応ブラウザのみ。非対応でもコピーは使えます。</p>
+    </section>
+
+    <!-- ご意見・ご要望 -->
+    <section id="feedback-section" class="card">
+      <h2>ご意見・ご要望</h2>
+      <a href="https://line.me/ti/p/_kahjcCa3-" target="_blank" class="feedback-btn">
+        ご意見・ご要望はこちら
+      </a>
     </section>
   </main>
 
-  <!-- フッター（ご意見・ご要望ボタン + バナースペース） -->
-  <footer class="footer">
-    <button class="feedback-btn"
-      onclick="window.open('https://line.me/ti/p/_kahjcCa3-', '_blank')">
-      ご意見・ご要望はこちら
-    </button>
-    <div class="ad-space">ここに広告バナーが入ります</div>
+  <footer>
+    <p>© ヒメゴト</p>
   </footer>
-
-  <script src="app.js"></script>
 </body>
 </html>
