@@ -1,5 +1,4 @@
-// Service Worker：同一オリジンの静的だけキャッシュ。外部(GAS)は常にネット。
-const CACHE_NAME = 'himegoto-static-v6.8';
+const CACHE_NAME = 'himegoto-static-v6.9';
 const STATIC_ASSETS = ['/', '/index.html', '/style.css', '/manifest.json', '/app.js'];
 
 self.addEventListener('install', (event) => {
@@ -35,6 +34,20 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => caches.match('/'))
     );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(event.request, copy));
+        return res;
+      });
+    })
+  );
+});    );
     return;
   }
 
