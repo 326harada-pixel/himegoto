@@ -1,5 +1,5 @@
-// 外部(GAS)は毎回ネット。静的はキャッシュ。
-const CACHE_NAME = 'himegoto-static-v6.6';
+// Service Worker：同一オリジンの静的だけキャッシュ。外部(GAS)は常にネット。
+const CACHE_NAME = 'himegoto-static-v6.8';
 const STATIC_ASSETS = ['/', '/index.html', '/style.css', '/manifest.json', '/app.js'];
 
 self.addEventListener('install', (event) => {
@@ -20,21 +20,35 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   const sameOrigin = url.origin === location.origin;
 
-  // 外部(GAS等)は常にネット
   if (!sameOrigin) {
     event.respondWith(fetch(event.request, { cache: 'no-store' }));
     return;
   }
 
-  // ナビゲーションはネット優先→失敗時キャッシュ
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((c) => c.put('/', copy));
-        return res;
-      }).catch(() => caches.match('/'))
+      fetch(event.request)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put('/', copy));
+          return res;
+        })
+        .catch(() => caches.match('/'))
     );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(event.request, copy));
+        return res;
+      });
+    })
+  );
+});    );
     return;
   }
 
