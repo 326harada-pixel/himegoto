@@ -1,93 +1,43 @@
 :root{--pink:#ff69b4;--bg:#fff0f5;--danger:#e74c3c;--ok:#2ecc71}
 *{box-sizing:border-box}
-html,body{height:100%}
 body{
   margin:0;
   font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP","Helvetica Neue",Arial,"メイリオ",sans-serif;
   background:linear-gradient(#ffa7d1,#ffdaf0) fixed;
   color:#333;
 }
-main{padding:16px;max-width:920px;margin:0 auto}
-h1,h2{margin:0 0 12px}
-h2{font-size:22px}
-
-/* カード */
-.card{
-  background:#fff;
-  border-radius:16px;
-  padding:18px;
-  margin:18px 0;
-  box-shadow:0 8px 24px rgba(0,0,0,.08);
-}
-
-/* 入力・ボタン */
+header{padding:24px 16px;text-align:center;color:#fff}
+header h1{margin:0;font-size:32px;letter-spacing:.2em;text-shadow:0 2px 0 rgba(0,0,0,.08)}
+.badge{display:inline-block;margin-top:12px;padding:8px 14px;background:#ff7ebd;border-radius:999px;color:#fff;font-weight:700}
+main{padding:16px;max-width:900px;margin:0 auto}
+.card{background:#fff;border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+h2{font-size:18px;margin:0 0 10px}
 input,textarea{
-  width:100%;
-  font-size:16px;
-  padding:12px 14px;
-  border:2px solid #f2d5e6;
-  border-radius:12px;
-  background:#fff;
+  width:100%;font-size:16px;padding:12px;border:2px solid #f2d5e6;border-radius:12px;background:#fff
 }
 textarea{min-height:120px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.btn{appearance:none;border:0;border-radius:999px;padding:12px 18px;font-weight:800;cursor:pointer;transition:.15s}
+.btn-pink{background:var(--pink);color:#fff}
+.btn-ghost{background:#fff;border:2px solid var(--pink);color:var(--pink)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.customer{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed #f0cadd}
+.nm{flex:1;font-weight:700}
+.muted{color:#777;font-size:13px}
 
-.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
-button,.feedback-btn{
-  appearance:none; border:0; border-radius:999px;
-  padding:12px 18px; font-weight:800; cursor:pointer;
-  background:var(--pink); color:#fff; text-decoration:none; display:inline-block;
+/* モーダル */
+.modal-backdrop{
+  position:fixed; inset:0; background:rgba(0,0,0,.45);
+  display:none; align-items:center; justify-content:center; z-index:9999;
 }
-button.secondary,.feedback-btn.secondary{
-  background:#fff; color:var(--pink); border:2px solid var(--pink);
+.modal-backdrop.show{ display:flex; }
+.modal{
+  background:#fff; padding:20px; border-radius:16px; width:min(420px,92%);
+  text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.2);
 }
-button:disabled{opacity:.5;cursor:not-allowed}
-
-/* リスト */
-#customerList{list-style:none;padding:0;margin:0}
-#customerList li{
-  display:flex; align-items:center; gap:12px;
-  padding:12px 0; border-bottom:1px dashed #f0cadd;
+.spinner{
+  width:28px; height:28px; border:3px solid #eee; border-top-color:var(--pink);
+  border-radius:50%; margin:0 auto 10px; animation:spin 1s linear infinite;
 }
-#customerList .name{flex:1;font-weight:700}
-.badge{display:inline-block;background:#ff7ebd;color:#fff;border-radius:999px;padding:3px 8px;font-size:12px;margin-left:8px}
-
-/* 補助 */
-.note{color:#777;font-size:13px;margin:8px 0 0}
-
-/* フッターと下部広告スペース */
-footer{padding:40px 0 80px;text-align:center;color:#555}
-.ad-space{height:72px} /* バナー置く余白 */  font-size: 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.msg-actions {
-  margin-top: 10px;
-}
-
-/* ご意見ボタン */
-.feedback-btn {
-  background-color: #06c755; /* LINEカラー */
-  color: white;
-}
-.feedback-btn:hover {
-  opacity: 0.9;
-}
-
-/* フッター */
-.footer {
-  margin-top: 40px;
-  text-align: center;
-  padding-bottom: 80px; /* 広告スペース分 */
-}
-
-.ad-space {
-  margin-top: 15px;
-  height: 60px;
-  background: #ddd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #555;
-}
+@keyframes spin{ to{ transform:rotate(360deg); } }
