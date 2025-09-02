@@ -1,66 +1,300 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#ff69b4" />
-  <title>ヒメゴト</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ﾋﾒｺﾞﾄ</title>
+
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css" />
+  <meta name="theme-color" content="#ff69b4" />
+
+  <style>
+    :root { --pink:#ff69b4; --bg:#fff0f5; }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,sans-serif; margin:0; background:var(--bg); color:#222}
+    header{padding:14px; background:var(--pink); color:#fff; text-align:center}
+    h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.08em}
+    main{padding:12px}
+    .card{background:#fff; padding:12px; margin:12px 0; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,.06)}
+    label{display:block; font-size:12px; color:#666; margin:6px 0 4px}
+    input,textarea{width:100%; padding:10px; border:1px solid #e6e6e6; border-radius:10px; font-size:16px}
+    textarea{min-height:110px}
+    button{appearance:none; border:none; background:var(--pink); color:#fff; padding:10px 14px; border-radius:12px; font-weight:700; font-size:15px}
+    button.ghost{background:#f3f3f3; color:#444}
+    button:disabled{opacity:.6}
+    .row{display:flex; gap:8px; flex-wrap:wrap}
+    ul{list-style:none; margin:0; padding:0}
+    li{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid #eee}
+    .name{font-weight:700}
+    .badge{font-size:11px; padding:2px 8px; border-radius:999px; background:#ffd6ec; color:#a1004f; margin-left:6px}
+    .hint{font-size:12px; color:#666; margin-top:6px}
+    #preview{white-space:pre-wrap; background:#fafafa; border:1px solid #eee; border-radius:10px; padding:10px; margin-top:8px}
+    footer{padding:16px; text-align:center; color:#888; font-size:12px}
+    .sub-ok{color:#0a7a00}
+    .sub-ng{color:#a10000}
+  </style>
 </head>
 <body>
-  <header>
-    <h1>ヒメゴト</h1>
-    <span id="pro-expiry-badge" class="badge">有料版：期限 ー</span>
-  </header>
-
+  <header><h1>ﾋﾒｺﾞﾄ</h1></header>
   <main>
+    <!-- 有料版の解除（解除コード） -->
     <section class="card">
-      <h2>有料版の解除</h2>
-      <input id="code-input" placeholder="例：HGT-XXXXXXX" inputmode="latin" />
-      <div class="row">
-        <button id="btn-verify-code" class="btn btn-pink">コード認証</button>
+      <h2 style="margin:0 0 6px">有料版の解除</h2>
+      <input id="unlockCode" placeholder="noteで購入した解除コードを入力">
+      <div class="row" style="margin-top:8px">
+        <button id="redeemBtn">コード認証</button>
+        <button class="ghost" id="checkBtn">残日数を再計算</button>
       </div>
-      <p class="muted">※ 30 / 180 / 360 日チケットに対応。端末変更時はサポートへ。</p>
+      <p id="subStatus" class="hint">無料版（上限あり）</p>
+      <p class="hint">※ 30 / 180 / 360 日チケットに対応。端末変更時はサポートへ。</p>
     </section>
 
+    <!-- 顧客追加 -->
     <section class="card">
-      <h2>顧客を追加</h2>
-      <input id="name-input" placeholder="例：太郎" />
-      <div class="row">
-        <button id="btn-add" class="btn btn-pink">顧客を追加</button>
-        <span class="btn btn-ghost" style="pointer-events:none">
-          無料版：残り <b id="free-left">5</b> 件
-        </span>
+      <h2 style="margin:0 0 6px">顧客を追加</h2>
+      <label>顧客名</label>
+      <input id="custName" placeholder="例：太郎">
+      <div class="row" style="margin-top:8px">
+        <button id="addCustomer">顧客を追加</button>
+        <button class="ghost" id="exportBtn">バックアップ書き出し</button>
+        <button class="ghost" id="importBtn">復元</button>
+        <input type="file" id="fileInput" accept="application/json" hidden>
       </div>
+      <p class="hint">※無料版の上限に達すると追加できません（デフォルト5件・有料は無制限）</p>
     </section>
 
+    <!-- 顧客一覧 -->
     <section class="card">
-      <h2>顧客一覧</h2>
-      <div id="customer-list"></div>
-      <p class="muted">「選ぶ」で下の本文の {name} に差し込みます。</p>
+      <h2 style="margin:0 0 6px">顧客一覧</h2>
+      <ul id="customerList"></ul>
     </section>
 
+    <!-- メッセージ -->
     <section class="card">
-      <h2>メッセージ作成</h2>
-      <p class="muted">本文（{name} が選択中の顧客名に置換されます）</p>
-      <textarea id="msg-template">例）{name}さん、今日はありがとう！ また会えるの楽しみにしてるね♡</textarea>
-      <div class="row">
-        <button id="btn-insert-name" class="btn btn-ghost">{name} を挿入</button>
-        <button id="btn-copy" class="btn btn-pink">コピーして送信</button>
+      <h2 style="margin:0 0 6px">メッセージ作成</h2>
+      <label>本文（{name} が選択中の顧客名に置換されます）</label>
+      <textarea id="baseMsg" placeholder="{name}さん、今日はありがとう！また遊ぼうね♡"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button id="copyBtn">コピー</button>
+        <button id="shareBtn">共有（LINEに渡す）</button>
       </div>
+      <div id="preview"></div>
+      <p class="hint">共有は対応ブラウザのみ。非対応でもコピーは使えます。</p>
     </section>
   </main>
+  <footer>© ﾋﾒｺﾞﾄ</footer>
 
-  <!-- “処理中”モーダル -->
-  <div id="modal" class="modal-backdrop" aria-hidden="true">
-    <div class="modal">
-      <div class="spinner"></div>
-      <p id="modal-text">認証を処理中です。少しお待ちください…</p>
-      <button id="modal-cancel" class="btn btn-ghost">閉じる</button>
-    </div>
-  </div>
+  <script>
+    /***** 設定：Apps ScriptエンドポイントとAPIキーを置き換えてください *****/
+    const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxxcFTaMwImkh3i7gVErWFlyCHUPthJYsDhNrUq94J2DqQOtt8hgYi4UWxdr7DIvqA/exec';
+　　const API_KEY  = 'hgt_fuck0326_random_key';
 
-  <script src="app.js"></script>
+    /***** サブスク管理キー（localStorage） *****/
+    const DEVICE_ID_KEY = 'hime_device_id';
+    const SUB_EXP_KEY   = 'hime_sub_expiresAt';
+
+    /***** 無料上限（デフォルト） → 有料で上書き *****/
+    const FREE_LIMIT_DEFAULT = 5;
+    window.FREE_LIMIT = FREE_LIMIT_DEFAULT;
+
+    /***** 状態・参照 *****/
+    let customers = JSON.parse(localStorage.getItem('hime_customers')||'[]');
+    let selectedIndex = (localStorage.getItem('hime_selectedIndex') ?? null);
+    if(selectedIndex!==null) selectedIndex = Number(selectedIndex);
+    if(Number.isNaN(selectedIndex)) selectedIndex = null;
+
+    const $ = q => document.querySelector(q);
+    const listEl = $('#customerList');
+    const nameEl = $('#custName');
+    const baseEl = $('#baseMsg');
+    const previewEl = $('#preview');
+
+    if(!baseEl.value){
+      baseEl.value = "{name}さん、今日はありがとう！また会えるの楽しみにしてるね♡";
+    }
+
+    // ===== デバイスID =====
+    function getDeviceId(){
+      let id = localStorage.getItem(DEVICE_ID_KEY);
+      if(!id){
+        id = (crypto.randomUUID?.() ?? (Date.now()+''+Math.random()));
+        localStorage.setItem(DEVICE_ID_KEY, id);
+      }
+      return id;
+    }
+
+    // ===== サブスク状態 =====
+    function isPro(){
+      const exp = localStorage.getItem(SUB_EXP_KEY);
+      return exp && new Date(exp).getTime() > Date.now();
+    }
+    function daysLeft(){
+      const exp = localStorage.getItem(SUB_EXP_KEY);
+      if(!exp) return 0;
+      return Math.max(0, Math.ceil((new Date(exp)-Date.now())/86400000));
+    }
+    function applySubState(){
+      if(isPro()){
+        window.FREE_LIMIT = 999999;
+      }else{
+        window.FREE_LIMIT = FREE_LIMIT_DEFAULT;
+      }
+    }
+    function updateSubStatusUI(){
+      const el = $('#subStatus');
+      if(isPro()){
+        el.innerHTML = `<span class="sub-ok">有料版：残り${daysLeft()}日</span>`;
+      } else {
+        el.innerHTML = `<span class="sub-ng">無料版（上限あり）</span>`;
+      }
+    }
+
+    // ===== UI初期描画 =====
+    renderList();
+    updatePreview();
+    applySubState();
+    updateSubStatusUI();
+
+    // ===== 顧客追加 =====
+    $('#addCustomer').addEventListener('click', ()=>{
+      const name = nameEl.value.trim();
+      if(!name){ alert('顧客名を入力してね'); return; }
+      if(customers.length >= window.FREE_LIMIT){ alert('無料版の上限に達しています'); return; }
+      customers.push({ name });
+      save();
+      nameEl.value='';
+      renderList();
+    });
+
+    // ===== 顧客リスト描画 =====
+    function renderList(){
+      listEl.innerHTML = '';
+      customers.forEach((c,i)=>{
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div>
+            <span class="name">${c.name}</span>
+            ${selectedIndex===i ? `<span class="badge">選択中</span>`:''}
+          </div>
+          <div class="row" style="gap:6px">
+            <button data-i="${i}" class="sel">選ぶ</button>
+            <button data-i="${i}" class="ghost del">削除</button>
+          </div>`;
+        listEl.appendChild(li);
+      });
+
+      listEl.querySelectorAll('.sel').forEach(b=>{
+        b.onclick = (e)=>{
+          selectedIndex = Number(e.target.dataset.i);
+          localStorage.setItem('hime_selectedIndex', String(selectedIndex));
+          updatePreview(); renderList();
+        };
+      });
+      listEl.querySelectorAll('.del').forEach(b=>{
+        b.onclick = (e)=>{
+          const i = Number(e.target.dataset.i);
+          customers.splice(i,1);
+          if(selectedIndex===i) selectedIndex=null;
+          if(selectedIndex!==null && selectedIndex>i) selectedIndex--;
+          save(); renderList(); updatePreview();
+        };
+      });
+    }
+
+    // ===== プレビュー =====
+    baseEl.addEventListener('input', updatePreview);
+    function updatePreview(){
+      const name = selectedIndex!=null ? customers[selectedIndex].name : '{name}';
+      // スペース問題を避ける：{name} と {name} の後ろの半角スペースの両方に対応
+      const raw = baseEl.value || '';
+      const replaced = raw
+        .replaceAll('{name} ', name)   // {name}<space>
+        .replaceAll('{name}', name);   // {name}
+      previewEl.textContent = replaced;
+    }
+
+    // ===== コピー / 共有 =====
+    $('#copyBtn').addEventListener('click', async ()=>{
+      const txt = previewEl.textContent;
+      if(!txt){ alert('メッセージを入力してね'); return; }
+      await navigator.clipboard.writeText(txt);
+      alert('コピーしたよ！LINEで貼り付けて送ってね。');
+    });
+
+    $('#shareBtn').addEventListener('click', async ()=>{
+      const txt = previewEl.textContent;
+      if(!txt){ alert('メッセージを入力してね'); return; }
+      try{
+        if(navigator.share){ await navigator.share({ text: txt }); }
+        else {
+          await navigator.clipboard.writeText(txt);
+          alert('共有非対応ブラウザ：コピー済みなので、LINEで貼り付けて送ってね。');
+        }
+      }catch(e){ /* キャンセルなどは無視 */ }
+    });
+
+    // ===== 保存 / バックアップ =====
+    function save(){ localStorage.setItem('hime_customers', JSON.stringify(customers)); }
+
+    $('#exportBtn').addEventListener('click', ()=>{
+      const blob = new Blob([JSON.stringify(customers,null,2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'hime_customers_backup.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    $('#importBtn').addEventListener('click', ()=> $('#fileInput').click());
+    $('#fileInput').addEventListener('change', async (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const text = await file.text();
+      try{
+        const data = JSON.parse(text);
+        if(Array.isArray(data)){
+          customers = data.map(x => ({ name:String(x.name||'').trim() })).filter(x=>x.name);
+          save(); renderList(); updatePreview();
+        } else {
+          alert('不正なファイルです');
+        }
+      }catch(err){ alert('読み込みに失敗しました'); }
+      e.target.value = '';
+    });
+
+    // ===== 解除コードの認証 =====
+    document.getElementById('redeemBtn').addEventListener('click', async ()=>{
+      const code = document.getElementById('unlockCode').value.trim();
+      if(!code) return alert('コードを入力してね');
+      try{
+        const res = await fetch(ENDPOINT, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ apiKey: API_KEY, code, deviceId: getDeviceId() })
+        });
+        const data = await res.json();
+        if(!data.ok) return alert('コードエラー：'+(data.error||''));
+        localStorage.setItem(SUB_EXP_KEY, data.expiresAt);
+        applySubState();
+        updateSubStatusUI();
+        alert('有料版が有効になりました！');
+      }catch(e){ alert('通信エラー'); }
+    });
+
+    // ===== 残日数の再計算（UI更新用ショートカット）=====
+    document.getElementById('checkBtn').addEventListener('click', ()=>{
+      applySubState();
+      updateSubStatusUI();
+      alert('状態を更新しました');
+    });
+
+    // ===== Service Worker =====
+    if('serviceWorker' in navigator){
+      window.addEventListener('load', ()=> {
+        navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+      });
+    }
+  </script>
 </body>
 </html>
