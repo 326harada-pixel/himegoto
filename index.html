@@ -10,8 +10,8 @@
 </head>
 <body>
   <header>
-    <!-- ロゴ画像を置くスペース（後で差し替え予定） -->
-    <div style="height:54px"></div>
+    <!-- ロゴ画像を後で置くための余白だけ確保（テキストロゴは表示しない） -->
+    <div style="height:64px"></div>
     <span id="pro-expiry-badge" class="badge">有料版：期限 ー</span>
   </header>
 
@@ -21,21 +21,21 @@
       <h2>有料版の解除</h2>
       <input id="code-input" placeholder="例：HGT-XXXXXXX" inputmode="latin" />
       <div class="row">
-        <button id="btn-verify-code" class="btn btn-pink" type="button">コード認証</button>
-        <button id="btn-recalc" class="btn btn-ghost" type="button">残日数を再計算</button>
+        <button id="btn-verify-code" class="btn btn-pink">コード認証</button>
+        <button id="btn-recalc" class="btn btn-ghost">残日数を再計算</button>
       </div>
       <p class="muted">※ 30 / 180 / 360 日チケットに対応。端末変更時はサポートへ。</p>
     </section>
 
-    <!-- 顧客追加 -->
+    <!-- 顧客を追加 -->
     <section class="card">
       <h2>顧客を追加</h2>
       <input id="name-input" placeholder="例：太郎" />
       <div class="row">
-        <button id="btn-add" class="btn btn-pink" type="button">顧客を追加</button>
+        <button id="btn-add" class="btn btn-pink">顧客を追加</button>
         <span class="btn btn-ghost" style="pointer-events:none">無料版：残り <b id="free-left">5</b> 件</span>
       </div>
-      <p class="muted">※ 無料枠に達すると追加できません（デフォルト5件）</p>
+      <p class="muted">※ 無料枠に達すると追加できません（デフォルト5件・有料は無制限）</p>
     </section>
 
     <!-- 顧客一覧 -->
@@ -49,21 +49,25 @@
     <section class="card">
       <h2>メッセージ作成</h2>
       <p class="muted">本文（{name} が選択中の顧客名に置換されます）</p>
-      <textarea id="msg-template">{name}さん、今日はありがとう！ また会えるの楽しみにしてるね♡</textarea>
+      <textarea id="msg-template"> {name}さん、今日はありがとう！ また会えるの楽しみにしてるね♡ </textarea>
       <div class="row">
-        <button id="btn-insert-name" class="btn btn-ghost" type="button">{name} を挿入</button>
-        <button id="btn-copy" class="btn btn-ghost" type="button">コピー</button>
-        <button id="btn-share" class="btn btn-pink" type="button">共有（LINEに渡す）</button>
+        <button id="btn-insert-name" class="btn btn-ghost">{name} を挿入</button>
+        <!-- コピー機能は廃止：ボタンも無し -->
       </div>
+      <div class="row" style="margin-top:10px">
+        <button id="btn-share" class="btn btn-pink">共有（LINEに渡す）</button>
+        <span class="btn btn-ghost" style="pointer-events:none">無料版：残り送信 <b id="send-left">5</b> 回</span>
+      </div>
+      <p class="muted">※ 共有は対応ブラウザのみ。無料版の送信回数は合計5回までです。</p>
     </section>
 
-    <!-- ご意見/要望 -->
+    <!-- ご意見ボタン（常時表示） -->
     <section class="card" style="text-align:center">
       <a class="btn btn-ghost" href="https://line.me/ti/p/_kahjcCa3-" target="_blank" rel="noopener">ご意見・ご要望はこちら</a>
     </section>
 
-    <!-- 下部バナー用スペース -->
-    <div style="height:80px"></div>
+    <!-- 下部広告スペースの確保（後で差し替え可能） -->
+    <div style="height:90px"></div>
   </main>
 
   <!-- “処理中”モーダル -->
@@ -71,11 +75,10 @@
     <div class="modal">
       <div class="spinner"></div>
       <p id="modal-text">認証を処理中です。少しお待ちください…</p>
-      <button id="modal-cancel" class="btn btn-ghost" type="button">閉じる</button>
+      <button id="modal-cancel" class="btn btn-ghost">閉じる</button>
     </div>
   </div>
 
-  <!-- JS（キャッシュ破壊のためクエリ付与） -->
-  <script src="/app.js?v=2025-09-02-3"></script>
+  <script src="app.js"></script>
 </body>
 </html>
