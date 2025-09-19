@@ -1,5 +1,6 @@
-/***** バージョン表示 *****/
-console.warn('[himegoto] app.js v-send-daily-5-jst+reset');
+/***** バージョン *****/
+const APP_VERSION = "beta1.16";
+console.warn(`[himegoto] app.js ver.${APP_VERSION}`);
 
 /***** 設定（GAS の最新URL） *****/
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxJDyUKg5CyEoNAvatG3hgesVNsfYYVfrHrdfx7jMFf97KyyhI6HNJqItdUOzNCQGk/exec";
@@ -16,7 +17,6 @@ const SEND_COUNT_KEY = 'hime_send_cnt_v1';  // 当日の送信カウント
 
 /***** JST の“今日”を作るユーティリティ（端末タイムゾーンに依存しない） *****/
 function todayJST() {
-  // 現在のUTCミリ秒に +9時間（JST）してから日付をとる
   const now = new Date();
   const jstMs = now.getTime() + 9*60*60*1000;
   return new Date(jstMs);
@@ -26,7 +26,7 @@ function todayJST_YMD() {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth()+1).padStart(2,'0');
   const dd= String(d.getUTCDate()).padStart(2,'0');
-  return `${y}-${m}-${dd}`; // 例: 2025-09-19
+  return `${y}-${m}-${dd}`;
 }
 
 /***** 端末ID *****/
@@ -145,6 +145,27 @@ function hideModal(){ const m=modalEl(); if(!m) return; m.classList.remove('show
 
 /***** 初期化 *****/
 document.addEventListener('DOMContentLoaded', ()=>{
+  // --- 右上にバージョンバッジを自動挿入（HTML改修不要） ---
+  (function injectVersionBadge(){
+    const id = 'app-version';
+    let el = document.getElementById(id);
+    if(!el){
+      el = document.createElement('div');
+      el.id = id;
+      el.style.position = 'fixed';
+      el.style.top = '5px';
+      el.style.right = '8px';
+      el.style.fontSize = '12px';
+      el.style.color = '#fff';
+      el.style.background = '#0008';
+      el.style.padding = '2px 6px';
+      el.style.borderRadius = '4px';
+      el.style.zIndex = '9999';
+      document.body.appendChild(el);
+    }
+    el.textContent = `ver.${APP_VERSION}`;
+  })();
+
   // 日次バケット初期化 → 残回数UI反映
   ensureDailyBucket();
   updateSendLeft();
@@ -157,7 +178,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     .then(updateExpiryBadgeFromServer)
     .catch(()=>{});
 
-  // 顧客追加（★「リセット」/ "reset" 入力で当日の送信回数を0に → 残り5回に戻す）
+  // 顧客追加（「リセット」/ "reset" 入力で当日の送信回数を0に → 残り5回に戻す）
   const btnAdd = document.getElementById('btn-add');
   if(btnAdd){
     btnAdd.onclick=()=>{
@@ -165,9 +186,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const name=(inp?.value||'').trim();
       if(!name) return alert('名前を入れてね');
 
-      // ★ リセット・ギミック：顧客は追加せず、当日の送信回数だけ0に
+      // リセット・ギミック：顧客は追加せず、当日の送信回数だけ0に
       if (name === 'リセット' || name.toLowerCase() === 'reset') {
-        setSendCount(0); // 当日カウントを0に → 残りは FREE_SEND_DAILY_LIMIT (=5)
+        setSendCount(0); // 当日カウント=0 → 残り=FREE_SEND_DAILY_LIMIT(=5)
         alert(`送信回数をリセットしました。（残り ${sendLeft()} 回）`);
         if (inp) inp.value = '';
         return;
@@ -236,7 +257,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
         // キャンセルのみロールバック
         if(counted){ decSendCount(); }
       }finally{
-        // ボタン復帰
         setTimeout(()=>{ btnShare.disabled = false; sharing = false; }, 600);
       }
     };
