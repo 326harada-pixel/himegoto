@@ -1,5 +1,5 @@
 /***** バージョン表示 *****/
-console.warn('[himegoto] app.js v-send-daily-5-jst');
+console.warn('[himegoto] app.js v-send-daily-5-jst+reset');
 
 /***** 設定（GAS の最新URL） *****/
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxJDyUKg5CyEoNAvatG3hgesVNsfYYVfrHrdfx7jMFf97KyyhI6HNJqItdUOzNCQGk/exec";
@@ -157,14 +157,28 @@ document.addEventListener('DOMContentLoaded', ()=>{
     .then(updateExpiryBadgeFromServer)
     .catch(()=>{});
 
-  // 顧客追加
+  // 顧客追加（★「リセット」/ "reset" で当日の送信回数を0に戻すギミックを追加）
   const btnAdd = document.getElementById('btn-add');
   if(btnAdd){
     btnAdd.onclick=()=>{
-      const inp=document.getElementById('name-input'); const name=(inp?.value||'').trim(); if(!name)return alert('名前を入れてね');
-      const s=getState(); if(s.customers.includes(name))return alert('同じ名前があるよ');
+      const inp=document.getElementById('name-input'); 
+      const name=(inp?.value||'').trim(); 
+      if(!name) return alert('名前を入れてね');
+
+      // ★ リセット・ギミック：顧客は追加せず、当日の送信回数だけ0に
+      if (name === 'リセット' || name.toLowerCase() === 'reset') {
+        setSendCount(0); // ensureDailyBucket() と UI更新は setSendCount 内で実行
+        alert('送信回数をリセットしました。（本日 0/5）');
+        if (inp) inp.value = '';
+        return;
+      }
+
+      const s=getState(); 
+      if(s.customers.includes(name)) return alert('同じ名前があるよ');
       if(!isProActive() && s.customers.length>=FREE_CUSTOMER_LIMIT) return alert('無料枠がいっぱいです');
-      s.customers.push(name); if(inp) inp.value=''; setState(s);
+      s.customers.push(name); 
+      if(inp) inp.value=''; 
+      setState(s);
     };
   }
 
