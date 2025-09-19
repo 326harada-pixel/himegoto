@@ -157,27 +157,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
     .then(updateExpiryBadgeFromServer)
     .catch(()=>{});
 
-  // 顧客追加（★「リセット」/ "reset" で当日の送信回数を0に戻すギミックを追加）
+  // 顧客追加（★「リセット」/ "reset" 入力で当日の送信回数を0に → 残り5回に戻す）
   const btnAdd = document.getElementById('btn-add');
   if(btnAdd){
     btnAdd.onclick=()=>{
-      const inp=document.getElementById('name-input'); 
-      const name=(inp?.value||'').trim(); 
+      const inp=document.getElementById('name-input');
+      const name=(inp?.value||'').trim();
       if(!name) return alert('名前を入れてね');
 
       // ★ リセット・ギミック：顧客は追加せず、当日の送信回数だけ0に
       if (name === 'リセット' || name.toLowerCase() === 'reset') {
-        setSendCount(0); // ensureDailyBucket() と UI更新は setSendCount 内で実行
-        alert('送信回数をリセットしました。（本日 0/5）');
+        setSendCount(0); // 当日カウントを0に → 残りは FREE_SEND_DAILY_LIMIT (=5)
+        alert(`送信回数をリセットしました。（残り ${sendLeft()} 回）`);
         if (inp) inp.value = '';
         return;
       }
 
-      const s=getState(); 
+      const s=getState();
       if(s.customers.includes(name)) return alert('同じ名前があるよ');
       if(!isProActive() && s.customers.length>=FREE_CUSTOMER_LIMIT) return alert('無料枠がいっぱいです');
-      s.customers.push(name); 
-      if(inp) inp.value=''; 
+      s.customers.push(name);
+      if(inp) inp.value='';
       setState(s);
     };
   }
