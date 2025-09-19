@@ -1,17 +1,33 @@
 /***** バージョン表示 *****/
-console.warn('[himegoto] app.js v-sendcount-fix-2');
+console.warn('[himegoto] app.js v-send-daily-5-jst');
 
 /***** 設定（GAS の最新URL） *****/
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxJDyUKg5CyEoNAvatG3hgesVNsfYYVfrHrdfx7jMFf97KyyhI6HNJqItdUOzNCQGk/exec";
 const DEVICE_ID_KEY = 'himegoto_device_id';
 
 /***** 無料版の上限 *****/
-const FREE_CUSTOMER_LIMIT = 5;   // 顧客登録 上限
-const FREE_SEND_LIMIT     = 5;   // 送信（共有）合計 上限
+const FREE_CUSTOMER_LIMIT   = 5; // 顧客登録 上限
+const FREE_SEND_DAILY_LIMIT = 5; // 送信（共有）1日あたり 上限
 
 /***** ローカル保存キー *****/
-const EXP_KEY   = 'hime_pro_until_v2'; // Pro期限のYYYY/MM/DD
-const SEND_CNT  = 'hime_send_count_v1'; // 無料送信の累計
+const EXP_KEY        = 'hime_pro_until_v2'; // Pro期限 YYYY/MM/DD
+const SEND_DAY_KEY   = 'hime_send_day_v1';  // 送信カウントの対象日（JST, YYYY-MM-DD）
+const SEND_COUNT_KEY = 'hime_send_cnt_v1';  // 当日の送信カウント
+
+/***** JST の“今日”を作るユーティリティ（端末タイムゾーンに依存しない） *****/
+function todayJST() {
+  // 現在のUTCミリ秒に +9時間（JST）してから日付をとる
+  const now = new Date();
+  const jstMs = now.getTime() + 9*60*60*1000;
+  return new Date(jstMs);
+}
+function todayJST_YMD() {
+  const d = todayJST();
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth()+1).padStart(2,'0');
+  const dd= String(d.getUTCDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`; // 例: 2025-09-19
+}
 
 /***** 端末ID *****/
 function getDeviceId(){
@@ -38,7 +54,7 @@ async function callGas(action, payload={}, {retries=0,delay=300}={}){
   }
 }
 
-/***** 日付ユーティリティ（表示用） *****/
+/***** 日付系（残日数表示用） *****/
 function daysLeftFromYMD(ymd){
   if(!ymd) return 0;
   const [y,m,d] = ymd.split('/').map(Number);
@@ -61,12 +77,30 @@ function updateExpiryBadgeFromServer(data){
   badge.textContent = ymd ? `有料版：期限 ${ymd}（残り ${dl} 日）` : '有料版：期限 ー';
 }
 
-/***** 無料送信カウンタ *****/
-function getSendCount(){ return parseInt(localStorage.getItem(SEND_CNT)||'0',10)||0; }
-function setSendCount(n){ localStorage.setItem(SEND_CNT,String(Math.max(0,n|0))); updateSendLeft(); }
+/***** 無料送信カウンタ（JSTで日次リセット） *****/
+function ensureDailyBucket(){
+  const today = todayJST_YMD();
+  const savedDay = localStorage.getItem(SEND_DAY_KEY);
+  if (savedDay !== today) {
+    localStorage.setItem(SEND_DAY_KEY, today);
+    localStorage.setItem(SEND_COUNT_KEY, '0');
+  }
+}
+function getSendCount(){
+  ensureDailyBucket();
+  return parseInt(localStorage.getItem(SEND_COUNT_KEY)||'0',10)||0;
+}
+function setSendCount(n){
+  ensureDailyBucket();
+  localStorage.setItem(SEND_COUNT_KEY, String(Math.max(0, n|0)));
+  updateSendLeft();
+}
 function incSendCount(){ setSendCount(getSendCount()+1); }
 function decSendCount(){ setSendCount(getSendCount()-1); }
-function sendLeft(){ return Math.max(0, FREE_SEND_LIMIT - getSendCount()); }
+function sendLeft(){
+  ensureDailyBucket();
+  return Math.max(0, FREE_SEND_DAILY_LIMIT - getSendCount());
+}
 function updateSendLeft(){
   const el=document.getElementById('send-left');
   if(el) el.textContent = sendLeft();
@@ -111,10 +145,14 @@ function hideModal(){ const m=modalEl(); if(!m) return; m.classList.remove('show
 
 /***** 初期化 *****/
 document.addEventListener('DOMContentLoaded', ()=>{
-  render();
+  // 日次バケット初期化 → 残回数UI反映
+  ensureDailyBucket();
   updateSendLeft();
 
-  // 起動時にサーバの確定値で Pro 表示更新
+  // 名簿UI
+  render();
+
+  // 起動時：サーバ確定値で Pro 表示更新
   callGas('status',{deviceId:getDeviceId()})
     .then(updateExpiryBadgeFromServer)
     .catch(()=>{});
@@ -144,7 +182,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     };
   }
 
-  // 共有（送信回数制御 + キャンセル時ロールバック）
+  // 共有（送信回数：JSTで1日5回に制御。キャンセル時ロールバック）
   const btnShare = document.getElementById('btn-share');
   if(btnShare){
     let sharing = false;
@@ -152,8 +190,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(sharing) return;
       const s=getState(); if(!s.selected) return alert('まず顧客を「選ぶ」で選択してね');
 
-      // 無料版の送信上限チェック
-      if(!isProActive() && sendLeft()<=0) return alert('無料版の送信回数（5回）を使い切りました');
+      // Pro は無制限 / 無料は当日残回数チェック
+      if(!isProActive()){
+        ensureDailyBucket();
+        if (sendLeft()<=0) return alert('無料版の本日送信回数（5回）を使い切りました');
+      }
 
       const tpl=document.getElementById('msg-template')?.value||'';
       const text=tpl.replaceAll('{name}', s.selected).trim();
@@ -162,7 +203,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       sharing = true;
       btnShare.disabled = true;
 
-      // 無料版は「押した時点で」先に1カウント（二度押し防止）。キャンセル時はロールバック。
+      // 無料版は押下時に先行カウント（多重押し対策）。shareキャンセル時のみロールバック。
       let counted = false;
       if(!isProActive()){
         incSendCount();
@@ -172,16 +213,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
       try{
         if(navigator.share){
           await navigator.share({ text });
-          // 成功時：カウントは維持（何もしない）
+          // 成功：カウント維持
         }else{
-          // フォールバックは戻りが取れないため、そのままカウント維持
+          // フォールバック（LINE URL）は戻りが取れないためカウント維持
           location.href = 'https://line.me/R/msg/text/?' + encodeURIComponent(text);
         }
       }catch(err){
-        // ユーザーキャンセル時はロールバック
+        // キャンセルのみロールバック
         if(counted){ decSendCount(); }
       }finally{
-        // 少しだけボタンを再有効化遅延（多重タップ対策）
+        // ボタン復帰
         setTimeout(()=>{ btnShare.disabled = false; sharing = false; }, 600);
       }
     };
