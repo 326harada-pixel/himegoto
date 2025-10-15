@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ﾋﾒｺﾞﾄ</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU",
+      authDomain: "himegoto-web.firebaseapp.com",
+      projectId: "himegoto-web",
+      storageBucket: "himegoto-web.firebasestorage.app",
+      messagingSenderId: "368382081243",
+      appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    window.onload = () => {
+      // すでにログイン済みの場合
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          document.getElementById("loginSection").style.display = "none";
+          document.getElementById("loggedIn").style.display = "block";
+          document.getElementById("userPhone").textContent = user.phoneNumber;
+        }
+      });
+
+      // reCAPTCHA設定
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible"
+      });
+    };
+
+    // SMS送信処理
+    window.sendSMS = () => {
+      const phoneNumber = document.getElementById("phoneNumber").value;
+      const appVerifier = window.recaptchaVerifier;
+      signInWithPhoneNumber(auth, phoneNumber, appVerifier)
+        .then((confirmationResult) => {
+          window.confirmationResult = confirmationResult;
+          alert("認証コードを送信しました");
+          document.getElementById("codeInput").style.display = "block";
+        })
+        .catch((error) => {
+          console.error(error);
+          alert("送信エラー: " + error.message);
+        });
+    };
+
+    // 認証コード確認処理
+    window.verifyCode = () => {
+      const code = document.getElementById("verificationCode").value;
+      window.confirmationResult.confirm(code)
+        .then((result) => {
+          const user = result.user;
+          alert("ログイン成功: " + user.phoneNumber);
+          document.getElementById("loginSection").style.display = "none";
+          document.getElementById("loggedIn").style.display = "block";
+          document.getElementById("userPhone").textContent = user.phoneNumber;
+        })
+        .catch((error) => {
+          console.error(error);
+          alert("認証失敗: " + error.message);
+        });
+    };
+  </script>
+</head>
+<body>
+  <main>
+    <section id="content">
+      <h1>ﾋﾒｺﾞﾄ</h1>
+      <p>営業LINE補助アプリ</p>
+    </section>
+
+    <!-- ログインエリア -->
+    <section id="loginSection" style="text-align:center; margin-top:50px;">
+      <h2>電話番号でログイン</h2>
+      <input type="tel" id="phoneNumber" placeholder="+819012345678" />
+      <button onclick="sendSMS()">認証コードを送信</button>
+      <div id="recaptcha-container"></div>
+
+      <div id="codeInput" style="display:none; margin-top:10px;">
+        <input type="text" id="verificationCode" placeholder="認証コードを入力" />
+        <button onclick="verifyCode()">認証</button>
+      </div>
+    </section>
+
+    <!-- ログイン後表示 -->
+    <section id="loggedIn" style="display:none; text-align:center; margin-top:50px;">
+      <h2>ログイン済み</h2>
+      <p id="userPhone"></p>
+    </section>
+  </main>
+</body>
+</html>
