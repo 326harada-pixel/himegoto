@@ -1,49 +1,96 @@
-/* Minimal phone auth wrapper (expects project to already be configured on Firebase)
-   - Exposes: hgAuth.onState(cb), hgAuth.signIn(), hgAuth.fetchUserInfo()
-*/
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+// firebase-auth-modal.js  (build007 - phone auth)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// Expect config to be injected via global or fallback to placeholder (user already set this earlier)
-const cfg = window.__FIREBASE_CONFIG__ || {
-  apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU",
-  authDomain: "himegoto-web.firebaseapp.com",
-  projectId: "himegoto-web",
-  storageBucket: "himegoto-web.firebasestorage.app",
-  messagingSenderId: "368382081243",
-  appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
+const cfg = (window.HIMEGOTO_FIREBASE_CONFIG) ?? {
+  apiKey: "<YOUR_API_KEY>",
+  authDomain: "<YOUR_PROJECT_ID>.firebaseapp.com",
+  projectId: "<YOUR_PROJECT_ID>",
+  storageBucket: "<YOUR_PROJECT_ID>.appspot.com",
+  messagingSenderId: "<YOUR_SENDER_ID>",
+  appId: "<YOUR_APP_ID>"
 };
 
 const app = initializeApp(cfg);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
-// Simple inline modal prompt
-function phonePrompt(){
-  const num = prompt("電話番号（国番号込み。例 +81...）");
-  if(!num) return;
-  const verifierId = "recaptcha-container";
-  let box = document.getElementById(verifierId);
-  if(!box){ box = Object.assign(document.createElement("div"),{id:verifierId}); document.body.appendChild(box); }
-  const verifier = new RecaptchaVerifier(auth, verifierId, { size: "invisible" });
-  signInWithPhoneNumber(auth, num, verifier).then((result)=>{
-    const code = prompt("SMSの6桁コードを入力してください");
+function $(sel, root=document){ return root.querySelector(sel); }
+function findLoginButton(){
+  return $("#btn-login") || Array.from(document.querySelectorAll("button, a[role='button']"))
+    .find(el => (el.textContent||"").trim().includes("ログイン"));
+}
+function ensureRecaptchaContainer(){
+  let el = $("#recaptcha-container");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "recaptcha-container";
+    el.style.position="fixed";
+    el.style.bottom="8px";
+    el.style.right="8px";
+    el.style.zIndex=2147483647;
+    document.body.appendChild(el);
+  }
+  return el;
+}
+let recaptchaVerifier=null;
+function buildRecaptcha(){
+  ensureRecaptchaContainer();
+  recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size:"invisible" });
+  return recaptchaVerifier;
+}
+
+async function doPhoneLogin(){
+  try{
+    const phone = window.prompt("電話番号（+81...）を入力してください");
+    if(!phone) return;
+    if(!recaptchaVerifier) buildRecaptcha();
+    const confirmation = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
+    const code = window.prompt("SMSの6桁コードを入力してください");
     if(!code) return;
-    return result.confirm(code);
-  }).catch(err=> alert("認証エラー: " + err.message));
+    await confirmation.confirm(code);
+    const user = auth.currentUser;
+    window.dispatchEvent(new CustomEvent("hime:login:success", { detail:{ user } }));
+  }catch(err){
+    console.error("[himegoto] phone auth error:", err);
+    alert("ログインに失敗しました: " + (err?.message||err));
+    recaptchaVerifier=null;
+  }
+}
+async function doLogout(){
+  try{
+    await signOut(auth);
+    window.dispatchEvent(new CustomEvent("hime:logout"));
+  }catch(e){ console.error(e); }
 }
 
-async function fetchUserInfo(){
-  const u = auth.currentUser;
-  if(!u) return null;
-  const snap = await getDoc(doc(db, "users", u.uid));
-  return snap.exists()? snap.data(): null;
+function wireButtons(){
+  const loginBtn = findLoginButton();
+  if(loginBtn && !loginBtn.dataset._himeWired){
+    loginBtn.addEventListener("click", (e)=>{ e.preventDefault(); doPhoneLogin(); });
+    loginBtn.dataset._himeWired="1";
+  }
+  const logoutBtn = $("#btn-logout");
+  if(logoutBtn && !logoutBtn.dataset._himeWired){
+    logoutBtn.addEventListener("click", (e)=>{ e.preventDefault(); doLogout(); });
+    logoutBtn.dataset._himeWired="1";
+  }
 }
 
-const api = {
-  onState: (cb)=> onAuthStateChanged(auth, (user)=> cb({user})),
-  signIn: phonePrompt,
-  fetchUserInfo
-};
-window.hgAuth = api;
+onAuthStateChanged(auth, (user)=>{
+  document.documentElement.dataset.auth = user ? "on" : "off";
+});
+
+window.himeLogin = doPhoneLogin;
+window.himeLogout = doLogout;
+
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded", wireButtons);
+}else{
+  wireButtons();
+}
