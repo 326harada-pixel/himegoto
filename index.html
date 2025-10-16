@@ -5,23 +5,25 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#ff69b4" />
   <title>ヒメゴト</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css?v=1.18" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7563803975606087" crossorigin="anonymous"></script>
 </head>
-<body class="bg-sparkle">
+<body class="background-sparkle">
   <header>
-    <nav class="nav">
-      <a href="index.html" class="active">ホーム</a>
+    <div class="nav container">
+      <a href="index.html">ホーム</a>
       <a href="help.html">使い方</a>
       <a href="example.html">例文</a>
-      <a href="qa.html">Q&A</a>
-      <a href="terms.html">利用規約</a>
-    </nav>
-    <button id="login-btn" class="login-btn">🔐ログイン</button>
-    <div style="height:64px"></div>
-    <span id="pro-expiry-badge" class="badge">有料版：期限 ー</span>
+      <a href="qna.html">Q&A</a>
+      <a href="policy.html">利用規約</a>
+      <span class="version">ver.1.18</span>
+    </div>
   </header>
-  <main>
+
+  <main class="container">
+    <p><span class="badge">有料版：期限 ー</span></p>
+
     <section class="card">
       <h2>有料版の解除</h2>
       <input id="code-input" placeholder="例：HGT-XXXXXXX" inputmode="latin" />
@@ -29,6 +31,7 @@
         <button id="btn-verify-code" class="btn btn-pink">コード認証</button>
         <button id="btn-recalc" class="btn btn-ghost">残日数を再計算</button>
       </div>
+      <p class="muted">※ 30 / 180 / 360 日チケットに対応。端末変更時はサポートへ。</p>
     </section>
 
     <section class="card">
@@ -38,27 +41,36 @@
         <button id="btn-add" class="btn btn-pink">顧客を追加</button>
         <span class="btn btn-ghost" style="pointer-events:none">無料版：残り <b id="free-left">5</b> 件</span>
       </div>
+      <p class="muted">※ 無料枠に達すると追加できません（デフォルト5件・有料は無制限）</p>
     </section>
 
     <section class="card">
       <h2>顧客一覧</h2>
-      <div id="customer-list"></div>
+      <div id="customer-list" class="list"></div>
+      <p class="muted">「選ぶ」で下の本文の {name} に差し込みます。</p>
     </section>
 
     <section class="card">
       <h2>メッセージ作成</h2>
-      <textarea id="msg-template">{name}さん、今日はありがとう！また会えるの楽しみにしてるね♡</textarea>
+      <p class="muted">本文（{name} が選択中の顧客名に置換されます）</p>
+      <textarea id="msg-template">今日はありがと〜！{
+name
+}さんが来てくれて本当に助かったの😌 次に会えるの、楽しみにしてるね♡ また{name}さんの話きかせて！</textarea>
       <div class="row">
-        <button id="btn-share" class="btn btn-pink">共有（LINEに渡す）</button>
+        <button id="btn-insert-name" class="btn btn-ghost">{name} を挿入</button>
       </div>
+      <div class="row" style="margin-top:10px">
+        <button id="btn-share" class="btn btn-pink">共有（LINEに渡す）</button>
+        <span class="btn btn-ghost" style="pointer-events:none">無料版：残り送信 <b id="send-left">5</b> 回</span>
+      </div>
+      <p class="muted">※ 共有は対応ブラウザのみ。無料版の送信回数は合計5回までです。</p>
     </section>
+
+    <div style="height:90px"></div>
   </main>
 
-  <footer>
-    <a class="btn btn-ghost" href="https://line.me/ti/p/_kahjcCa3-" target="_blank" rel="noopener">💬 ご意見・ご要望はこちら</a>
-  </footer>
+  <a class="footer-fab" href="https://line.me/ti/p/_kahjcCa3-" target="_blank" rel="noopener">💬 ご意見・ご要望はこちら</a>
 
-  <script src="app.js"></script>
-  <script type="module" src="./firebase-auth-modal.js"></script>
+  <script src="app.js?v=1.18"></script>
 </body>
 </html>
