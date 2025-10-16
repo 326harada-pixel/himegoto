@@ -1,11 +1,14 @@
-// himegoto - Firebase config injection
-// Paste your actual values from Firebase Console > Project settings > General > SDK setup and configuration.
+// himegoto - Firebase config (build009 full version)
 window.FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyD-gLP5rIErS678UewraA0vt59JbLZpzhU",
+  authDomain: "himegoto-web.firebaseapp.com",
+  projectId: "himegoto-web",
+  storageBucket: "himegoto-web.firebasestorage.app",
+  messagingSenderId: "363882081243",
+  appId: "1:363882081243:web:09e3827701cbc6d1d2f4fe"
 };
-// Keep the variable name as-is. index.html/app.js will auto-detect this and initialize Firebase.
+
+// Auto Firebase initialization hook
+if (typeof firebase === 'undefined' && typeof initializeApp === 'function') {
+  initializeApp(window.FIREBASE_CONFIG);
+}
