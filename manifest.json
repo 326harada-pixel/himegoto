@@ -1,9 +1,1 @@
-{
-  "name": "ヒメゴト",
-  "short_name": "ヒメゴト",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffd1e6",
-  "theme_color": "#ff69b4",
-  "icons": []
-}
+{"name":"himegoto","display":"standalone"}
