@@ -1,1 +1,32 @@
-body{font-family:sans-serif;background:#fff;}
+body {
+  font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(circle at 30% 30%, #ffe4ec, #fff);
+  color: #333;
+}
+.bg-glow {
+  background-image: radial-gradient(rgba(255,182,193,0.3) 1px, transparent 1px);
+  background-size: 20px 20px;
+  animation: shimmer 6s infinite linear;
+}
+@keyframes shimmer {
+  from { background-position: 0 0; }
+  to { background-position: 100% 100%; }
+}
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 16px;
+  box-shadow: 0 4px 10px rgba(255,105,180,0.2);
+}
+.nav a {
+  margin: 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  background: #ffe4ec;
+  color: #ff1493;
+}
+.nav a.active { background: #ff69b4; color: white; }
