@@ -4,7 +4,6 @@ body {
   padding: 0;
   background: linear-gradient(180deg, #fff0f5, #ffe6f0);
   color: #333;
-  overflow-x: hidden;
 }
 .bg-sparkle::before {
   content: "";
@@ -25,9 +24,13 @@ body {
 .card {
   background: white;
   border-radius: 16px;
-  padding: 16px;
-  margin: 16px;
+  padding: 20px;
+  margin: 20px;
   box-shadow: 0 4px 10px rgba(255,105,180,0.2);
+}
+.large-text {
+  font-size: 1.15rem;
+  line-height: 1.8;
 }
 .nav a {
   margin: 4px;
@@ -60,5 +63,4 @@ body {
 footer {
   text-align: center;
   padding: 20px;
-  background: transparent;
 }
