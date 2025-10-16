@@ -1,54 +1,93 @@
+/* himegoto app core */
+(() => {
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 
-// build009 app core
-const $ = (q)=>document.querySelector(q);
-const LS = { CUSTOMERS:'hime_customers', QUOTA:'hime_quota' };
+  const state = {
+    customers: JSON.parse(localStorage.getItem('hgt_customers') || '[]'),
+    freeLeft: Number(localStorage.getItem('hgt_free_left') || 5),
+    sendLeft: Number(localStorage.getItem('hgt_send_left') || 5),
+    selected: null
+  };
 
-let customers = JSON.parse(localStorage.getItem(LS.CUSTOMERS)||'[]');
-let quota = JSON.parse(localStorage.getItem(LS.QUOTA)||'{"add":5,"send":5}');
+  const renderList = () => {
+    const wrap = $("#customer-list");
+    wrap.innerHTML = "";
+    state.customers.forEach((name, idx) => {
+      const row = document.createElement("div");
+      row.className = "customer-item";
+      row.innerHTML = `<span class="name">${name}</span>
+        <span>
+          <button class="btn btn-ghost" data-i="${idx}" data-act="pick">選ぶ</button>
+          <button class="btn btn-ghost" data-i="${idx}" data-act="del">削除</button>
+        </span>`;
+      wrap.appendChild(row);
+    });
+  };
 
-function save(){ localStorage.setItem(LS.CUSTOMERS, JSON.stringify(customers)); localStorage.setItem(LS.QUOTA, JSON.stringify(quota)); }
-function render(){
-  $('#free-left').textContent = quota.add;
-  $('#send-left').textContent = quota.send;
-  const wrap = $('#customer-list');
-  wrap.innerHTML = '';
-  customers.forEach((n,i)=>{
-    const row = document.createElement('div'); row.className='row';
-    const span = document.createElement('span'); span.textContent = n; span.style.flex='1';
-    const pick = document.createElement('button'); pick.className='btn btn-ghost'; pick.textContent='選ぶ'; pick.onclick=()=>insertName(n);
-    const del  = document.createElement('button'); del.className='btn btn-pink'; del.textContent='削除'; del.onclick=()=>{ customers.splice(i,1); save(); render(); };
-    row.append(span,pick,del); wrap.appendChild(row);
+  const save = () => {
+    localStorage.setItem('hgt_customers', JSON.stringify(state.customers));
+    localStorage.setItem('hgt_free_left', String(state.freeLeft));
+    localStorage.setItem('hgt_send_left', String(state.sendLeft));
+    $("#free-left").textContent = state.freeLeft;
+    $("#send-left").textContent = state.sendLeft;
+  };
+
+  const insertName = () => {
+    const ta = $("#msg-template");
+    const p = ta.selectionStart;
+    const name = state.selected || "{name}";
+    ta.setRangeText(name, p, p, "end");
+    ta.focus();
+  };
+
+  const share = async () => {
+    if (state.sendLeft <= 0) return alert("無料送信回数を使い切りました。");
+    const name = state.selected || "{name}";
+    const msg = $("#msg-template").value.replaceAll("{name}", name);
+    if (navigator.share) {
+      try { await navigator.share({ text: msg }); state.sendLeft--; save(); }
+      catch {}
+    } else {
+      await navigator.clipboard.writeText(msg);
+      alert("本文をコピーしました。LINEへ貼り付けてください。");
+      state.sendLeft--; save();
+    }
+  };
+
+  // events
+  $("#btn-add").addEventListener("click", () => {
+    const v = $("#name-input").value.trim();
+    if (!v) return;
+    if (state.freeLeft <= 0) return alert("無料枠を使い切りました。");
+    state.customers.push(v);
+    state.freeLeft--;
+    $("#name-input").value = "";
+    save(); renderList();
   });
-}
-function insertName(name){
-  const ta = $('#msg-template');
-  const pos = ta.selectionStart ?? ta.value.length;
-  const v = ta.value;
-  ta.value = v.slice(0,pos) + name + v.slice(pos);
-  ta.focus();
-}
-$('#btn-add').onclick=()=>{
-  const v = $('#name-input').value.trim();
-  if(!v) return alert('名前を入力してね');
-  if(quota.add<=0) return alert('無料枠の上限です');
-  customers.push(v); $('#name-input').value=''; quota.add--; save(); render();
-};
-$('#btn-insert-name').onclick=()=>insertName('{name}');
-$('#btn-share').onclick=async()=>{
-  if(quota.send<=0) return alert('無料の送信回数が上限です');
-  const text = $('#msg-template').value.trim();
-  try{
-    if(navigator.share){ await navigator.share({text}); }
-    else { await navigator.clipboard.writeText(text); alert('本文をコピーしました。LINEに貼り付けてください。'); }
-    quota.send--; save(); render();
-  }catch(e){ /* cancelled */ }
-};
 
-// login button triggers modal in firebase-auth-modal.js
-document.getElementById('btn-login').addEventListener('click', ()=>{
-  const el = document.getElementById('btn-login');
-  el.setAttribute('aria-busy','true');
-  window.dispatchEvent(new CustomEvent('hg:request-login'));
-});
+  $("#customer-list").addEventListener("click", (e) => {
+    const t = e.target.closest("button"); if (!t) return;
+    const i = Number(t.dataset.i);
+    if (t.dataset.act === "pick") { state.selected = state.customers[i]; alert(`「${state.selected}」を選択しました。`); }
+    if (t.dataset.act === "del") { state.customers.splice(i,1); renderList(); save(); }
+  });
 
-render();
+  $("#btn-insert-name").addEventListener("click", insertName);
+  $("#btn-share").addEventListener("click", share);
+
+  // auth modal
+  $("#btn-login").addEventListener("click", async () => {
+    if (!window.FIREBASE_CONFIG) { alert("ログインに失敗しました: FIREBASE_CONFIG missing"); return; }
+    try {
+      await window.hgtAuthModal.startPhoneLogin();
+    } catch (e) {
+      alert(`ログインに失敗しました: ${e.message || e}`);
+    }
+  });
+
+  // init
+  $("#free-left").textContent = state.freeLeft;
+  $("#send-left").textContent = state.sendLeft;
+  renderList();
+})();

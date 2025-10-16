@@ -7,32 +7,29 @@
   <title>ヒメゴト</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7563803975606087" crossorigin="anonymous"></script>
 </head>
 <body>
-  <header class="header-nav nav-container">
+  <header class="header-nav">
     <nav class="nav-row">
-      <a class="nav-btn pill" href="index.html">ホーム</a>
-      <a class="nav-btn pill" href="help.html">使い方</a>
-      <a class="nav-btn pill" href="examples.html">例文</a>
-      <a class="nav-btn pill" href="qa.html">Q&A</a>
-      <a class="nav-btn pill" href="terms.html">利用規約</a>
-      <span class="ver-badge">ver.1.23</span>
+      <a class="tab-btn" href="index.html">ホーム</a>
+      <a class="tab-btn" href="how-to.html">使い方</a>
+      <a class="tab-btn" href="examples.html">例文</a>
+      <a class="tab-btn" href="qa.html">Q&A</a>
+      <a class="tab-btn" href="terms.html">利用規約</a>
+      <span class="ver">ver.1.24</span>
     </nav>
   </header>
 
   <main class="container">
-    <!-- プラン・ログイン -->
-    <section class="card">
-      <div class="row" style="gap:12px;align-items:center">
-        <span class="btn btn-ghost">無料プラン</span>
-        <button id="btn-login" class="btn btn-pink"><span style="margin-right:6px">🔐</span>ログイン</button>
-        <span>期限：<b id="pro-expiry">ー</b>　紹介 <b id="ref-count">0</b> / 3</span>
+    <section class="card plan">
+      <div class="row">
+        <span class="pill">無料プラン</span>
+        <button id="btn-login" class="btn btn-pink">🔐 ログイン</button>
+        <span class="muted">期限：ー　紹介 0 / 3</span>
       </div>
       <p class="muted">ログインするとプラン/期限が自動反映されます。コード入力や再計算は不要です。</p>
     </section>
 
-    <!-- 顧客を追加 -->
     <section class="card">
       <h2>顧客を追加</h2>
       <input id="name-input" placeholder="例：太郎" />
@@ -42,47 +39,38 @@
       </div>
     </section>
 
-    <!-- 顧客一覧 -->
     <section class="card">
       <h2>顧客一覧</h2>
       <p class="muted">「選ぶ」で下の本文の {name} に差し込みます。</p>
       <div id="customer-list"></div>
     </section>
 
-    <!-- メッセージ作成 -->
     <section class="card">
       <h2>メッセージ作成</h2>
       <p class="muted">本文（{name} が選択中の顧客名に置換されます）</p>
-      <textarea id="msg-template"> 今日はありがと〜♥ {name}さんが来てくれてホント助かった😅 次は金曜日にイベントだから、もし余裕あったら顔見せてくれたら嬉しいな…！ {name}さんに会えるの楽しみにしてる♡ </textarea>
+      <textarea id="msg-template" class="msg-box">今日はありがと〜{name}さん♥ さっきの話の続き、また今度ゆっくりしたいな…！{name}さんのおかげで助かったよ。今週末もし時間あったら顔見せてくれたら嬉しいな😊</textarea>
       <div class="row">
         <button id="btn-insert-name" class="btn btn-ghost">{name} を挿入</button>
-      </div>
-      <div class="row" style="margin-top:10px">
         <button id="btn-share" class="btn btn-pink">共有（LINEに渡す）</button>
         <span class="btn btn-ghost" style="pointer-events:none">無料版：残り送信 <b id="send-left">5</b> 回</span>
       </div>
     </section>
 
-    <!-- ご意見ボタン（中央配置） -->
-    <section class="card" style="text-align:center">
+    <section class="card center">
       <a class="btn btn-ghost" href="https://line.me/ti/p/_kahjcCa3-" target="_blank" rel="noopener">ご意見・ご要望はこちら</a>
     </section>
-
-    <div style="height:90px"></div>
   </main>
 
-  <!-- “処理中”モーダル -->
   <div id="modal" class="modal-backdrop" aria-hidden="true">
     <div class="modal">
       <div class="spinner"></div>
-      <p id="modal-text">認証を処理中です。少しお待ちください…</p>
+      <p id="modal-text">処理中です…</p>
       <button id="modal-cancel" class="btn btn-ghost">閉じる</button>
     </div>
   </div>
 
-  <!-- 順序：config → auth-modal → app -->
   <script src="config.js"></script>
-  <script type="module" src="./firebase-auth-modal.js"></script>
+  <script src="firebase-auth-modal.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
