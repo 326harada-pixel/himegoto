@@ -1,51 +1,77 @@
-/* --- build006: compact top nav & centered feedback button --- */
 
-/* Compact top navigator */
-.header-nav, .nav-row, .nav-container {
-  min-height: 44px !important;
-  padding: 6px 8px !important;
+/* himegoto build007: base theme + compact top nav + centered feedback */
+
+:root{
+  --pink:#ff69b4;
+  --pink-2:#ffa6cf;
+  --pink-3:#ffd3e6;
+  --ink:#333;
+  --bg:#fff;
+  --radius:22px;
+  --nav-h:56px;
+  --shadow:0 6px 20px rgba(0,0,0,.08);
 }
 
-/* Common button-looking elements in the top nav */
-.nav-btn, .tab-btn, .top-btn, .chip, .pill, .nav a, .nav button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px !important;  /* smaller */
-  font-size: 14px !important;
-  line-height: 1.1 !important;
-  border-radius: 12px !important;
-  margin: 2px 6px !important;
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  color:var(--ink);
+  font-family:"Noto Sans JP",-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  /* soft pink gradient + two radial highlights (sparkle-ish) */
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255,255,255,.35) 0 30%, transparent 35%),
+    radial-gradient(circle at 80% 0%,  rgba(255,255,255,.25) 0 25%, transparent 30%),
+    linear-gradient(180deg, var(--pink-2), var(--pink-3));
+  background-attachment: fixed;
 }
 
-/* Prevent nested span from overriding font size */
-.nav-btn *, .tab-btn *, .top-btn *, .chip *, .pill *, .nav a *, .nav button * {
-  font-size: inherit !important;
+/* Layout */
+.container{max-width:960px;margin:0 auto;padding:0 16px 80px}
+.card{background:var(--bg);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin:16px 0}
+h1,h2{margin:0 0 12px}
+h1{font-size:22px} h2{font-size:20px}
+.badge{display:inline-block;background:#fff3;backdrop-filter:saturate(180%) blur(6px);padding:6px 10px;border-radius:999px;font-size:12px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:999px;padding:12px 18px;font-weight:700;cursor:pointer}
+.btn-pink{background:var(--pink);color:#fff}
+.btn-ghost{background:#fff;color:var(--pink);box-shadow:inset 0 0 0 2px var(--pink)}
+.btn:disabled{opacity:.5;pointer-events:none}
+
+/* Inputs */
+input,textarea{width:100%;padding:14px 16px;border-radius:16px;border:1px solid #e8cddd;background:#fff;font-size:16px}
+textarea{min-height:120px;resize:vertical}
+
+/* Top nav (compact) */
+.header-nav,.nav-row,.nav-container{min-height:44px;padding:6px 8px}
+.top-nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.top-nav .nav-btn,.top-nav .tab-btn,.top-nav .chip,.top-nav .pill,.top-nav a,.top-nav button{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:6px 12px;font-size:14px;line-height:1.1;border-radius:12px;margin:2px 6px;
+  background:#fff;border:1px solid rgba(0,0,0,.06);box-shadow:var(--shadow);text-decoration:none;color:var(--ink);
 }
 
-/* Version label tighter */
-.version-badge{ margin-top: 2px !important; }
+/* Feedback button (center bottom fixed) */
+#feedback,.feedback{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+  z-index:50;display:inline-flex;align-items:center;gap:8px;
+  background:#fff;border-radius:999px;padding:12px 18px;box-shadow:var(--shadow);color:var(--ink)}
 
-/* Center the feedback button/banner near bottom */
-#feedback, .feedback, .feedback-bar, .feedback-wrap {
-  position: fixed !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  bottom: 18px !important;
-  right: auto !important;
-  margin: 0 auto !important;
-  z-index: 2000 !important;
-  width: max-content !important;
-}
+/* Utility */
+.muted{opacity:.75;font-size:.95rem}
+.version{position:absolute;right:16px;top:8px;font-size:12px;opacity:.6}
+.hidden{display:none}
 
-/* If it sits inline within a section */
-.feedback-inline{
-  display: inline-block !important;
-  margin: 0 auto !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-}
+/* Customer list */
+.list{display:grid;gap:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.name-pill{padding:10px 14px;background:#fff;border:1px solid #f2c7dd;border-radius:999px}
 
-@media (max-width: 420px){
-  html{ font-size: 15px; }
+/* Footer spacer (for fixed feedback button) */
+.spacer-90{height:90px}
+
+/* Small screens */
+@media (max-width:400px){
+  .top-nav .nav-btn,.top-nav .tab-btn,.top-nav .chip,.top-nav .pill,.top-nav a,.top-nav button{font-size:13px;padding:6px 10px}
+  input,textarea{font-size:15px}
 }
