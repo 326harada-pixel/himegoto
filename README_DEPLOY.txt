@@ -1,13 +1,20 @@
-himegoto build 007 (ver.1.21)
----------------------------------
-このフォルダ内の4ファイルを GitHub の himegoto ディレクトリに上書きアップロードしてください。
 
-- index.html             … 本番UI。ログインボタン連携済み
-- app.js                 … 本文作成/共有/顧客管理（ローカル保存）
-- style.css              … トップナビ縮小＆全体スタイル
-- firebase-auth-modal.js … Firebase電話番号ログイン（既存アプリに未初期化なら window.FIREBASE_CONFIG を使用）
+himegoto build010（ログイン修正）
 
-※ 既に別の場所で Firebase 初期化済みなら、そのアプリを再利用します。
-※ 未初期化の場合は、index.html の <script> の前に以下の形式で設定を用意してください：
-  <script>window.FIREBASE_CONFIG={ apiKey:'...', authDomain:'...', projectId:'...', appId:'...' };</script>
-（この行はプロジェクト固有の値に置き換えてください）
+同梱ファイル（上書き推奨）:
+- index.html        : config.js を最優先で読む順序に変更（?v=010でキャッシュ無効化）
+- firebase-auth-modal.js : FIREBASE_CONFIG を待ってから初期化
+- config.js         : Firebase 設定（あなたのプロジェクト値）
+- service-worker.js : キャッシュ名を v010 に更新して古い SW を無効化
+
+デプロイ手順:
+1) この4ファイルを GitHub の himegoto 直下にアップロード（上書き）
+2) デプロイ完了後、ブラウザで以下を実施
+   - ページを開く → アドレスバーで「再読み込み長押し → ハード再読み込み」
+   - それでも古い表示の場合は、サイト設定→ストレージを消去/サービスワーカーを解除
+3) 画面右上 ver が 1.22 以降で、ログインを押したときのダイアログが変われば OK
+
+トラブル時の確認:
+- https://himegoto.vercel.app/config.js にアクセスして中身が見えるか（404なら配置場所が違う）
+- Developer Tools の Console で window.FIREBASE_CONFIG と打ち、オブジェクトが返るか
+- Firebase Console > Authentication > 承認済みドメイン に himegoto.vercel.app があるか

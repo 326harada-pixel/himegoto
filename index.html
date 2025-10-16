@@ -1,78 +1,23 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#ff69b4" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ヒメゴト</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css?v=1.22" />
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <header class="header-nav">
-    <nav class="nav-row top-nav">
-      <a class="tab-btn" href="index.html">ホーム</a>
-      <a class="tab-btn" href="help.html">使い方</a>
-      <a class="tab-btn" href="examples.html">例文</a>
-      <a class="tab-btn" href="qa.html">Q&A</a>
-      <a class="tab-btn" href="terms.html">利用規約</a>
-      <small class="version-badge">ver.1.22</small>
-    </nav>
-  </header>
+  <!-- 既存UIを壊さないため、内容は最小限。実運用では既存の index.html に置き換えてください -->
+  <div id="app-root"></div>
 
-  <main class="container">
-    <section class="card">
-      <div class="login-row">
-        <span id="plan-badge" class="badge badge-plan">無料プラン</span>
-        <button id="btn-login" class="login-btn btn-pink"><span class="lock">🔐</span><span>ログイン</span></button>
-        <span id="expiry-text" class="small">期限：ー</span>
-        <span id="ref-text" class="small">紹介 0 / 3</span>
-      </div>
-      <p class="page-note">ログインするとプラン/期限が自動反映。コード入力や再計算は不要です。</p>
-    </section>
+  <!-- 重要: Firebase 設定を先に読み込む（cache busting 付き） -->
+  <script src="./config.js?v=010"></script>
 
-    <section class="card">
-      <h2>顧客を追加</h2>
-      <input id="name-input" placeholder="例：太郎" />
-      <div class="row">
-        <button id="btn-add" class="btn btn-pink">顧客を追加</button>
-        <span class="badge">無料版：残り <b id="free-left">5</b> 件</span>
-      </div>
-    </section>
+  <!-- 既存アプリ本体（ユーザー側 app.js 等があれば引き続き読み込まれます）-->
+  <script src="./app.js"></script>
 
-    <section class="card">
-      <h2>顧客一覧</h2>
-      <div id="customer-list" class="list"></div>
-      <p class="page-note">「選ぶ」で下の本文の {name} に差し込みます。</p>
-    </section>
-
-    <section class="card">
-      <h2>メッセージ作成</h2>
-      <p class="page-note">本文（{name} が選択中の顧客名に置換されます）</p>
-      <textarea id="msg-template" class="msg-area">今日はありがと〜{name}さん♥ さっきの話の続き、また今度ゆっくり聞かせてね！{name}さんが来てくれるといつも助かる…✨ 今週どこかで会えたら嬉しいな(๑˃̵ᴗ˂̵)</textarea>
-      <div class="row">
-        <button id="btn-insert-name" class="btn btn-ghost">{name} を挿入</button>
-        <button id="btn-share" class="btn btn-pink">共有（LINEに渡す）</button>
-        <span class="badge">無料版：残り送信 <b id="send-left">5</b> 回</span>
-      </div>
-    </section>
-
-    <div class="feedback-wrap">
-      <a class="feedback" href="https://line.me/ti/p/_kahjcCa3-" target="_blank" rel="noopener">💬 ご意見・ご要望はこちら</a>
-    </div>
-  </main>
-
-  <div id="modal" class="modal-backdrop" aria-hidden="true">
-    <div class="modal">
-      <div class="spinner"></div>
-      <p id="modal-text">処理中…</p>
-      <button id="modal-cancel" class="btn btn-ghost">閉じる</button>
-    </div>
-  </div>
-
-  <div id="hg-invisible-recaptcha"></div>
-
-  <script type="module" src="./app.js?v=1.22"></script>
-  <script type="module" src="./firebase-auth-modal.js?v=1.22"></script>
+  <!-- 認証モーダル（FIREBASE_CONFIG を待機してから初期化） -->
+  <script src="./firebase-auth-modal.js?v=010"></script>
 </body>
 </html>
