@@ -1,76 +1,64 @@
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#ff69b4" />
-  <title>ヒメゴト</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css?v=1.18" />
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7563803975606087" crossorigin="anonymous"></script>
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ヒメゴト</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
 </head>
-<body class="background-sparkle">
-  <header>
-    <div class="nav container">
-      <a href="index.html">ホーム</a>
-      <a href="help.html">使い方</a>
-      <a href="example.html">例文</a>
-      <a href="qna.html">Q&A</a>
-      <a href="policy.html">利用規約</a>
-      <span class="version">ver.1.18</span>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <nav class="nav">
+        <a href="index.html">ホーム</a>
+        <a href="help.html">使い方</a>
+        <a href="examples.html">例文</a>
+        <a href="qa.html">Q&A</a>
+        <a href="terms.html">利用規約</a>
+      </nav>
+      <span class="version">ver.1.20</span>
     </div>
-  </header>
 
-  <main class="container">
-    <p><span class="badge">有料版：期限 ー</span></p>
-
-    <section class="card">
-      <h2>有料版の解除</h2>
-      <input id="code-input" placeholder="例：HGT-XXXXXXX" inputmode="latin" />
-      <div class="row">
-        <button id="btn-verify-code" class="btn btn-pink">コード認証</button>
-        <button id="btn-recalc" class="btn btn-ghost">残日数を再計算</button>
+    <div class="card">
+      <div class="login-row">
+        <span id="plan-badge" class="badge badge-plan">無料プラン</span>
+        <button id="btn-login" class="btn btn-ghost">🔐 ログイン</button>
+        <span class="small" id="expiry-text">期限：ー</span>
+        <span class="small" id="ref-text" title="紹介成立で+3日">紹介 0 / 3</span>
       </div>
-      <p class="muted">※ 30 / 180 / 360 日チケットに対応。端末変更時はサポートへ。</p>
-    </section>
+      <p class="page-note">ログインするとプラン/期限が自動反映されます。コード入力や再計算は不要です。</p>
+    </div>
 
     <section class="card">
       <h2>顧客を追加</h2>
-      <input id="name-input" placeholder="例：太郎" />
+      <input id="name-input" placeholder="例：太郎">
       <div class="row">
         <button id="btn-add" class="btn btn-pink">顧客を追加</button>
-        <span class="btn btn-ghost" style="pointer-events:none">無料版：残り <b id="free-left">5</b> 件</span>
+        <span class="badge">無料版：残り <b id="free-left">5</b> 件</span>
       </div>
-      <p class="muted">※ 無料枠に達すると追加できません（デフォルト5件・有料は無制限）</p>
     </section>
 
     <section class="card">
       <h2>顧客一覧</h2>
-      <div id="customer-list" class="list"></div>
-      <p class="muted">「選ぶ」で下の本文の {name} に差し込みます。</p>
+      <div id="customer-list"></div>
+      <p class="page-note">「選ぶ」で下の本文の {name} に差し込みます。</p>
     </section>
 
     <section class="card">
       <h2>メッセージ作成</h2>
-      <p class="muted">本文（{name} が選択中の顧客名に置換されます）</p>
-      <textarea id="msg-template">今日はありがと〜！{
-name
-}さんが来てくれて本当に助かったの😌 次に会えるの、楽しみにしてるね♡ また{name}さんの話きかせて！</textarea>
+      <p class="page-note">本文（{name} が選択中の顧客名に置換されます）</p>
+      <textarea id="msg-template">今日はありがと〜{name}さん♥ さっきの話の続き、また今度ゆっくり聞かせてね！{name}さんが来てくれるといつも助かる…✨ 今週どこかで会えたら嬉しいな(๑˃̵ᴗ˂̵)</textarea>
       <div class="row">
         <button id="btn-insert-name" class="btn btn-ghost">{name} を挿入</button>
-      </div>
-      <div class="row" style="margin-top:10px">
         <button id="btn-share" class="btn btn-pink">共有（LINEに渡す）</button>
-        <span class="btn btn-ghost" style="pointer-events:none">無料版：残り送信 <b id="send-left">5</b> 回</span>
+        <span class="badge">無料版：残り送信 <b id="send-left">5</b> 回</span>
       </div>
-      <p class="muted">※ 共有は対応ブラウザのみ。無料版の送信回数は合計5回までです。</p>
     </section>
 
-    <div style="height:90px"></div>
-  </main>
+    <div class="feedback-wrap">
+      <a class="feedback" href="https://line.me/ti/p/_kahjcCa3-" target="_blank" rel="noopener">💬 ご意見・ご要望はこちら</a>
+    </div>
+  </div>
 
-  <a class="footer-fab" href="https://line.me/ti/p/_kahjcCa3-" target="_blank" rel="noopener">💬 ご意見・ご要望はこちら</a>
-
-  <script src="app.js?v=1.18"></script>
-</body>
-</html>
+  <script src="app.js"></script>
+  <script type="module" src="firebase-auth-modal.js"></script>
+</body></html>

@@ -3,7 +3,7 @@
   "short_name": "ヒメゴト",
   "start_url": "index.html",
   "display": "standalone",
+  "background_color": "#ffd3e6",
   "theme_color": "#ff69b4",
-  "background_color": "#ffd1e1",
   "icons": []
 }
