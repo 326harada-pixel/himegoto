@@ -72,8 +72,11 @@ body{
 /* smaller buttons up top to match reference */
 .nav-row .pill{font-size:14px;padding:8px 16px;border-radius:20px}
 
-.choose-btn--active{
-  background:linear-gradient(90deg,#ff93d3,#ff5fa9) !important;
-  color:#fff !important;
-  border-color:#ff93d3 !important;
+.tab-container{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-bottom:30px;
 }
