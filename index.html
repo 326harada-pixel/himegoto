@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ホーム - himegoto（β）</title>
-<link rel="stylesheet" href="style.css?v=1.26b2">
+<link rel="stylesheet" href="style.css?v=1.26b3">
 </head>
 <body>
 <header class="topbar">
@@ -19,39 +19,27 @@
 <main>
 
 <section class="page">
-  <div class="card">
-    <h2>無料枠</h2>
-    <div class="quota">
-      <span class="quota-item">無料枠：<strong id="free-quota">5</strong>件</span>
-      <span class="quota-item">登録数：<strong id="reg-count">0</strong>件</span>
-      <span class="quota-badge" id="remain-badge">残り送信 5 回</span>
-    </div>
-  </div>
-
-  <div class="grid two" style="margin-top:12px">
+  <div class="grid two">
     <div class="card">
       <h2>顧客リスト</h2>
-      <div class="customer-list">
-        <div class="row" data-name="山田"><span class="name">山田</span><button class="choose-btn">選択</button></div>
-        <div class="row" data-name="田中"><span class="name">田中</span><button class="choose-btn">選択</button></div>
-        <div class="row" data-name="佐藤"><span class="name">佐藤</span><button class="choose-btn">選択</button></div>
+      <div class="add-customer">
+        <input id="add-input" class="add-input" type="text" placeholder="顧客名を入力">
+        <button id="add-btn" class="add-btn">追加</button>
       </div>
+      <div class="customer-list"></div>
     </div>
     <div class="card">
       <h2>メッセージ作成</h2>
       <textarea id="message" class="message">今日はありがとう♥{name}さんが来てくれてホント助かった😅また週末にでもさっきのお話の続き聞きたいな✨次は金曜日出勤してるから、もし{name}さんの都合が良かったらやけど来てくれると嬉しいな(,,>᎑<,,)待ってるね♥♡♥</textarea>
       <div class="actions">
-        <button id="share-btn" class="primary">LINEで共有</button>
-        <button id="insert-name" class="secondary">{name} を挿入</button>
+        <span id="remain-badge" class="quota-display">残り 5 回</span>
+        <button id="insert-name" class="secondary">{name}</button>
+        <button id="share-btn" class="primary">共有</button>
       </div>
     </div>
-  </div>
-
-  <div class="feedback-wrap">
-    <a class="feedback-btn" href="https://line.me/" target="_blank" rel="noopener noreferrer">ご意見・ご要望はこちら</a>
   </div>
 </section>
 
 </main>
-<script src="app.js?v=1.26b2"></script>
+<script src="app.js?v=1.26b3"></script>
 </body></html>
