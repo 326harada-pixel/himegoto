@@ -2,14 +2,15 @@
   const $ = (sel, root=document) => root.querySelector(sel);
   const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-  // Customer selection state (shared behavior for pages that have it)
   const message = $("#message");
   let selectedBtn = null;
   let selectedName = null;
+
+  // Customer selection
   const rows = $$(".customer-list .row");
   rows.forEach(row => {
     const btn = row.querySelector(".choose-btn");
-    if (!btn) return;
+    if(!btn) return;
     btn.textContent = "選択";
     btn.addEventListener("click", () => {
       if (selectedBtn && selectedBtn !== btn) {
@@ -23,28 +24,35 @@
     });
   });
 
-  // Copy/Share (replace token only at action time)
-  const write = async () => {
+  // LINE share: open LINE with prefilled text; textarea is never mutated
+  function buildMessage(){
     const src = message ? message.value : "";
-    const out = selectedName ? src.replaceAll("{name}", selectedName) : src;
-    await navigator.clipboard.writeText(out);
-  };
-  const copyBtn = $("#copy-btn");
-  const shareBtn = $("#share-btn");
-  if (copyBtn) copyBtn.addEventListener("click", async () => { try { await write(); toast("コピーしました"); } catch(e){ alert("コピーに失敗しました"); } });
-  if (shareBtn) shareBtn.addEventListener("click", async () => { try { await write(); toast("クリップボードに保存しました。LINEで貼り付けてください。"); } catch(e){ alert("共有に失敗しました"); } });
-
-  // Privacy modal (if exists)
-  const modal = $("#privacy-modal");
-  const openBtn = $("#privacy-open");
-  const closeBtn = $("#privacy-close");
-  if (modal && openBtn && closeBtn){
-    openBtn.addEventListener("click", () => { modal.classList.add("show"); modal.setAttribute("aria-hidden","false"); });
-    closeBtn.addEventListener("click", () => { modal.classList.remove("show"); modal.setAttribute("aria-hidden","true"); });
-    modal.addEventListener("click", (e)=>{ if(e.target===modal){ modal.classList.remove("show"); modal.setAttribute("aria-hidden","true"); } });
+    return selectedName ? src.replaceAll("{name}", selectedName) : src;
   }
 
-  // Simple toast
+  const shareBtn = $("#share-btn");
+  if (shareBtn){
+    shareBtn.textContent = "LINEで共有";
+    shareBtn.addEventListener("click", () => {
+      const text = buildMessage();
+      const url = "https://line.me/R/msg/text/?" + encodeURIComponent(text);
+      // Open LINE (will fall back to web if app not available)
+      window.location.href = url;
+    });
+  }
+
+  // Optional: copy button (kept for desktop fallback)
+  const copyBtn = $("#copy-btn");
+  if (copyBtn){
+    copyBtn.addEventListener("click", async () => {
+      try{
+        await navigator.clipboard.writeText(buildMessage());
+        toast("コピーしました");
+      }catch(e){ alert("コピーに失敗しました"); }
+    });
+  }
+
+  // Toast
   function toast(msg){
     const t = document.createElement("div");
     t.textContent = msg;

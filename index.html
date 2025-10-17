@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ホーム - himegoto（β）</title>
-  <link rel="stylesheet" href="style.css?v=1.25bAll">
+  <link rel="stylesheet" href="style.css?v=1.25bLine">
 </head>
 <body>
   <header class="topbar">
-    <div class="tabs" role="tablist">
+    <div class="tabs">
       <a class="tab-btn" href="index.html">ホーム</a>
       <a class="tab-btn" href="help.html">使い方</a>
       <a class="tab-btn" href="examples.html">例文</a>
@@ -42,10 +42,10 @@
     <div class="card">
       <h2>メッセージ作成</h2>
       <p class="muted">テキストエリアは<strong>300px固定</strong>。選択してもこの文は書き換わりません。</p>
-      <textarea id="message" class="message">今日はありがとう♥{name}さんが来てくれてホント助かった😅また週末にでもさっきのお話の続き聞きたいな✨次は金曜日出勤してるから、もし{name}さんの都合が良かったらやけど来てくれると嬉しいな(,,>᎑<,,)待ってるね♥♡♥</textarea>
+      <textarea id="message" class="message">{name}さん、今日はありがとう！ また会えるの楽しみにしてるね♡</textarea>
       <div class="actions">
-        <button id="copy-btn" class="primary">コピー</button>
-        <button id="share-btn" class="secondary">共有（クリップボード）</button>
+        <button id="share-btn" class="primary">LINEで共有</button>
+        <button id="copy-btn" class="secondary">コピー</button>
       </div>
       <p class="note">ログイン枠：<span class="warn">現在テスト版のため、電話番号を入力してもログイン等出来ませんのでご了承ください。</span></p>
     </div>
@@ -57,6 +57,6 @@
 </section>
 
   </main>
-  <script src="app.js?v=1.25bAll"></script>
+  <script src="app.js?v=1.25bLine"></script>
 </body>
 </html>
