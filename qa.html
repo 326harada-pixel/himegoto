@@ -1,25 +1,51 @@
-<!doctype html><html lang="ja"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Q&A｜ヒメゴト</title>
-<link rel="stylesheet" href="style.css"></head><body>
-<header class="header-nav"><div class="nav-row container">
-<nav class="nav-left">
-  <span class="pill"><a href="index.html">ホーム</a></span>
-  <span class="pill"><a href="how-to.html">使い方</a></span>
-  <span class="pill"><a href="examples.html">例文</a></span>
-  <span class="pill"><a href="qa.html">Q&A</a></span>
-  <span class="pill"><a href="terms.html">利用規約</a></span>
-</nav><div class="nav-right">ver.1.25β</div></div></header>
-<main class="container">
-  <h1>❓ よくある質問</h1>
-  <div class="card">
-    <h3>Q. ログインできません</h3>
-    <p>現在はテスト版のためログイン機能を停止しています。正式リリースまでお待ちください。</p>
-    <h3>Q. {name} はどう使う？</h3>
-    <p>本文中の <code>{'{'}name{'}'}</code> は「顧客一覧」の選択中の名前に自動置換されます。複数回入れてOKです。</p>
-    <h3>Q. 無料版の上限は？</h3>
-    <p>無料版は顧客登録5件まで。上限に達すると追加できません。</p>
-    <h3>Q. 問い合わせは？</h3>
-    <p>LINEで受け付けています。<a class="feedback" href="https://line.me/R/ti/p/%40" target="_blank">ご意見・ご要望はこちら</a></p>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Q&A - himegoto β</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+
+<header class="header-nav">
+  <div class="container nav-container">
+    <nav class="nav-row">
+      <a href="index.html" class="pill nav-btn">ホーム</a>
+      <a href="help.html" class="pill nav-btn">使い方</a>
+      <a href="examples.html" class="pill nav-btn">例文</a>
+      <a href="qa.html" class="pill nav-btn active">Q&amp;A</a>
+      <a href="terms.html" class="pill nav-btn">利用規約</a>
+      <span class="pill version">ver.1.25β</span>
+    </nav>
   </div>
-</main></body></html>
+</header>
+
+<main class="container">
+
+<h1>❓ よくある質問</h1>
+
+<div class="card">
+  <h3>Q. 電話番号を入力してもログインできません</h3>
+  <p>今はテスト版のため、電話番号ログインはまだ無効です。正式リリース時に解放します。</p>
+</div>
+
+<div class="card">
+  <h3>Q. 無料版の上限は？</h3>
+  <p>無料版では顧客の登録は最大5件まで。上限に達すると追加できません。</p>
+</div>
+
+<div class="card">
+  <h3>Q. データはどこに保存されますか？</h3>
+  <p>このβ版ではお使いの端末（ブラウザ内）に保存されます。端末やブラウザを変えると引き継がれません。</p>
+</div>
+
+<div class="card">
+  <h3>Q. 不具合や要望の送り先は？</h3>
+  <p><a class="link" href="https://lin.ee/" target="_blank" rel="noopener">LINEで運営に連絡</a>してください。</p>
+</div>
+
+</main>
+</body>
+</html>
