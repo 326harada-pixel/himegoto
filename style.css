@@ -1,48 +1,51 @@
-:root{
-  --pink:#ff69b4;
-  --pink-2:#ffa6cf;
-  --pink-3:#ffd3e6;
-  --ink:#333;
-  --bg:#fff;
-  --radius:22px;
-  --nav-h:56px;
-  --shadow:0 6px 20px rgba(0,0,0,.08);
-}
+:root{--pink:#ff69b4;--bg:#fff0f5;--danger:#e74c3c;--ok:#2ecc71}
 *{box-sizing:border-box}
-html,body{height:100%}
 body{
   margin:0;
-  font-family:"Noto Sans JP",-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-  color:var(--ink);
-  background:
-    radial-gradient(circle at 20% 10%, rgba(255,255,255,.35) 0 30%, transparent 35%),
-    radial-gradient(circle at 80% 0%, rgba(255,255,255,.25) 0 25%, transparent 30%),
-    linear-gradient(180deg, var(--pink-2), var(--pink-3));
-  background-attachment: fixed;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP","Helvetica Neue",Arial,"メイリオ",sans-serif;
+  background:linear-gradient(#ffa7d1,#ffdaf0) fixed;
+  color:#333;
 }
-.container{max-width:960px;margin:0 auto;padding:0 16px 80px}
-.header-nav,.nav-row,.nav-container{min-height:48px;padding:8px 8px}
-.nav-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.tab-btn{display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;
-  font-size:14px;line-height:1.1;border-radius:12px;background:#fff;color:var(--ink);
-  text-decoration:none;box-shadow:var(--shadow);}
-.tab-btn:active{transform:translateY(1px)}
-.ver{margin-left:auto;font-size:12px;opacity:.7}
-.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin:20px 0}
-.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.pill{display:inline-flex;align-items:center;justify-content:center;border:2px solid var(--pink);
-  color:var(--pink);border-radius:999px;padding:6px 16px;background:#fff}
-.btn{border:0;border-radius:999px;padding:10px 18px;font-weight:700;cursor:pointer}
+header{padding:24px 16px;text-align:center;color:#fff}
+header h1{margin:0;font-size:32px;letter-spacing:.2em;text-shadow:0 2px 0 rgba(0,0,0,.08)}
+.badge{display:inline-block;margin-top:12px;padding:8px 14px;background:#ff7ebd;border-radius:999px;color:#fff;font-weight:700}
+main{padding:16px;max-width:900px;margin:0 auto}
+.card{background:#fff;border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+h2{font-size:18px;margin:0 0 10px}
+input,textarea{
+  width:100%;font-size:16px;padding:12px;border:2px solid #f2d5e6;border-radius:12px;background:#fff
+}
+textarea{min-height:120px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.btn{appearance:none;border:0;border-radius:999px;padding:12px 18px;font-weight:800;cursor:pointer;transition:.15s}
 .btn-pink{background:var(--pink);color:#fff}
-.btn-ghost{background:#fff;border:2px solid #eee;color:var(--ink)}
-.muted{opacity:.8}
-.center{text-align:center}
-.badge{position:absolute;right:12px;top:12px}
-#customer-list{display:grid;gap:10px}
-.customer-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:14px;background:#fff;border:1px solid #eee}
-.customer-item .name{font-weight:700}
-.msg-box{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:14px;border-radius:16px;border:1px solid #eee}
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;align-items:center;justify-content:center}
-.modal{background:#fff;padding:24px;border-radius:16px;box-shadow:var(--shadow);min-width:240px;text-align:center}
-.spinner{width:28px;height:28px;border:3px dashed var(--pink);border-radius:50%;margin:0 auto 12px;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(1turn)}}
+.btn-ghost{background:#fff;border:2px solid var(--pink);color:var(--pink)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.customer{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed #f0cadd}
+.nm{flex:1;font-weight:700}
+.muted{color:#777;font-size:13px}
+
+/* モーダル */
+.modal-backdrop{
+  position:fixed; inset:0; background:rgba(0,0,0,.45);
+  display:none; align-items:center; justify-content:center; z-index:9999;
+}
+.modal-backdrop.show{ display:flex; }
+.modal{
+  background:#fff; padding:20px; border-radius:16px; width:min(420px,92%);
+  text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.2);
+}
+.spinner{
+  width:28px; height:28px; border:3px solid #eee; border-top-color:var(--pink);
+  border-radius:50%; margin:0 auto 10px; animation:spin 1s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.msg-box{min-height:300px}
+
+.row-selected{background:rgba(255,105,180,.08)}
+
+button.is-selected{background:#ff69b4;color:#fff}
+
+.selected{background:linear-gradient(0deg,#ffe1f1,#fff)}

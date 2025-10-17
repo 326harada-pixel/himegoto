@@ -105,3 +105,20 @@ function init(){
   updateMeters();
 }
 init();
+
+// --- selection highlight (added) ---
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('button');
+  if(!btn) return;
+  var txt = (btn.innerText||'').trim();
+  if(txt.includes('選ぶ') || txt.includes('選択中')){
+    // clear
+    document.querySelectorAll('button.is-selected').forEach(function(b){ b.classList.remove('is-selected'); });
+    document.querySelectorAll('.row-selected, .selected').forEach(function(r){ r.classList.remove('row-selected'); r.classList.remove('selected'); });
+    // mark
+    btn.classList.add('is-selected');
+    var row = btn.closest('.customer-item, .cust-row, .row, .card, li, div');
+    if(row) row.classList.add('row-selected');
+  }
+}, true);
+// --- end selection highlight ---

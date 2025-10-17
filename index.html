@@ -2,34 +2,33 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#ff69b4" />
   <title>ヒメゴト</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="header-nav">
-    <nav class="nav-row">
-      <a class="tab-btn" href="index.html">ホーム</a>
-      <a class="tab-btn" href="how-to.html">使い方</a>
-      <a class="tab-btn" href="examples.html">例文</a>
-      <a class="tab-btn" href="qa.html">Q&A</a>
-      <a class="tab-btn" href="terms.html">利用規約</a>
-      <span class="ver">ver.1.24β</span>
-    </nav>
+  <header>
+    <!-- ロゴ画像を後で置くための余白だけ確保（テキストロゴは表示しない） -->
+    <div style="height:64px"></div>
+    <span id="pro-expiry-badge" class="badge">有料版：期限 ー</span>
   </header>
 
-  <main class="container">
-    <section class="card plan">
+  <main>
+    <!-- 有料版の解除 -->
+    <section class="card">
+      <h2>有料版の解除</h2>
+      <input id="code-input" placeholder="例：HGT-XXXXXXX" inputmode="latin" />
       <div class="row">
-        <span class="pill">無料プラン</span>
-        <button id="btn-login" class="btn btn-pink">🔐 ログイン</button>
-        <span class="muted">期限：ー　紹介 0 / 3</span>
+        <button id="btn-verify-code" class="btn btn-pink">コード認証</button>
+        <button id="btn-recalc" class="btn btn-ghost">残日数を再計算</button>
       </div>
-      <p class="muted">現在テスト版のため電話番号の登録は出来ませんのでご了承ください</p>
-    </section>
+      <p class="muted">※ 30 / 180 / 360 日チケットに対応。端末変更時はサポートへ。</p>
+    <p class="muted">現在テスト版のため、電話番号を入力してもログイン等出来ませんのでご了承ください。</p>
+</section>
 
+    <!-- 顧客を追加 -->
     <section class="card">
       <h2>顧客を追加</h2>
       <input id="name-input" placeholder="例：太郎" />
@@ -37,43 +36,50 @@
         <button id="btn-add" class="btn btn-pink">顧客を追加</button>
         <span class="btn btn-ghost" style="pointer-events:none">無料版：残り <b id="free-left">5</b> 件</span>
       </div>
+      <p class="muted">※ 無料枠に達すると追加できません（デフォルト5件・有料は無制限）</p>
     </section>
 
+    <!-- 顧客一覧 -->
     <section class="card">
       <h2>顧客一覧</h2>
-      <p class="muted">「選ぶ」で下の本文の {name} に差し込みます。</p>
       <div id="customer-list"></div>
+      <p class="muted">「選ぶ」で下の本文の {name} に差し込みます。</p>
     </section>
 
+    <!-- メッセージ作成 -->
     <section class="card">
       <h2>メッセージ作成</h2>
       <p class="muted">本文（{name} が選択中の顧客名に置換されます）</p>
-      <textarea id="msg-template" class="msg-box">今日はありがとう♥{name}さんが来てくれてホント助かった😅
-また週末にでもさっきのお話の続き聞きたいな✨
-次は金曜日出勤してるから、もし{name}さんの都合が良かったらやけど来てくれると嬉しいな(,,>᎑<,,)待ってるね♥♡♥</textarea>
+      <textarea id="msg-template"> {name}さん、今日はありがとう！ また会えるの楽しみにしてるね♡ </textarea>
       <div class="row">
         <button id="btn-insert-name" class="btn btn-ghost">{name} を挿入</button>
+        <!-- コピー機能は廃止：ボタンも無し -->
+      </div>
+      <div class="row" style="margin-top:10px">
         <button id="btn-share" class="btn btn-pink">共有（LINEに渡す）</button>
         <span class="btn btn-ghost" style="pointer-events:none">無料版：残り送信 <b id="send-left">5</b> 回</span>
       </div>
+      <p class="muted">※ 共有は対応ブラウザのみ。無料版の送信回数は合計5回までです。</p>
     </section>
 
-    <section class="card center">
+    <!-- ご意見ボタン（常時表示） -->
+    <section class="card" style="text-align:center">
       <a class="btn btn-ghost" href="https://line.me/ti/p/_kahjcCa3-" target="_blank" rel="noopener">ご意見・ご要望はこちら</a>
     </section>
+
+    <!-- 下部広告スペースの確保（後で差し替え可能） -->
+    <div style="height:90px"></div>
   </main>
 
+  <!-- “処理中”モーダル -->
   <div id="modal" class="modal-backdrop" aria-hidden="true">
     <div class="modal">
       <div class="spinner"></div>
-      <p id="modal-text">処理中です…</p>
+      <p id="modal-text">認証を処理中です。少しお待ちください…</p>
       <button id="modal-cancel" class="btn btn-ghost">閉じる</button>
     </div>
   </div>
 
-  <script src="config.js"></script>
-  <script src="firebase-auth-modal.js"></script>
-  <script src="app.js"></script>
-  <script src="select-highlight.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
