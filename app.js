@@ -28,17 +28,31 @@
 
   function renderList(){
     list.innerHTML = "";
-    (state.customers||[]).forEach((name) => {
+    (state.customers||[]).forEach((name, idx) => {
       const row = document.createElement("div");
       row.className = "row";
       row.dataset.name = name;
-      row.innerHTML = `<span>${name}</span><button class="choose-btn">選択</button>`;
-      const btn = row.querySelector("button");
-      btn.addEventListener("click", () => {
-        if (selectedBtn && selectedBtn !== btn){selectedBtn.classList.remove("choose-btn--active");selectedBtn.textContent="選択";}
-        btn.classList.add("choose-btn--active");btn.textContent="選択中";
-        selectedBtn = btn;selectedName = name;
+      row.innerHTML = `<span>${name}</span>
+        <div class="row-actions">
+          <button class="choose-btn">選択</button>
+          <button class="del-btn">削除</button>
+        </div>`;
+      const choose = row.querySelector(".choose-btn");
+      const del = row.querySelector(".del-btn");
+
+      choose.addEventListener("click", () => {
+        if (selectedBtn && selectedBtn !== choose){selectedBtn.classList.remove("choose-btn--active");selectedBtn.textContent="選択";}
+        choose.classList.add("choose-btn--active");choose.textContent="選択中";
+        selectedBtn = choose;selectedName = name;
       });
+
+      del.addEventListener("click", () => {
+        const i = state.customers.indexOf(name);
+        if (i >= 0){ state.customers.splice(i,1); }
+        if (selectedName === name){ selectedName = null; selectedBtn = null; }
+        save(); renderList(); updateBadges();
+      });
+
       list.appendChild(row);
     });
   }
