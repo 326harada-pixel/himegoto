@@ -1,114 +1,102 @@
 (() => {
-  const $ = s => document.querySelector(s);
-  const LS_KEY = 'hime_customers';
-  const LS_SELECTED = 'hime_selected';
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-  const defaults = {
-    message: '今日はありがとう♥{name}さんが来てくれてホント助かった😅また週末にでもさっきのお話の続き聞きたいな✨次は金曜日出勤してるから、もし{name}さんの都合が良かったらやけど来てくれると嬉しいな(,,>᎑<,,)待ってるね♥♡♥'
-  };
-
-  const customerInput = $('#customerInput');
-  const addBtn = $('#addBtn');
-  const list = $('#customerList');
-  const regCount = $('#regCount');
-  const freeCount = $('#freeCount');
-  const messageEl = $('#message');
-  const insertBtn = $('#insertName');
-  const shareBtn = $('#shareBtn');
-
-  let customers = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
-  let selected = localStorage.getItem(LS_SELECTED) || '';
-
-  function save() {
-    localStorage.setItem(LS_KEY, JSON.stringify(customers));
-    localStorage.setItem(LS_SELECTED, selected);
-    render();
-  }
-
-  function render() {
-    regCount.textContent = customers.length + '件';
-    const remain = Math.max(0, 5 - customers.length);
-    freeCount.textContent = '無料版：残り ' + remain + ' 件';
-
-    list.innerHTML = '';
-    customers.forEach(name => {
-      const el = document.createElement('div');
-      el.className = 'item';
-
-      const left = document.createElement('div');
-      left.className = 'name';
-      left.textContent = name;
-
-      const actions = document.createElement('div');
-      actions.className = 'actions';
-
-      const select = document.createElement('button');
-      select.className = 'badge' + (selected === name ? ' selecting' : '');
-      select.textContent = '選ぶ';
-      select.addEventListener('click', () => {
-        selected = name;
-        alert(`「${name}」を選択しました。`);
-        save();
-      });
-
-      const del = document.createElement('button');
-      del.className = 'badge';
-      del.textContent = '削除';
-      del.addEventListener('click', () => {
-        customers = customers.filter(n => n !== name);
-        if (selected === name) selected = '';
-        save();
-      });
-
-      actions.append(select, del);
-      el.append(left, actions);
-      list.appendChild(el);
+  // Tabs
+  $$(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      $$(".tab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const target = btn.dataset.target;
+      $$(".page").forEach(p => p.classList.remove("visible"));
+      $("#" + target).classList.add("visible");
+      // keep version badge visible; it's in header
     });
+  });
 
-    if (!messageEl.value) messageEl.value = defaults.message;
+  // Default message
+  const message = $("#message");
+
+  // Customer selection
+  let selectedRow = null;
+  const rows = $$(".customer-list .row");
+  rows.forEach(row => {
+    row.querySelector(".choose-btn").addEventListener("click", () => {
+      if (selectedRow) selectedRow.classList.remove("selected");
+      row.classList.add("selected");
+      selectedRow = row;
+      const name = row.dataset.name || "{name}";
+      replaceNameToken(name);
+      // Emphasize also the pressed button (via CSS .selected)
+    });
+  });
+
+  function replaceNameToken(name){
+    const val = message.value;
+    const newVal = val.replaceAll("{name}", name);
+    message.value = newVal;
   }
 
-  addBtn?.addEventListener('click', () => {
-    const v = (customerInput.value || '').trim();
-    if (!v) return;
-    if (customers.includes(v)) {
-      alert('同じ名前がすでにあります');
-      return;
-    }
-    if (customers.length >= 5) {
-      alert('無料枠の上限に達しています');
-      return;
-    }
-    customers.push(v);
-    customerInput.value = '';
-    save();
-  });
-
-  insertBtn?.addEventListener('click', () => {
-    const nm = selected || '{name}';
-    const start = messageEl.selectionStart ?? messageEl.value.length;
-    const end = messageEl.selectionEnd ?? messageEl.value.length;
-    const txt = messageEl.value;
-    messageEl.value = txt.slice(0, start) + nm + txt.slice(end);
-    messageEl.focus();
-    messageEl.selectionStart = messageEl.selectionEnd = start + nm.length;
-  });
-
-  shareBtn?.addEventListener('click', async () => {
-    const nm = selected || '{name}';
-    const text = messageEl.value.replaceAll('{name}', nm);
-    if (navigator.share) {
-      try { await navigator.share({ text }); }
-      catch (e) {}
-    } else {
-      navigator.clipboard?.writeText(text);
-      alert('本文をコピーしました。LINEで貼り付けてください。');
+  // Clipboard helpers
+  $("#copy-btn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(message.value);
+      toast("コピーしました");
+    } catch (e) {
+      alert("コピーに失敗しました");
     }
   });
 
-  document.querySelector('#loginBtn')?.addEventListener('click', () => {
-    alert('現在テスト版のためログインできません。');
+  $("#share-btn").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(message.value);
+      toast("テキストをクリップボードに保存しました。LINEで貼り付けてください。");
+    } catch (e) {
+      alert("共有に失敗しました");
+    }
   });
 
-  render();
-})();  
+  // Quota indicators (static initial values as per spec)
+  const FREE = 5;
+  let reg = 0;
+  $("#free-quota").textContent = FREE;
+  $("#reg-count").textContent = reg;
+  $("#remain-badge").textContent = `残り ${Math.max(FREE - reg, 0)}`;
+
+  // Privacy modal
+  const modal = $("#privacy-modal");
+  $("#privacy-open").addEventListener("click", () => {
+    modal.classList.add("show");
+    modal.setAttribute("aria-hidden", "false");
+  });
+  $("#privacy-close").addEventListener("click", () => {
+    modal.classList.remove("show");
+    modal.setAttribute("aria-hidden", "true");
+  });
+  modal.addEventListener("click", (e) => {
+    if(e.target === modal){
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden", "true");
+    }
+  });
+
+  // Simple toast
+  function toast(msg){
+    const t = document.createElement("div");
+    t.textContent = msg;
+    t.style.position = "fixed";
+    t.style.left = "50%";
+    t.style.top = "16px";
+    t.style.transform = "translateX(-50%)";
+    t.style.padding = "10px 14px";
+    t.style.background = "linear-gradient(90deg,#ff93d3,#ff5fa9)";
+    t.style.color = "#fff";
+    t.style.borderRadius = "999px";
+    t.style.boxShadow = "0 6px 18px rgba(255,95,169,.25)";
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 1500);
+  }
+
+  // Ensure version text exists on every view (header)
+  // Already present via .version-badge
+})();

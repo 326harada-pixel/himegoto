@@ -1,65 +1,170 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>himegoto</title>
-  <link rel="stylesheet" href="style.css">
-  <script defer src="app.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>himegoto（β）</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="header-nav">
-    <nav class="nav-row">
-      <a class="nav-pill" href="index.html">ホーム</a>
-      <a class="nav-pill" href="how-to.html">使い方</a>
-      <a class="nav-pill" href="examples.html">例文</a>
-      <a class="nav-pill" href="qa.html">Q&A</a>
-      <a class="nav-pill" href="terms.html">利用規約</a>
-      <span class="ver-pill">ver.1.25β</span>
+  <header class="topbar">
+    <nav class="tabs">
+      <button class="tab-btn active" data-target="home">ホーム</button>
+      <button class="tab-btn" data-target="howto">使い方</button>
+      <button class="tab-btn" data-target="samples">例文</button>
+      <button class="tab-btn" data-target="qa">Q&amp;A</button>
+      <button class="tab-btn" data-target="terms">利用規約</button>
     </nav>
+    <div class="version-badge">ver.1.25β</div>
   </header>
 
-  <main class="container">
-    <section class="card">
-      <div class="row space-between center">
-        <span class="pill">無料プラン</span>
-        <button class="btn primary" id="loginBtn">🔐ログイン</button>
-      </div>
-      <p class="note mt8">期限：ー　紹介 0 / 3</p>
-      <p class="muted">現在テスト版のため、電話番号を入力してもログイン等出来ませんのでご了承ください。</p>
-    </section>
+  <main>
+    <!-- HOME -->
+    <section id="home" class="page visible">
+      <h1 class="app-title">himegoto（β）</h1>
 
-    <section class="card">
-      <h2>顧客を追加</h2>
-      <div class="row gap8 wrap">
-        <input id="customerInput" class="input" placeholder="例：太郎" autocomplete="off">
-        <button id="addBtn" class="btn">顧客を追加</button>
-        <span class="pill outline" id="freeCount">無料版：残り 5 件</span>
+      <div class="quota">
+        <span class="quota-item">無料枠：<strong id="free-quota">5</strong>件</span>
+        <span class="quota-item">登録数：<strong id="reg-count">0</strong>件</span>
+        <span class="quota-badge" id="remain-badge">残り 5</span>
       </div>
-      <p class="caption">※ 無料枠に達すると追加できません（デフォルト5件・有料は無制限）</p>
-      <div class="stat">登録数：<b id="regCount">0件</b></div>
-    </section>
 
-    <section class="card">
-      <h2>顧客一覧</h2>
-      <p>「選ぶ」で下の本文の {name} に差し込みます。</p>
-      <div id="customerList" class="list"></div>
+      <div class="grid two">
+        <div class="card">
+          <h2>顧客リスト</h2>
+          <p class="muted">「選ぶ」を押すと当該行が<strong>ピンク</strong>で強調されます。</p>
+          <div class="customer-list">
+            <div class="row" data-name="たろう">
+              <span class="name">たろう</span>
+              <button class="choose-btn">選ぶ</button>
+            </div>
+            <div class="row" data-name="じろう">
+              <span class="name">じろう</span>
+              <button class="choose-btn">選ぶ</button>
+            </div>
+            <div class="row" data-name="はなこ">
+              <span class="name">はなこ</span>
+              <button class="choose-btn">選ぶ</button>
+            </div>
+            <div class="row" data-name="けん">
+              <span class="name">けん</span>
+              <button class="choose-btn">選ぶ</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>文章入力</h2>
+          <p class="muted">テキストエリアの高さは<strong>300px固定</strong>です。</p>
+          <textarea id="message" class="message" placeholder="ここに文章を入力">今日はありがとう♥{name}さんが来てくれてホント助かった😅また週末にでもさっきのお話の続き聞きたいな✨次は金曜日出勤してるから、もし{name}さんの都合が良かったらやけど来てくれると嬉しいな(,,>᎑<,,)待ってるね♥♡♥</textarea>
+          <div class="actions">
+            <button id="copy-btn" class="primary">コピー</button>
+            <button id="share-btn" class="secondary">共有（クリップボード）</button>
+          </div>
+          <p class="note">
+            ログイン枠：<span class="warn">現在テスト版のため、電話番号を入力してもログイン等出来ませんのでご了承ください。</span>
+          </p>
+        </div>
+      </div>
+
       <div class="feedback-wrap">
-        <a class="feedback-btn" href="https://lin.ee/">
-          <span>💬 ご意見・ご要望はこちら</span>
+        <a class="feedback-btn" href="https://line.me/" target="_blank" rel="noopener noreferrer">
+          ご意見・ご要望はこちら
         </a>
       </div>
     </section>
 
-    <section class="card">
-      <h2>メッセージ作成</h2>
-      <p class="muted">本文（{name} が選択中の顧客名に置換されます）</p>
-      <textarea id="message" class="textarea"></textarea>
-      <div class="row gap12 mt12 wrap">
-        <button id="insertName" class="btn ghost">{name} を挿入</button>
-        <button id="shareBtn" class="btn primary">共有（LINEに渡す）</button>
+    <!-- HOW TO -->
+    <section id="howto" class="page">
+      <h2>使い方</h2>
+      <ol class="howto-list">
+        <li>顧客リストで送り先を<strong>選択</strong>します（ピンクにハイライト）。</li>
+        <li>文章内の<span class="code">{name}</span>が自動で差し替わります。</li>
+        <li>必要に応じて文章を編集し、「コピー」または「共有」を使ってLINEに貼り付けます。</li>
+      </ol>
+      <div class="policy-hint">
+        広告ポリシー：誤クリックを誘導する設計は行いません。<br />
+        規約・プライバシーは本ページ最下部のリンクからご確認いただけます。
       </div>
     </section>
+
+    <!-- SAMPLES -->
+    <section id="samples" class="page">
+      <h2>例文</h2>
+      <div class="sample-block">
+        <h3>来店お礼＋お誘い</h3>
+        <textarea class="sample-text" readonly>今日はありがとう♥{name}さんが来てくれてホント助かった😅また週末にでもさっきのお話の続き聞きたいな✨次は金曜日出勤してるから、もし{name}さんの都合が良かったらやけど来てくれると嬉しいな(,,>᎑<,,)待ってるね♥♡♥</textarea>
+      </div>
+
+      <div class="sample-block">
+        <h3>軽めの連絡</h3>
+        <textarea class="sample-text" readonly>{name}さん、今日はバタバタでまともに話せんくてごめん🙏無事帰れた？また少しだけでも顔見せてくれたら嬉しいな〜！</textarea>
+      </div>
+
+      <div class="sample-block">
+        <h3>久々連絡</h3>
+        <textarea class="sample-text" readonly>{name}さん、最近どうしとる？わたしは相変わらず金曜出勤多めやけん、時間合ったら顔見せてね☺️ちょっと話したいことあるんよ✨</textarea>
+      </div>
+    </section>
+
+    <!-- Q&A -->
+    <section id="qa" class="page">
+      <h2>Q&amp;A</h2>
+      <div class="qa">
+        <div class="q">Q. これは何のアプリ？</div>
+        <div class="a">A. お店で働く方が、LINEで使う文章をサッと作ってコピー・共有できるメモツールです。</div>
+      </div>
+      <div class="qa">
+        <div class="q">Q. お客さまの名前はどう入れるの？</div>
+        <div class="a">A. 顧客リストで「選ぶ」を押すと、その行がピンクになり、文章中の「{name}」が自動で置き替わります。</div>
+      </div>
+      <div class="qa">
+        <div class="q">Q. ログインや電話番号は必要？</div>
+        <div class="a">A. 現在はテスト版のため、電話番号を入力してもログインはできません。将来的に正式版での提供を検討しています。</div>
+      </div>
+      <div class="qa">
+        <div class="q">Q. 問い合わせはどこから？</div>
+        <div class="a">A. 画面最下部の「ご意見・ご要望はこちら」からLINEに移動できます。<a href="https://line.me/" target="_blank" rel="noopener noreferrer">こちらのリンク</a>からも可能です。</div>
+      </div>
+    </section>
+
+    <!-- TERMS -->
+    <section id="terms" class="page">
+      <h2>利用規約</h2>
+      <p>本アプリは文章作成の補助を目的としています。提供情報の正確性・完全性は保証しておらず、
+        ご利用は自己責任でお願いいたします。法令や各プラットフォームのルールに反する使い方はお控えください。
+      </p>
+      <h3>広告・リンクについて</h3>
+      <ul>
+        <li>誤クリックを誘導する表現や配置は行いません。</li>
+        <li>規約やプライバシーへの導線を明確に設置します。</li>
+      </ul>
+      <h3>プライバシー</h3>
+      <p>個人情報の取り扱いは最小限とし、端末内の入力内容は利用者の管理下に留まります。
+        詳細は下部の「プライバシーポリシー」をご確認ください。
+      </p>
+    </section>
   </main>
+
+  <footer class="footer">
+    <div class="links">
+      <a href="#terms" class="inline-link">利用規約</a>
+      <button id="privacy-open" class="linklike">プライバシーポリシー</button>
+    </div>
+  </footer>
+
+  <!-- Privacy Modal -->
+  <div id="privacy-modal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <button class="modal-close" id="privacy-close" aria-label="閉じる">×</button>
+      <h2>プライバシーポリシー</h2>
+      <p>本アプリは、アカウント登録や電話番号ログインを行いません（テスト版）。
+        入力されたテキストは利用者の端末内で処理され、第三者に自動送信されることはありません。
+        今後、正式版で仕様が変わる場合は本ページで告知します。
+      </p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
