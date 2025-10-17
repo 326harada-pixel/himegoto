@@ -1,93 +1,107 @@
-/* himegoto app core */
-(() => {
-  const $ = (s, r=document) => r.querySelector(s);
-  const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+// state
+const $ = (s, p=document)=>p.querySelector(s);
+const $$ = (s, p=document)=>Array.from(p.querySelectorAll(s));
 
-  const state = {
-    customers: JSON.parse(localStorage.getItem('hgt_customers') || '[]'),
-    freeLeft: Number(localStorage.getItem('hgt_free_left') || 5),
-    sendLeft: Number(localStorage.getItem('hgt_send_left') || 5),
-    selected: null
-  };
+const state = {
+  customers: JSON.parse(localStorage.getItem('customers')||'["田中","山田"]'),
+  selected: localStorage.getItem('selected') || null,
+  freeLeft: parseInt(localStorage.getItem('freeLeft')||'5',10),
+  sendLeft: parseInt(localStorage.getItem('sendLeft')||'5',10),
+};
 
-  const renderList = () => {
-    const wrap = $("#customer-list");
-    wrap.innerHTML = "";
-    state.customers.forEach((name, idx) => {
-      const row = document.createElement("div");
-      row.className = "customer-item";
-      row.innerHTML = `<span class="name">${name}</span>
-        <span>
-          <button class="btn btn-ghost" data-i="${idx}" data-act="pick">選ぶ</button>
-          <button class="btn btn-ghost" data-i="${idx}" data-act="del">削除</button>
-        </span>`;
-      wrap.appendChild(row);
-    });
-  };
+function save(){
+  localStorage.setItem('customers', JSON.stringify(state.customers));
+  if(state.selected) localStorage.setItem('selected', state.selected); else localStorage.removeItem('selected');
+  localStorage.setItem('freeLeft', String(state.freeLeft));
+  localStorage.setItem('sendLeft', String(state.sendLeft));
+}
 
-  const save = () => {
-    localStorage.setItem('hgt_customers', JSON.stringify(state.customers));
-    localStorage.setItem('hgt_free_left', String(state.freeLeft));
-    localStorage.setItem('hgt_send_left', String(state.sendLeft));
-    $("#free-left").textContent = state.freeLeft;
-    $("#send-left").textContent = state.sendLeft;
-  };
+function renderCustomers(){
+  const wrap = $('#customer-list');
+  wrap.innerHTML='';
+  state.customers.forEach(name=>{
+    const row = document.createElement('div');
+    row.className = 'cust-row' + (state.selected===name ? ' selected' : '');
+    row.dataset.name = name;
+    row.innerHTML = `
+      <span class="cust-name">${name}</span>
+      <div class="cust-actions">
+        <button class="btn btn-ghost choose">選ぶ</button>
+        <button class="btn del remove">削除</button>
+      </div>`;
+    wrap.appendChild(row);
+  });
+}
 
-  const insertName = () => {
-    const ta = $("#msg-template");
-    const p = ta.selectionStart;
-    const name = state.selected || "{name}";
-    ta.setRangeText(name, p, p, "end");
-    ta.focus();
-  };
+function selectCustomer(name){
+  state.selected = name;
+  save();
+  renderCustomers();
+  replaceNameInTextarea();
+}
 
-  const share = async () => {
-    if (state.sendLeft <= 0) return alert("無料送信回数を使い切りました。");
-    const name = state.selected || "{name}";
-    const msg = $("#msg-template").value.replaceAll("{name}", name);
-    if (navigator.share) {
-      try { await navigator.share({ text: msg }); state.sendLeft--; save(); }
-      catch {}
-    } else {
-      await navigator.clipboard.writeText(msg);
-      alert("本文をコピーしました。LINEへ貼り付けてください。");
-      state.sendLeft--; save();
+function replaceNameInTextarea(){
+  const t = $('#msg-template');
+  if(!t) return;
+  const name = state.selected || '{name}';
+  // no automatic overwrite; just preview replacement on share
+}
+
+// events
+document.addEventListener('click', (e)=>{
+  // choose
+  if(e.target.closest('.choose')){
+    const row = e.target.closest('.cust-row');
+    const name = row?.dataset.name;
+    if(name) selectCustomer(name);
+  }
+  // remove
+  if(e.target.closest('.remove')){
+    const row = e.target.closest('.cust-row');
+    const name = row?.dataset.name;
+    if(name){
+      state.customers = state.customers.filter(n=>n!==name);
+      if(state.selected===name) state.selected = null;
+      save(); renderCustomers();
     }
-  };
-
-  // events
-  $("#btn-add").addEventListener("click", () => {
-    const v = $("#name-input").value.trim();
-    if (!v) return;
-    if (state.freeLeft <= 0) return alert("無料枠を使い切りました。");
+  }
+  if(e.target.id==='btn-insert-name'){
+    const t = $('#msg-template');
+    const ins = state.selected || '{name}';
+    const pos = t.selectionStart ?? t.value.length;
+    t.value = t.value.slice(0,pos) + ins + t.value.slice(pos);
+    t.focus();
+  }
+  if(e.target.id==='btn-share'){
+    const name = state.selected || '{name}';
+    const text = $('#msg-template').value.replaceAll('{name}', name);
+    if(navigator.share){
+      navigator.share({text}).catch(()=>{});
+    }else{
+      prompt('この本文をコピーしてください', text);
+    }
+  }
+  if(e.target.id==='btn-add'){
+    const v = $('#name-input').value.trim();
+    if(!v) return;
+    if(state.freeLeft<=0){ alert('無料枠に達しました'); return; }
     state.customers.push(v);
     state.freeLeft--;
-    $("#name-input").value = "";
-    save(); renderList();
-  });
+    $('#name-input').value='';
+    save(); renderCustomers(); updateMeters();
+  }
+  if(e.target.id==='btn-login'){
+    alert('現在テスト版です。ログインは無効化しています。');
+  }
+});
 
-  $("#customer-list").addEventListener("click", (e) => {
-    const t = e.target.closest("button"); if (!t) return;
-    const i = Number(t.dataset.i);
-    if (t.dataset.act === "pick") { state.selected = state.customers[i]; alert(`「${state.selected}」を選択しました。`); }
-    if (t.dataset.act === "del") { state.customers.splice(i,1); renderList(); save(); }
-  });
+function updateMeters(){
+  $('#free-left').textContent = state.freeLeft;
+  $('#send-left').textContent = state.sendLeft;
+}
 
-  $("#btn-insert-name").addEventListener("click", insertName);
-  $("#btn-share").addEventListener("click", share);
-
-  // auth modal
-  $("#btn-login").addEventListener("click", async () => {
-    if (!window.FIREBASE_CONFIG) { alert("ログインに失敗しました: FIREBASE_CONFIG missing"); return; }
-    try {
-      await window.hgtAuthModal.startPhoneLogin();
-    } catch (e) {
-      alert(`ログインに失敗しました: ${e.message || e}`);
-    }
-  });
-
-  // init
-  $("#free-left").textContent = state.freeLeft;
-  $("#send-left").textContent = state.sendLeft;
-  renderList();
-})();
+function init(){
+  renderCustomers();
+  updateMeters();
+}
+init();
