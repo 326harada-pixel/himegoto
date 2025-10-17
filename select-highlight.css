@@ -1,0 +1,11 @@
+button.is-selected,
+button[aria-pressed="true"]{
+  background: #ff69b4 !important;
+  color: #fff !important;
+  border-color: #ff69b4 !important;
+  box-shadow: 0 4px 12px rgba(255,105,180,.35) !important;
+}
+.row-selected{
+  background: rgba(255,105,180,.08) !important;
+  transition: background .2s ease;
+}
