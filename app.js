@@ -1,110 +1,56 @@
+(() => {
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-const KEY_CUSTOMERS = 'hime_customers';
-const KEY_SELECTED = 'hime_selected';
-
-const elNew = () => document.getElementById('newCustomer');
-const elAdd = () => document.getElementById('addCustomer');
-const elList = () => document.getElementById('customerList');
-const elMsg  = () => document.getElementById('message');
-const elRemain = () => document.getElementById('freeRemaining');
-const elCount = () => document.getElementById('regCount');
-
-const defaultMessage = '今日はありがとう♥{name}さんが来てくれてホント助かった😅また週末にでもさっきのお話の続き聞きたいな✨次は金曜日出勤してるから、もし{name}さんの都合が良かったらやけど来てくれると嬉しいな(,,>᎑<,,)待ってるね♥♡♥';
-
-document.addEventListener('DOMContentLoaded', () => {
-  const pageHasList = !!elList();
-  if (pageHasList) {
-    elMsg().value = defaultMessage.replaceAll('{name}','{name}');
-    loadAndRender();
-    elAdd().addEventListener('click', onAdd);
-    document.getElementById('insertName').addEventListener('click', () => insertAtCursor(elMsg(), '{name}'));
-    document.getElementById('shareBtn').addEventListener('click', shareToLine);
-  }
-  const loginBtn = document.getElementById('loginBtn');
-  if (loginBtn) loginBtn.addEventListener('click', () => alert('現在テスト版のため、ログインは無効です。'));
-});
-
-function loadCustomers(){
-  try{ return JSON.parse(localStorage.getItem(KEY_CUSTOMERS) || '[]'); }
-  catch(e){ return []; }
-}
-function saveCustomers(list){ localStorage.setItem(KEY_CUSTOMERS, JSON.stringify(list)); }
-
-function loadAndRender(){
-  const list = loadCustomers();
-  const selected = localStorage.getItem(KEY_SELECTED) || '';
-  const ul = elList();
-  ul.innerHTML = '';
-  list.forEach(name => {
-    const li = document.createElement('li');
-    li.className = 'row between' + (selected===name ? ' selected' : '');
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'name';
-    nameSpan.textContent = name;
-    const btnRow = document.createElement('div');
-    btnRow.className = 'row';
-    const choose = document.createElement('button');
-    choose.className = 'select-btn';
-    choose.textContent = '選ぶ';
-    choose.addEventListener('click', () => selectCustomer(name));
-    const del = document.createElement('button');
-    del.className = 'delete-btn';
-    del.textContent = '削除';
-    del.addEventListener('click', () => deleteCustomer(name));
-    btnRow.append(choose, del);
-    li.append(nameSpan, btnRow);
-    ul.append(li);
+  // Customer selection state (shared behavior for pages that have it)
+  const message = $("#message");
+  let selectedBtn = null;
+  let selectedName = null;
+  const rows = $$(".customer-list .row");
+  rows.forEach(row => {
+    const btn = row.querySelector(".choose-btn");
+    if (!btn) return;
+    btn.textContent = "選択";
+    btn.addEventListener("click", () => {
+      if (selectedBtn && selectedBtn !== btn) {
+        selectedBtn.classList.remove("choose-btn--active");
+        selectedBtn.textContent = "選択";
+      }
+      btn.classList.add("choose-btn--active");
+      btn.textContent = "選択中";
+      selectedBtn = btn;
+      selectedName = row.dataset.name || "{name}";
+    });
   });
-  updateCounts(list.length);
-}
 
-function selectCustomer(name){
-  localStorage.setItem(KEY_SELECTED, name);
-  const msg = elMsg();
-  if (msg) {
-    const current = msg.value || defaultMessage;
-    msg.value = current.replaceAll('{name}', name);
+  // Copy/Share (replace token only at action time)
+  const write = async () => {
+    const src = message ? message.value : "";
+    const out = selectedName ? src.replaceAll("{name}", selectedName) : src;
+    await navigator.clipboard.writeText(out);
+  };
+  const copyBtn = $("#copy-btn");
+  const shareBtn = $("#share-btn");
+  if (copyBtn) copyBtn.addEventListener("click", async () => { try { await write(); toast("コピーしました"); } catch(e){ alert("コピーに失敗しました"); } });
+  if (shareBtn) shareBtn.addEventListener("click", async () => { try { await write(); toast("クリップボードに保存しました。LINEで貼り付けてください。"); } catch(e){ alert("共有に失敗しました"); } });
+
+  // Privacy modal (if exists)
+  const modal = $("#privacy-modal");
+  const openBtn = $("#privacy-open");
+  const closeBtn = $("#privacy-close");
+  if (modal && openBtn && closeBtn){
+    openBtn.addEventListener("click", () => { modal.classList.add("show"); modal.setAttribute("aria-hidden","false"); });
+    closeBtn.addEventListener("click", () => { modal.classList.remove("show"); modal.setAttribute("aria-hidden","true"); });
+    modal.addEventListener("click", (e)=>{ if(e.target===modal){ modal.classList.remove("show"); modal.setAttribute("aria-hidden","true"); } });
   }
-  loadAndRender();
-}
 
-function deleteCustomer(name){
-  const list = loadCustomers().filter(n => n !== name);
-  saveCustomers(list);
-  const selected = localStorage.getItem(KEY_SELECTED);
-  if (selected === name) localStorage.removeItem(KEY_SELECTED);
-  loadAndRender();
-}
-
-function onAdd(){
-  const value = (elNew().value || '').trim();
-  if (!value) return;
-  const list = loadCustomers();
-  if (list.length >= 5) { alert('無料枠の上限に達しました'); return; }
-  list.push(value);
-  saveCustomers(list);
-  elNew().value='';
-  loadAndRender();
-}
-
-function updateCounts(count){
-  const remain = Math.max(0, 5 - count);
-  elRemain().textContent = `無料版：残り ${remain} 件`;
-  elCount().textContent = `登録数：${count}件`;
-}
-
-function insertAtCursor(field, text){
-  const start = field.selectionStart;
-  const end = field.selectionEnd;
-  const val = field.value;
-  field.value = val.slice(0, start) + text + val.slice(end);
-  const pos = start + text.length;
-  field.selectionStart = field.selectionEnd = pos;
-  field.focus();
-}
-
-function shareToLine(){
-  const msg = elMsg().value || '';
-  const url = 'https://line.me/R/share?text=' + encodeURIComponent(msg);
-  window.open(url, '_blank');
-}
+  // Simple toast
+  function toast(msg){
+    const t = document.createElement("div");
+    t.textContent = msg;
+    t.style.position = "fixed"; t.style.left = "50%"; t.style.top = "16px"; t.style.transform = "translateX(-50%)";
+    t.style.padding = "10px 14px"; t.style.background = "linear-gradient(90deg,#ff93d3,#ff5fa9)";
+    t.style.color = "#fff"; t.style.borderRadius = "999px"; t.style.boxShadow = "0 6px 18px rgba(255,95,169,.25)";
+    document.body.appendChild(t); setTimeout(() => t.remove(), 1500);
+  }
+})();

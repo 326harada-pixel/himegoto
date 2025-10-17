@@ -1,71 +1,62 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>himegoto β</title>
-  <link rel="stylesheet" href="style.css">
-  <script defer src="app.js"></script>
+  <title>ホーム - himegoto（β）</title>
+  <link rel="stylesheet" href="style.css?v=1.25bAll">
 </head>
 <body>
-
-<header class="header-nav">
-  <div class="container nav-container">
-    <nav class="nav-row">
-      <a href="index.html" class="pill nav-btn active">ホーム</a>
-      <a href="help.html" class="pill nav-btn">使い方</a>
-      <a href="examples.html" class="pill nav-btn">例文</a>
-      <a href="qa.html" class="pill nav-btn">Q&amp;A</a>
-      <a href="terms.html" class="pill nav-btn">利用規約</a>
-      <span class="pill version">ver.1.25β</span>
-    </nav>
+  <header class="topbar">
+    <div class="tabs" role="tablist">
+      <a class="tab-btn" href="index.html">ホーム</a>
+      <a class="tab-btn" href="help.html">使い方</a>
+      <a class="tab-btn" href="examples.html">例文</a>
+      <a class="tab-btn" href="qa.html">Q&amp;A</a>
+      <a class="tab-btn" href="terms.html">利用規約</a>
+      <span class="version-badge">ver.1.25β</span>
+    </div>
+  </header>
+  <main>
+  
+<section class="page">
+  <div class="card">
+    <h2>無料枠</h2>
+    <div class="quota">
+      <span class="quota-item">無料枠：<strong id="free-quota">5</strong>件</span>
+      <span class="quota-item">登録数：<strong id="reg-count">0</strong>件</span>
+      <span class="quota-badge" id="remain-badge">残り 5</span>
+    </div>
   </div>
-</header>
 
-<main class="container">
-
-<section class="card">
-  <div class="row between center">
-    <span class="chip">無料プラン</span>
-    <button id="loginBtn" class="top-btn">🔐ログイン</button>
+  <div class="grid two" style="margin-top:12px">
+    <div class="card">
+      <h2>顧客リスト</h2>
+      <p class="muted">右端ボタンは「選択」→「選択中」に変化（行の囲み強調なし）。</p>
+      <div class="customer-list">
+        <div class="row" data-name="山田"><span class="name">山田</span><button class="choose-btn">選択</button></div>
+        <div class="row" data-name="田中"><span class="name">田中</span><button class="choose-btn">選択</button></div>
+        <div class="row" data-name="佐藤"><span class="name">佐藤</span><button class="choose-btn">選択</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>メッセージ作成</h2>
+      <p class="muted">テキストエリアは<strong>300px固定</strong>。選択してもこの文は書き換わりません。</p>
+      <textarea id="message" class="message">今日はありがとう♥{name}さんが来てくれてホント助かった😅また週末にでもさっきのお話の続き聞きたいな✨次は金曜日出勤してるから、もし{name}さんの都合が良かったらやけど来てくれると嬉しいな(,,>᎑<,,)待ってるね♥♡♥</textarea>
+      <div class="actions">
+        <button id="copy-btn" class="primary">コピー</button>
+        <button id="share-btn" class="secondary">共有（クリップボード）</button>
+      </div>
+      <p class="note">ログイン枠：<span class="warn">現在テスト版のため、電話番号を入力してもログイン等出来ませんのでご了承ください。</span></p>
+    </div>
   </div>
-  <p class="muted">期限：ー　紹介 0 / 3</p>
-  <p class="muted">現在テスト版のため、電話番号を入力してもログイン等出来ませんのでご了承ください。</p>
-</section>
 
-<section class="card">
-  <h2>顧客を追加</h2>
-  <div class="row gap">
-    <input id="newCustomer" class="input" placeholder="例：太郎">
-    <button id="addCustomer" class="btn">顧客を追加</button>
-  </div>
-  <div class="row gap meta">
-    <span class="pill outline" id="freeRemaining">無料版：残り 5 件</span>
-  </div>
-  <div class="meta"><span class="pill ghost" id="regCount">登録数：0件</span></div>
-  <p class="note">※ 無料枠に達すると追加できません（デフォルト5件・有料は無制限）</p>
-</section>
-
-<section class="card" id="customerListCard">
-  <h2>顧客一覧</h2>
-  <p>「選ぶ」で下の本文の {name} に差し込みます。</p>
-  <ul id="customerList" class="list"></ul>
-</section>
-
-<section class="card">
-  <h2>メッセージ作成</h2>
-  <p class="muted">本文（{name} が選択中の顧客名に置換されます）</p>
-  <textarea id="message" class="textarea" rows="8"></textarea>
-  <div class="row between">
-    <button id="insertName" class="pill outline">{name} を挿入</button>
-    <button id="shareBtn" class="btn primary">共有（LINEに渡す）</button>
+  <div class="feedback-wrap">
+    <a class="feedback-btn" href="https://line.me/" target="_blank" rel="noopener noreferrer">ご意見・ご要望はこちら</a>
   </div>
 </section>
 
-<a href="https://lin.ee/" target="_blank" rel="noopener" class="feedback-link">
-  💬 ご意見・ご要望はこちら
-</a>
-
-</main>
+  </main>
+  <script src="app.js?v=1.25bAll"></script>
 </body>
 </html>
