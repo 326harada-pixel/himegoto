@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ホーム - himegoto（β）</title>
-  <link rel="stylesheet" href="style.css?v=1.25bLine">
+  <link rel="stylesheet" href="style.css?v=1.26b">
 </head>
 <body>
   <header class="topbar">
@@ -14,7 +14,7 @@
       <a class="tab-btn" href="examples.html">例文</a>
       <a class="tab-btn" href="qa.html">Q&amp;A</a>
       <a class="tab-btn" href="terms.html">利用規約</a>
-      <span class="version-badge">ver.1.25β</span>
+      <span class="version-badge">ver.1.26β</span>
     </div>
   </header>
   <main>
@@ -25,14 +25,13 @@
     <div class="quota">
       <span class="quota-item">無料枠：<strong id="free-quota">5</strong>件</span>
       <span class="quota-item">登録数：<strong id="reg-count">0</strong>件</span>
-      <span class="quota-badge" id="remain-badge">残り 5</span>
+      <span class="quota-badge" id="remain-badge">残り送信 5 回</span>
     </div>
   </div>
 
   <div class="grid two" style="margin-top:12px">
     <div class="card">
       <h2>顧客リスト</h2>
-      <p class="muted">右端ボタンは「選択」→「選択中」に変化（行の囲み強調なし）。</p>
       <div class="customer-list">
         <div class="row" data-name="山田"><span class="name">山田</span><button class="choose-btn">選択</button></div>
         <div class="row" data-name="田中"><span class="name">田中</span><button class="choose-btn">選択</button></div>
@@ -41,13 +40,12 @@
     </div>
     <div class="card">
       <h2>メッセージ作成</h2>
-      <p class="muted">テキストエリアは<strong>300px固定</strong>。選択してもこの文は書き換わりません。</p>
-      <textarea id="message" class="message">{name}さん、今日はありがとう！ また会えるの楽しみにしてるね♡</textarea>
+      <textarea id="message" class="message">今日はありがとう♥{name}さんが来てくれてホント助かった😅また週末にでもさっきのお話の続き聞きたいな✨次は金曜日出勤してるから、もし{name}さんの都合が良かったらやけど来てくれると嬉しいな(,,>᎑<,,)待ってるね♥♡♥</textarea>
       <div class="actions">
         <button id="share-btn" class="primary">LINEで共有</button>
-        <button id="copy-btn" class="secondary">コピー</button>
+        <button id="insert-name" class="secondary">{name} を挿入</button>
       </div>
-      <p class="note">ログイン枠：<span class="warn">現在テスト版のため、電話番号を入力してもログイン等出来ませんのでご了承ください。</span></p>
+      <p class="note">現在テスト版のため、電話番号を入力してもログインはできません。</p>
     </div>
   </div>
 
@@ -57,6 +55,6 @@
 </section>
 
   </main>
-  <script src="app.js?v=1.25bLine"></script>
+  <script src="app.js?v=1.26b"></script>
 </body>
 </html>
