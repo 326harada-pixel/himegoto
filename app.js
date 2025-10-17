@@ -11,7 +11,8 @@
   if (state.date !== todayKey) state = { date: todayKey, count: 0, customers: state.customers || [] };
   state.date = todayKey;
   const save = () => localStorage.setItem("hime_state", JSON.stringify(state));
-  const remain = () => Math.max(0, MAX_SEND - (state.count||0));
+  const remainSend = () => Math.max(0, MAX_SEND - (state.count||0));
+  const remainReg = () => Math.max(0, MAX_CUSTOMERS - (state.customers?.length || 0));
 
   // Elements
   const list = $(".customer-list");
@@ -20,7 +21,8 @@
   const message = $("#message");
   const shareBtn = $("#share-btn");
   const insertBtn = $("#insert-name");
-  const badge = $("#remain-badge");
+  const sendBadge = $("#remain-badge");
+  const regBadge = $("#reg-remain");
 
   let selectedName = null, selectedBtn = null;
 
@@ -41,12 +43,21 @@
     });
   }
 
+  function updateBadges(){
+    if (sendBadge) sendBadge.textContent = `残り ${remainSend()} 回`;
+    if (regBadge)  regBadge.textContent  = `登録残り ${remainReg()} 名`;
+    if (shareBtn){
+      shareBtn.disabled = remainSend()<=0;
+      if (remainSend()<=0) shareBtn.textContent="上限到達"; else shareBtn.textContent="共有";
+    }
+  }
+
   addBtn?.addEventListener("click", () => {
     const name = (addInput?.value||"").trim();
     if (!name) return;
     if ((state.customers||[]).length >= MAX_CUSTOMERS){ alert("無料版では顧客登録は5名までです。"); return; }
     if (state.customers.includes(name)){ alert("同じ名前がすでに登録されています。"); return; }
-    state.customers.push(name); addInput.value=""; save(); renderList();
+    state.customers.push(name); addInput.value=""; save(); renderList(); updateBadges();
   });
 
   insertBtn?.addEventListener("click", () => {
@@ -63,28 +74,19 @@
     return selectedName ? message.value.replaceAll("{name}", selectedName) : message.value;
   }
 
-  function updateQuota(){
-    if (badge) badge.textContent = `残り ${remain()} 回`;
-    if (shareBtn){
-      shareBtn.disabled = remain()<=0;
-      if (remain()<=0) shareBtn.textContent="上限到達"; else shareBtn.textContent="共有";
-    }
-  }
-
   shareBtn?.addEventListener("click", async () => {
-    if (remain()<=0){ alert("無料版の送信上限（5回）に達しました。"); return; }
+    if (remainSend()<=0){ alert("無料版の送信上限（5回）に達しました。"); return; }
     const text = buildMessage();
-    state.count = (state.count||0)+1; save(); updateQuota();
+    state.count = (state.count||0)+1; save(); updateBadges();
     try{
       if (navigator.share){
         await navigator.share({ text });
       } else {
-        // Fallback: LINE
         location.href = "https://line.me/R/msg/text/?" + encodeURIComponent(text);
       }
     }catch(e){ console.log(e); }
   });
 
   renderList();
-  updateQuota();
+  updateBadges();
 })();

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ホーム - himegoto（β）</title>
-<link rel="stylesheet" href="style.css?v=1.26b3">
+<link rel="stylesheet" href="style.css?v=1.26b5">
 </head>
 <body>
 <header class="topbar">
@@ -21,7 +21,10 @@
 <section class="page">
   <div class="grid two">
     <div class="card">
-      <h2>顧客リスト</h2>
+      <div class="customer-header">
+        <h2>顧客リスト</h2>
+        <span id="reg-remain" class="badge">登録残り 5 名</span>
+      </div>
       <div class="add-customer">
         <input id="add-input" class="add-input" type="text" placeholder="顧客名を入力">
         <button id="add-btn" class="add-btn">追加</button>
@@ -41,5 +44,5 @@
 </section>
 
 </main>
-<script src="app.js?v=1.26b3"></script>
+<script src="app.js?v=1.26b5"></script>
 </body></html>
