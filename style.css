@@ -72,8 +72,35 @@ body{
 /* smaller buttons up top to match reference */
 .nav-row .pill{font-size:14px;padding:8px 16px;border-radius:20px}
 
+.topbar{ position:relative; }
+
+.tabs .tab-btn, .tab-btn{
+  display:inline-block;
+  font-size:13px;
+  font-weight:500;
+  padding:8px 16px;
+  margin:0 6px 6px 0;
+  background:#fff;
+  border:none;
+  border-radius:999px;
+  color:#333;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  transition:transform .15s ease, background .15s ease;
+}
+.tabs .tab-btn:hover, .tab-btn:hover{ background:#fff5fb; transform:translateY(-1px); }
+
+.choose-btn{
+  padding:8px 14px;
+  border-radius:999px;
+  border:2px solid #ff8ac8;
+  background:#fff;
+  color:#333;
+  font-weight:600;
+  cursor:pointer;
+  transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
 .choose-btn--active{
-  background:linear-gradient(90deg,#ff93d3,#ff5fa9) !important;
-  color:#fff !important;
-  border-color:#ff5fa9 !important;
+  background:linear-gradient(90deg,#ff93d3,#ff5fa9);
+  color:#fff;
+  border-color:#ff5fa9;
 }
