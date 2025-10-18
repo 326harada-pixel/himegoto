@@ -34,3 +34,23 @@ main{max-width:1100px;margin:18px auto;padding:0 14px}
 .feedback-btn{display:inline-block;padding:12px 22px;border-radius:999px;border:2px dashed #ff7fbd;background:rgba(255,255,255,.9);text-decoration:none;color:#c0177a;font-weight:700;box-shadow:var(--shadow)}
 .sample-block{margin:14px 0}
 .sample-text{width:100%;min-height:120px;border-radius:14px;border:1px solid #ffd9ec;padding:10px;background:#fff}
+.feedback {
+  text-align: center;
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+
+.feedback-link {
+  display: inline-block;
+  padding: 10px 20px;
+  border: 2px dotted #ff8ac8;
+  border-radius: 30px;
+  color: #ff5fa9;
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.feedback-link:hover {
+  background-color: #ffe4f1;
+}
