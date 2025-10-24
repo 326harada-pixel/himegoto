@@ -54,3 +54,9 @@ main{max-width:1100px;margin:18px auto;padding:0 14px}
 .feedback-link:hover {
   background-color: #ffe4f1;
 }
+.hime-logo {
+  display: block;
+  margin: 0 auto 20px auto;
+  max-width: 250px;   /* 最大幅を250pxに制限 */
+  height: auto;       /* 縦横比を維持して自動調整 */
+}
