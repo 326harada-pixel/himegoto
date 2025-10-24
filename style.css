@@ -1,0 +1,298 @@
+/* ==============================
+   himegoto（β） style.css ver.1.27β
+   ============================== */
+
+/* 基本色設定 */
+:root {
+  --pink-main: #ff7eb9;
+  --pink-light: #ffd3e0;
+  --pink-dark: #ff3f8b;
+  --text-main: #444;
+  --bg-main: #fff6fa;
+  --border-light: #ffc7dd;
+  --shadow: rgba(0, 0, 0, 0.08);
+}
+
+/* 全体レイアウト */
+body {
+  font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  background: var(--bg-main);
+  color: var(--text-main);
+  margin: 0;
+  padding: 0;
+}
+
+/* トップタブ */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(180deg, #ff93c8, #ff69b4);
+  padding: 12px 0 22px 0;
+  box-shadow: 0 3px 6px var(--shadow);
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  position: relative;
+}
+
+.tab-btn {
+  background: #fff;
+  color: var(--text-main);
+  border-radius: 25px;
+  padding: 6px 18px;
+  font-size: 15px;
+  text-decoration: none;
+  box-shadow: 0 2px 4px var(--shadow);
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  background: var(--pink-light);
+  color: var(--pink-dark);
+}
+
+/* バージョン表記 */
+.version-badge {
+  position: absolute;
+  right: 14px;
+  bottom: -18px;
+  font-size: 13px;
+  color: #fff;
+  opacity: 0.8;
+}
+
+/* コンテンツ基本構造 */
+.page {
+  padding: 10px 15px 100px 15px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ロゴ */
+.logo-area {
+  text-align: center;
+  margin: 15px 0 10px 0;
+}
+.hime-logo {
+  display: block;
+  margin: 0 auto 20px auto;
+  max-width: 260px;
+  height: auto;
+  filter: drop-shadow(0 3px 5px rgba(255, 105, 180, 0.3));
+}
+
+/* カードブロック */
+.card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 3px 8px var(--shadow);
+  padding: 18px;
+  margin: 20px 0;
+}
+
+/* グリッド */
+.grid.two {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .grid.two {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* 見出し */
+h2 {
+  font-size: 18px;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* 顧客リスト */
+.customer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  background: #fff;
+  border: 1.5px solid var(--pink-dark);
+  border-radius: 20px;
+  padding: 4px 12px;
+  color: var(--pink-dark);
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* 顧客追加フォーム */
+.add-customer {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.add-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.add-btn {
+  background: var(--pink-main);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 15px;
+  box-shadow: 0 2px 4px var(--shadow);
+  transition: all 0.2s ease;
+}
+
+.add-btn:hover {
+  background: var(--pink-dark);
+}
+
+/* 顧客一覧 */
+.customer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.customer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1.5px solid var(--border-light);
+  border-radius: 15px;
+  padding: 6px 10px;
+  background: #fff;
+}
+
+.customer-name {
+  font-size: 15px;
+  color: #333;
+}
+
+.select-btn {
+  border: 1.5px solid var(--pink-dark);
+  background: #fff;
+  color: var(--pink-dark);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.select-btn:hover {
+  background: var(--pink-light);
+}
+.select-btn.selected {
+  background: var(--pink-dark);
+  color: #fff;
+}
+
+/* 削除ボタン */
+.delete-btn {
+  background: #ff7373;
+  border: none;
+  color: #fff;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* メッセージ作成 */
+.message {
+  width: 100%;
+  height: 300px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-light);
+  padding: 10px;
+  font-size: 15px;
+  box-sizing: border-box;
+  resize: none;
+}
+
+/* アクションボタン群 */
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  gap: 8px;
+}
+
+.primary {
+  background: var(--pink-dark);
+  color: #fff;
+  border: none;
+  border-radius: 25px;
+  padding: 7px 16px;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px var(--shadow);
+}
+.primary:hover {
+  background: var(--pink-main);
+}
+
+.secondary {
+  background: #fff;
+  border: 1.5px solid var(--pink-dark);
+  color: var(--pink-dark);
+  border-radius: 25px;
+  padding: 6px 16px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.secondary:hover {
+  background: var(--pink-light);
+}
+
+/* 残り回数表示 */
+.quota-display {
+  font-weight: bold;
+  color: var(--pink-dark);
+}
+
+/* 注意文 */
+.note {
+  font-size: 13px;
+  color: #777;
+  margin-top: 10px;
+}
+
+/* ご意見・ご要望リンク */
+.feedback {
+  text-align: center;
+  margin: 40px 0 60px 0;
+}
+
+.feedback-link {
+  display: inline-block;
+  border: 2px dashed var(--pink-dark);
+  color: var(--pink-dark);
+  text-decoration: none;
+  border-radius: 40px;
+  padding: 10px 25px;
+  font-size: 16px;
+  font-weight: bold;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+.feedback-link:hover {
+  background: var(--pink-light);
+}
