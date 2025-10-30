@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <!-- ✅ AdSense 所有権 -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7556383975306687" crossorigin="anonymous"></script>
+
+  <!-- ✅ Google CMP（Funding Choices） -->
+  <script async src="https://fundingchoicesmessages.google.com/i/pub-7556383975306687?ers=1" nonce="cmp"></script>
+  <script nonce="cmp">
+    (function () {
+      function signalGooglefcPresent() {
+        if (!window.frames['__cmpLocator']) {
+          if (document.body) {
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = 'display:none';
+            iframe.name = '__cmpLocator';
+            document.body.appendChild(iframe);
+          } else {
+            setTimeout(signalGooglefcPresent, 5);
+          }
+        }
+      }
+      signalGooglefcPresent();
+    })();
+  </script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- 🔍 SEO / OGP（審査向け最小限） -->
+  <title>himegoto（β）- キャバ嬢向け営業LINE支援アプリ</title>
+  <meta name="description" content="キャバ嬢・ホステス向けメッセージ作成アプリ『himegoto（β）』。顧客登録・{name}差し込み・共有で営業LINEをサクッと作成。無料版は顧客5名・1日5回共有。">
+  <meta name="keywords" content="キャバクラ, ホステス, 営業LINE, 顧客管理, ひめごと, himegoto, 夜職, メッセージ作成">
+  <meta property="og:title" content="himegoto（β）">
+  <meta property="og:description" content="顧客名の差し込みで営業LINEを素早く。無料版は顧客5名・1日5回まで。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://himegoto.vercel.app/">
+  <meta property="og:image" content="https://himegoto.vercel.app/logo_himegoto.png">
+
+  <!-- PWA アイコン（任意） -->
+  <link rel="apple-touch-icon" href="icon-512.png">
+
+  <link rel="stylesheet" href="style.css?v=1.27b">
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="tabs">
+      <a class="tab-btn" href="index.html">ホーム</a>
+      <a class="tab-btn" href="help.html">使い方</a>
+      <a class="tab-btn" href="qa.html">Q&amp;A</a>
+      <a class="tab-btn" href="terms.html">利用規約</a>
+      <span class="version-badge">ver.1.27β</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="page">
+      <div class="logo-area">
+        <img src="logo_himegoto.png" alt="ヒメゴトロゴ" class="hime-logo">
+      </div>
+
+      <!-- 🔸 審査用の簡易テキスト（UIは崩さない最小量） -->
+      <div class="card">
+        <h2>himegoto（β）とは？</h2>
+        <p>
+          キャバ嬢・ホステス向けの営業メッセージ作成アプリです。顧客名を登録して、
+          本文に<span>{name}</span>タグを置き、共有時に選択した顧客名へ差し込みます。
+          データは端末内で処理され、テスト版では電話番号ログインは無効です。
+        </p>
+      </div>
+
+      <div class="grid two">
+        <!-- 顧客リスト -->
+        <div class="card">
+          <div class="customer-header">
+            <h2>顧客リスト</h2>
+            <span id="reg-remain" class="badge">登録残り 5 名</span>
+          </div>
+
+          <div class="add-customer">
+            <input id="add-input" class="add-input" type="text" placeholder="顧客名を入力">
+            <button id="add-btn" class="add-btn">追加</button>
+          </div>
+
+          <div class="customer-list"></div>
+        </div>
+
+        <!-- メッセージ作成 -->
+        <div class="card">
+          <h2>メッセージ作成</h2>
+          <textarea id="message" class="message">今日はありがとう♥{name}さんが来てくれてホント助かった😅また週末にでもさっきのお話の続き聞きたいな✨次は金曜日出勤してるから、もし{name}さんの都合が良かったらやけど来てくれると嬉しいな(,,>᎑<,,)待ってるね♥♡♥</textarea>
+
+          <div class="actions">
+            <span id="remain-badge" class="quota-display">残り 5 回</span>
+            <button id="insert-name" class="secondary">{name}</button>
+            <button id="share-btn" class="primary">共有</button>
+          </div>
+
+          <!-- 🔔 β注意 -->
+          <p class="note">現在テスト版のため、電話番号を入力してもログイン等出来ませんのでご了承ください。</p>
+
+          <!-- ✅ 広告枠（審査用 / 1枠） -->
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-7556383975306687"
+               data-ad-slot="1234567890"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ご意見・ご要望（全ページ最下段） -->
+  <footer class="feedback">
+    <a href="https://line.me/ti/p/_kahjcCa3-" target="_blank" class="feedback-link">ご意見・ご要望はこちら</a>
+  </footer>
+
+  <script src="app.js?v=1.27b"></script>
+</body>
+</html>
