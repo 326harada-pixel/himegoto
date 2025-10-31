@@ -1,210 +1,201 @@
-/* himegoto v1.27β - JST 0:00 リセット対応 / 全入れ替え用 */
-(() => {
-  // ====== 定数・ストレージ鍵 ======
-  const LS_KEY = "hime_state";
-  const LIMITS = { sendsPerDay: 5, customers: 5 };
+/* himegoto app.js v1.27b-JST-reset */
+/* 仕様
+  - 無料版の送信上限: 1日5回（JSTで0:00リセット）
+  - 顧客登録上限: 5名
+  - 共有ボタン: 共有パネルを開いた時点で1回消費（キャンセルでも減算）
+*/
 
-  // ====== JST（Asia/Tokyo）の日付キー YYYY-MM-DD を返す ======
-  const jstDateKey = () => {
-    // Intlでタイムゾーンを固定してズレを防止（端末のTZ設定に依存しない）
-    const fmt = new Intl.DateTimeFormat("ja-JP", {
-      timeZone: "Asia/Tokyo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit"
-    });
-    const parts = fmt.formatToParts(new Date());
-    const y = parts.find(p => p.type === "year").value;
-    const m = parts.find(p => p.type === "month").value;
-    const d = parts.find(p => p.type === "day").value;
-    return `${y}-${m}-${d}`;
+(() => {
+  // ---------- DOMヘルパ ----------
+  const $  = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+  // ---------- 定数 ----------
+  const MAX_SEND = 5;
+  const MAX_CUSTOMERS = 5;
+  const LS_KEY = "hime_state";
+
+  // JSTの "YYYY-MM-DD" を返す
+  const todayJST = () => {
+    const z = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+    const d = new Date(z); // ローカルパースでOK（上の時刻はJST）
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
   };
 
-  // ====== 状態のロード／セーブ ======
-  const loadState = () => {
+  // 次のJST深夜0時までのミリ秒
+  const msUntilNextJSTMidnight = () => {
+    const z = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+    const d = new Date(z);
+    const next = new Date(d.getTime());
+    next.setHours(24, 0, 0, 0); // JST日内の24:00
+    return next - d;
+  };
+
+  // ---------- 状態 ----------
+  const load = () => {
     try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); }
     catch { return {}; }
   };
-  const saveState = (s) => localStorage.setItem(LS_KEY, JSON.stringify(s));
+  const save = (s) => localStorage.setItem(LS_KEY, JSON.stringify(s));
 
-  // ====== 初期状態の整備（JST基準） ======
-  const ensureTodayState = (prev) => {
-    const today = jstDateKey();
-    if (!prev || prev.date !== today) {
-      return {
-        date: today,
-        count: 0,                             // 当日の送信回数
-        customers: prev?.customers || []      // 顧客は引き継ぐ
-      };
-    }
-    // date一致ならそのまま
-    return { date: today, count: prev.count || 0, customers: prev.customers || [] };
-  };
+  const today = todayJST();
+  let state = load();
+  if (state.date !== today) {
+    state = { date: today, count: 0, customers: state.customers || [] };
+    save(state);
+  } else {
+    // 安全フィールド
+    state.count = state.count ?? 0;
+    state.customers = state.customers ?? [];
+  }
 
-  let state = ensureTodayState(loadState());
-  saveState(state); // 形式を揃えて保存
+  // ---------- 要素 ----------
+  const listEl = $(".customer-list");
+  const addBtn = $("#add-btn");
+  const addInput = $("#add-input");
+  const msgEl = $("#message");
+  const shareBtn = $("#share-btn");
+  const insertBtn = $("#insert-name");
+  const sendBadge = $("#remain-badge");
+  const regBadge = $("#reg-remain");
 
-  // ====== 要素参照 ======
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const listEl      = $(".customer-list");
-  const addBtn      = $("#add-btn");
-  const addInput    = $("#add-input");
-  const msgEl       = $("#message");
-  const shareBtn    = $("#share-btn");
-  const insertBtn   = $("#insert-name");
-  const sendBadge   = $("#remain-badge");
-  const regBadge    = $("#reg-remain");
-
-  // 選択状態
+  // ---------- 選択中の顧客 ----------
   let selectedName = null;
-  let selectedBtn  = null;
+  let selectedBtn = null;
 
-  // ====== 残数関連 ======
-  const remainSends    = () => Math.max(0, LIMITS.sendsPerDay - (state.count || 0));
-  const remainRegister = () => Math.max(0, LIMITS.customers - (state.customers?.length || 0));
+  // ---------- 表示更新 ----------
+  const remainSend = () => Math.max(0, MAX_SEND - (state.count || 0));
+  const remainReg  = () => Math.max(0, MAX_CUSTOMERS - (state.customers?.length || 0));
 
-  const renderBadges = () => {
-    if (sendBadge) sendBadge.textContent = `残り ${remainSends()} 回`;
-    if (regBadge)  regBadge.textContent  = `登録残り ${remainRegister()} 名`;
+  const updateBadges = () => {
+    if (sendBadge) sendBadge.textContent = `残り ${remainSend()} 回`;
+    if (regBadge)  regBadge.textContent  = `登録残り ${remainReg()} 名`;
     if (shareBtn) {
-      const exhausted = remainSends() <= 0;
-      shareBtn.disabled = exhausted;
-      shareBtn.textContent = exhausted ? "上限到達" : "共有";
+      const over = remainSend() <= 0;
+      shareBtn.disabled = over;
+      shareBtn.textContent = over ? "上限到達" : "共有";
     }
   };
 
-  // ====== 顧客リスト描画 ======
   const renderList = () => {
-    if (!listEl) return;
     listEl.innerHTML = "";
     (state.customers || []).forEach((name) => {
       const row = document.createElement("div");
       row.className = "row";
       row.dataset.name = name;
+      row.innerHTML = `
+        <span>${name}</span>
+        <div class="row-actions">
+          <button class="choose-btn">選択</button>
+          <button class="del-btn">削除</button>
+        </div>
+      `;
+      const choose = row.querySelector(".choose-btn");
+      const del = row.querySelector(".del-btn");
 
-      const nameSpan = document.createElement("span");
-      nameSpan.textContent = name;
-
-      const actions = document.createElement("div");
-      actions.className = "row-actions";
-
-      const choose = document.createElement("button");
-      const isActive = selectedName === name;
-      choose.className = `choose-btn ${isActive ? "choose-btn--active" : ""}`;
-      choose.textContent = isActive ? "選択中" : "選択";
       choose.addEventListener("click", () => {
-        // 既存の選択ボタンを戻す
         if (selectedBtn && selectedBtn !== choose) {
           selectedBtn.classList.remove("choose-btn--active");
           selectedBtn.textContent = "選択";
         }
-        // 新しい選択
-        selectedBtn = choose;
-        selectedName = name;
         choose.classList.add("choose-btn--active");
         choose.textContent = "選択中";
+        selectedBtn = choose;
+        selectedName = name;
       });
 
-      const del = document.createElement("button");
-      del.className = "del-btn";
-      del.textContent = "削除";
       del.addEventListener("click", () => {
         const i = state.customers.indexOf(name);
         if (i >= 0) state.customers.splice(i, 1);
         if (selectedName === name) { selectedName = null; selectedBtn = null; }
-        saveState(state);
+        save(state);
         renderList();
-        renderBadges();
+        updateBadges();
       });
 
-      actions.appendChild(choose);
-      actions.appendChild(del);
-      row.appendChild(nameSpan);
-      row.appendChild(actions);
       listEl.appendChild(row);
     });
   };
 
-  // ====== 顧客追加 ======
+  // ---------- 動作 ----------
   addBtn?.addEventListener("click", () => {
     const name = (addInput?.value || "").trim();
     if (!name) return;
-    const arr = state.customers || [];
-    if (arr.length >= LIMITS.customers) { alert("無料版では顧客登録は5名までです。"); return; }
-    if (arr.includes(name)) { alert("同じ名前が既に登録されています。"); return; }
-    arr.push(name);
-    state.customers = arr;
+    if ((state.customers || []).length >= MAX_CUSTOMERS) {
+      alert("無料版では顧客登録は5名までです。");
+      return;
+    }
+    if (state.customers.includes(name)) {
+      alert("同じ名前がすでに登録されています。");
+      return;
+    }
+    state.customers.push(name);
     addInput.value = "";
-    saveState(state);
+    save(state);
     renderList();
-    renderBadges();
+    updateBadges();
   });
 
-  // ====== {name} 挿入（本文は常にユーザーが見る内容を保持。置換は共有時のみ） ======
   insertBtn?.addEventListener("click", () => {
-    if (!msgEl) return;
-    const tag = "{name}";
     const start = msgEl.selectionStart ?? msgEl.value.length;
-    const end   = msgEl.selectionEnd   ?? msgEl.value.length;
+    const end = msgEl.selectionEnd ?? msgEl.value.length;
     const before = msgEl.value.slice(0, start);
     const after  = msgEl.value.slice(end);
-    msgEl.value = before + tag + after;
+    msgEl.value = before + "{name}" + after;
     msgEl.focus();
-    const pos = start + tag.length;
-    msgEl.setSelectionRange?.(pos, pos);
+    const pos = start + "{name}".length;
+    msgEl.selectionStart = msgEl.selectionEnd = pos;
   });
 
-  // ====== 共有処理（Web Share APIのみ／未対応はアラート） ======
-  const buildShareText = () => {
-    // デフォ文自体は変更しない。共有テキスト生成時のみ{name}→選択名に置換。
-    const base = msgEl?.value || "";
-    return selectedName ? base.replaceAll("{name}", selectedName) : base;
-  };
+  const buildMessage = () =>
+    selectedName ? msgEl.value.replaceAll("{name}", selectedName) : msgEl.value;
 
-  shareBtn?.addEventListener("click", async () => {
-    // 当日チェック＆0:00跨ぎ対応（JST）
-    const today = jstDateKey();
-    if (state.date !== today) {
-      state.date = today;
-      state.count = 0;
-      saveState(state);
-      renderBadges();
-    }
-
-    if (remainSends() <= 0) { alert("無料版の送信上限（1日5回）に達しました。"); return; }
-    if (!selectedName)     { alert("顧客を選択してください。"); return; }
-
-    const text = buildShareText();
+  const openShare = async (text) => {
+    // 共有パネル／LINE遷移を開く前にカウント消費（キャンセルでも減らす仕様）
+    state.count = (state.count || 0) + 1;
+    save(state);
+    updateBadges();
 
     try {
       if (navigator.share) {
         await navigator.share({ text });
-        // 成功時のみカウント増加（キャンセルはAbortErrorでrejectされる）
-        state.count = (state.count || 0) + 1;
-        saveState(state);
-        renderBadges();
       } else {
-        // 共有に非対応：コピーは行わない（仕様）
-        alert("この端末・ブラウザは共有に対応していません。対応ブラウザ（例：Chrome）をご利用ください。");
+        // LINE 共有URL（テキストのみ）
+        location.href = "https://line.me/R/msg/text/?" + encodeURIComponent(text);
       }
     } catch (e) {
-      // キャンセルや失敗時はカウント増やさない
-      // console.debug("share cancelled/failed", e);
+      // キャンセルや例外でもカウントは戻さない（コピー回避不可のため）
+      console.log("share error:", e);
     }
+  };
+
+  shareBtn?.addEventListener("click", async () => {
+    if (remainSend() <= 0) {
+      alert("無料版の送信上限（5回）に達しました。");
+      return;
+    }
+    const text = buildMessage();
+    await openShare(text);
   });
 
-  // ====== 深夜0:00（JST）またぎの自動検知（1分ごと） ======
-  setInterval(() => {
-    const today = jstDateKey();
-    if (state.date !== today) {
-      state.date = today;
+  // ---------- 日跨ぎ自動リセット（JST） ----------
+  const armMidnightReset = () => {
+    const ms = msUntilNextJSTMidnight();
+    setTimeout(() => {
+      state.date = todayJST();
       state.count = 0;
-      saveState(state);
-      renderBadges();
-    }
-  }, 60 * 1000);
+      save(state);
+      updateBadges();
+      // 次の日もスケジュール
+      armMidnightReset();
+    }, ms + 250); // ゆとり
+  };
 
-  // ====== 初期描画 ======
+  // 初期描画
   renderList();
-  renderBadges();
+  updateBadges();
+  armMidnightReset();
 })();
