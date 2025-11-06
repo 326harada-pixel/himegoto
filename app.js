@@ -126,19 +126,30 @@
     });
   }
 
-  // Share (copy to clipboard)
-  if (shareBtn && msgEl) {
-    shareBtn.addEventListener('click', async () => {
-      const sel = getSelected();
-      const raw = msgEl.value || '';
-      const text = raw.replaceAll('{{name}}', sel ?? '').replaceAll('{name}', sel ?? '');
-      try{
-        await navigator.clipboard.writeText(text);
-        consumeQuota();
-        alert('本文をコピーしました。必要なトークで貼り付けてください。');
-      }catch(e){
-        alert('コピーに失敗しました');
+  
+// Share (system share sheet like TikTok/Instagram). On press: consume quota. No auto-copy.
+if (shareBtn && msgEl) {
+  shareBtn.addEventListener('click', async () => {
+    const sel = getSelected();
+    const raw = msgEl.value || '';
+    const text = raw.replaceAll('{{name}}', sel ?? '').replaceAll('{name}', sel ?? '');
+
+    // Count down immediately on button press (even if user cancels share)
+    consumeQuota();
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ text });
+      } else {
+        alert('この端末では共有メニューを開けません。本文を選択して共有してください。');
       }
+    } catch (e) {
+      // ユーザーキャンセル含む。カウントは消費済みの仕様。
+      console.warn('share canceled or failed', e);
+    }
+  });
+}
+
     });
   }
 
