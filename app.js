@@ -270,3 +270,30 @@ if (__installBtn){
 }
 
 })();
+
+
+/* install button logic with fallback */
+let __deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  __deferredPrompt = e;
+  document.getElementById('install-btn')?.classList.add('show');
+});
+const __installBtn = document.getElementById('install-btn');
+if (__installBtn){
+  __installBtn.addEventListener('click', async ()=>{
+    if (__deferredPrompt){
+      try{
+        __installBtn.disabled = true;
+        __deferredPrompt.prompt();
+        await __deferredPrompt.userChoice;
+      }finally{
+        __deferredPrompt = null;
+        __installBtn.classList.remove('show');
+        __installBtn.disabled = false;
+      }
+    }else{
+      alert('インストール案内を表示できません。ブラウザのメニューから「ホーム画面に追加」を選んでください。');
+    }
+  });
+}
