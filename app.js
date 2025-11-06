@@ -1,201 +1,164 @@
-/* himegoto app.js v1.27b-JST-reset */
-/* 仕様
-  - 無料版の送信上限: 1日5回（JSTで0:00リセット）
-  - 顧客登録上限: 5名
-  - 共有ボタン: 共有パネルを開いた時点で1回消費（キャンセルでも減算）
-*/
-
 (() => {
-  // ---------- DOMヘルパ ----------
-  const $  = (sel, root = document) => root.querySelector(sel);
+  // ========= 共通ユーティリティ =========
+  const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  // ---------- 定数 ----------
-  const MAX_SEND = 5;
-  const MAX_CUSTOMERS = 5;
-  const LS_KEY = "hime_state";
-
-  // JSTの "YYYY-MM-DD" を返す
-  const todayJST = () => {
-    const z = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
-    const d = new Date(z); // ローカルパースでOK（上の時刻はJST）
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
+  // JST（日本時間）で YYYY-MM-DD 生成
+  const jstDateKey = () => {
+    const fmt = new Intl.DateTimeFormat('ja-JP', {
+      timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    const [{value:y},,{value:m},,{value:d}] = fmt.formatToParts(new Date());
+    return `${y}-${m}-${d}`;
   };
 
-  // 次のJST深夜0時までのミリ秒
-  const msUntilNextJSTMidnight = () => {
-    const z = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
-    const d = new Date(z);
-    const next = new Date(d.getTime());
-    next.setHours(24, 0, 0, 0); // JST日内の24:00
-    return next - d;
-  };
+  // ========= アプリ設定 =========
+  const MAX_SEND = 5;           // 1日の送信上限
+  const MAX_CUSTOMERS = 5;      // 無料の顧客登録上限
 
-  // ---------- 状態 ----------
-  const load = () => {
-    try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); }
-    catch { return {}; }
-  };
-  const save = (s) => localStorage.setItem(LS_KEY, JSON.stringify(s));
+  // ========= ステート =========
+  const todayKey = jstDateKey();
+  // { date: 'YYYY-MM-DD', count: 0.., customers: ['山田', ...], selected: '山田' }
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem('hime_state') || '{}'); } catch(e) { state = {}; }
 
-  const today = todayJST();
-  let state = load();
-  if (state.date !== today) {
-    state = { date: today, count: 0, customers: state.customers || [] };
-    save(state);
+  if (state.date !== todayKey) {
+    // 日付が変わったらJST基準でカウントのみリセット
+    state = { date: todayKey, count: 0, customers: state.customers || [], selected: null };
   } else {
-    // 安全フィールド
-    state.count = state.count ?? 0;
-    state.customers = state.customers ?? [];
+    state.date = todayKey;
+    state.customers = state.customers || [];
   }
 
-  // ---------- 要素 ----------
-  const listEl = $(".customer-list");
-  const addBtn = $("#add-btn");
-  const addInput = $("#add-input");
-  const msgEl = $("#message");
-  const shareBtn = $("#share-btn");
-  const insertBtn = $("#insert-name");
-  const sendBadge = $("#remain-badge");
-  const regBadge = $("#reg-remain");
-
-  // ---------- 選択中の顧客 ----------
-  let selectedName = null;
-  let selectedBtn = null;
-
-  // ---------- 表示更新 ----------
+  const save = () => localStorage.setItem('hime_state', JSON.stringify(state));
   const remainSend = () => Math.max(0, MAX_SEND - (state.count || 0));
   const remainReg  = () => Math.max(0, MAX_CUSTOMERS - (state.customers?.length || 0));
 
-  const updateBadges = () => {
-    if (sendBadge) sendBadge.textContent = `残り ${remainSend()} 回`;
-    if (regBadge)  regBadge.textContent  = `登録残り ${remainReg()} 名`;
-    if (shareBtn) {
-      const over = remainSend() <= 0;
-      shareBtn.disabled = over;
-      shareBtn.textContent = over ? "上限到達" : "共有";
-    }
-  };
+  // ========= 要素取得 =========
+  const list       = $('.customer-list');
+  const addBtn     = $('#add-btn');
+  const addInput   = $('#add-input');
+  const message    = $('#message');
+  const shareBtn   = $('#share-btn');
+  const insertBtn  = $('#insert-name');
+  const sendBadge  = $('#remain-badge');
+  const regBadge   = $('#reg-remain');
 
-  const renderList = () => {
-    listEl.innerHTML = "";
+  // ========= リスト描画 =========
+  function renderList() {
+    if (!list) return;
+    list.innerHTML = '';
+
     (state.customers || []).forEach((name) => {
-      const row = document.createElement("div");
-      row.className = "row";
+      const row = document.createElement('div');
+      row.className = 'row';
       row.dataset.name = name;
+
       row.innerHTML = `
         <span>${name}</span>
         <div class="row-actions">
-          <button class="choose-btn">選択</button>
+          <a class="memo-btn" href="./customer.html?name=${encodeURIComponent(name)}">メモ</a>
+          <button class="choose-btn">${state.selected === name ? '選択中' : '選択'}</button>
           <button class="del-btn">削除</button>
         </div>
       `;
-      const choose = row.querySelector(".choose-btn");
-      const del = row.querySelector(".del-btn");
 
-      choose.addEventListener("click", () => {
-        if (selectedBtn && selectedBtn !== choose) {
-          selectedBtn.classList.remove("choose-btn--active");
-          selectedBtn.textContent = "選択";
-        }
-        choose.classList.add("choose-btn--active");
-        choose.textContent = "選択中";
-        selectedBtn = choose;
-        selectedName = name;
+      const choose = row.querySelector('.choose-btn');
+      const del    = row.querySelector('.del-btn');
+
+      // 選択中の見た目
+      if (state.selected === name) {
+        choose.classList.add('choose-btn--active'); // ピンク強調はCSS側の既存クラスを利用
+      }
+
+      // 「選択」
+      choose.addEventListener('click', () => {
+        state.selected = name;
+        save();
+        renderList();
       });
 
-      del.addEventListener("click", () => {
+      // 「削除」
+      del.addEventListener('click', () => {
         const i = state.customers.indexOf(name);
         if (i >= 0) state.customers.splice(i, 1);
-        if (selectedName === name) { selectedName = null; selectedBtn = null; }
-        save(state);
+        if (state.selected === name) state.selected = null;
+        save();
         renderList();
         updateBadges();
       });
 
-      listEl.appendChild(row);
+      list.appendChild(row);
     });
-  };
+  }
 
-  // ---------- 動作 ----------
-  addBtn?.addEventListener("click", () => {
-    const name = (addInput?.value || "").trim();
+  // ========= バッジ更新 =========
+  function updateBadges() {
+    if (sendBadge) sendBadge.textContent = `残り ${remainSend()} 回`;
+    if (regBadge)  regBadge.textContent  = `登録残り ${remainReg()} 名`;
+    if (shareBtn) {
+      const left = remainSend();
+      shareBtn.disabled = left <= 0;
+      shareBtn.textContent = left <= 0 ? '上限到達' : '共有';
+    }
+  }
+
+  // ========= 追加 =========
+  addBtn?.addEventListener('click', () => {
+    const name = (addInput?.value || '').trim();
     if (!name) return;
-    if ((state.customers || []).length >= MAX_CUSTOMERS) {
-      alert("無料版では顧客登録は5名までです。");
-      return;
-    }
-    if (state.customers.includes(name)) {
-      alert("同じ名前がすでに登録されています。");
-      return;
-    }
+    if ((state.customers || []).length >= MAX_CUSTOMERS) { alert('無料版では顧客登録は5名までです。'); return; }
+    if (state.customers.includes(name)) { alert('同じ名前がすでに登録されています。'); return; }
     state.customers.push(name);
-    addInput.value = "";
-    save(state);
+    if (!state.selected) state.selected = name;
+    addInput.value = '';
+    save();
     renderList();
     updateBadges();
   });
 
-  insertBtn?.addEventListener("click", () => {
-    const start = msgEl.selectionStart ?? msgEl.value.length;
-    const end = msgEl.selectionEnd ?? msgEl.value.length;
-    const before = msgEl.value.slice(0, start);
-    const after  = msgEl.value.slice(end);
-    msgEl.value = before + "{name}" + after;
-    msgEl.focus();
-    const pos = start + "{name}".length;
-    msgEl.selectionStart = msgEl.selectionEnd = pos;
+  // ========= {name} 差し込み =========
+  insertBtn?.addEventListener('click', () => {
+    if (!message) return;
+    const start = message.selectionStart ?? message.value.length;
+    const end   = message.selectionEnd   ?? message.value.length;
+    const before = message.value.slice(0, start);
+    const after  = message.value.slice(end);
+    const token  = '{name}';
+    message.value = before + token + after;
+    message.focus();
+    message.selectionStart = message.selectionEnd = start + token.length;
   });
 
-  const buildMessage = () =>
-    selectedName ? msgEl.value.replaceAll("{name}", selectedName) : msgEl.value;
+  // ========= 共有（押した瞬間にカウント消費） =========
+  function buildMessage() {
+    const name = state.selected || '';
+    return name ? (message?.value || '').replaceAll('{name}', name) : (message?.value || '');
+  }
 
-  const openShare = async (text) => {
-    // 共有パネル／LINE遷移を開く前にカウント消費（キャンセルでも減らす仕様）
+  shareBtn?.addEventListener('click', async () => {
+    // クリック時に先に減らす（コピー共有を含めカウント）
+    if (remainSend() <= 0) { alert('無料版の送信上限（5回）に達しました。'); return; }
+
     state.count = (state.count || 0) + 1;
-    save(state);
+    save();
     updateBadges();
 
+    const text = buildMessage();
     try {
       if (navigator.share) {
         await navigator.share({ text });
       } else {
-        // LINE 共有URL（テキストのみ）
-        location.href = "https://line.me/R/msg/text/?" + encodeURIComponent(text);
+        // LINEのテキスト共有URL
+        location.href = 'https://line.me/R/msg/text/?' + encodeURIComponent(text);
       }
     } catch (e) {
-      // キャンセルや例外でもカウントは戻さない（コピー回避不可のため）
-      console.log("share error:", e);
+      // 共有を閉じてもカウントは消費する仕様（ユーザー要件）
+      console.log(e);
     }
-  };
-
-  shareBtn?.addEventListener("click", async () => {
-    if (remainSend() <= 0) {
-      alert("無料版の送信上限（5回）に達しました。");
-      return;
-    }
-    const text = buildMessage();
-    await openShare(text);
   });
-
-  // ---------- 日跨ぎ自動リセット（JST） ----------
-  const armMidnightReset = () => {
-    const ms = msUntilNextJSTMidnight();
-    setTimeout(() => {
-      state.date = todayJST();
-      state.count = 0;
-      save(state);
-      updateBadges();
-      // 次の日もスケジュール
-      armMidnightReset();
-    }, ms + 250); // ゆとり
-  };
 
   // 初期描画
   renderList();
   updateBadges();
-  armMidnightReset();
 })();
