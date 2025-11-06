@@ -1,164 +1,122 @@
-(() => {
-  // ========= 共通ユーティリティ =========
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+/* ===== ﾋﾒｺﾞﾄ app.js  =====
+   - 起動/復帰/定期で SW を自動update → 新SWは即適用（skipWaiting）→ 自動リロード
+   - ヘッダ中央ロゴ / 右側インストールボタン
+==================================== */
 
-  // JST（日本時間）で YYYY-MM-DD 生成
-  const jstDateKey = () => {
-    const fmt = new Intl.DateTimeFormat('ja-JP', {
-      timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit'
-    });
-    const [{value:y},,{value:m},,{value:d}] = fmt.formatToParts(new Date());
-    return `${y}-${m}-${d}`;
+const $ = (sel, root=document)=>root.querySelector(sel);
+const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+
+/* ---------- PWA: インストール ---------- */
+let deferredPrompt = null;
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function ensureInstallButton(){
+  const header = $('.header'); if(!header) return;
+  let right = header.querySelector('.right');
+  if(!right){ right = document.createElement('div'); right.className='right'; header.appendChild(right); }
+  let btn = $('#install-btn', right);
+  if(!btn){
+    btn = document.createElement('button');
+    btn.id='install-btn'; btn.className='install-btn'; btn.textContent='インストール'; btn.style.display='none';
+    right.appendChild(btn);
+  }
+  btn.style.display = (!isStandalone() && deferredPrompt) ? 'inline-block' : 'none';
+  btn.onclick = async ()=>{
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice; deferredPrompt=null; ensureInstallButton();
   };
+}
+window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt=e; ensureInstallButton(); });
+window.addEventListener('appinstalled', ()=>{ deferredPrompt=null; ensureInstallButton(); });
 
-  // ========= アプリ設定 =========
-  const MAX_SEND = 5;           // 1日の送信上限
-  const MAX_CUSTOMERS = 5;      // 無料の顧客登録上限
-
-  // ========= ステート =========
-  const todayKey = jstDateKey();
-  // { date: 'YYYY-MM-DD', count: 0.., customers: ['山田', ...], selected: '山田' }
-  let state = {};
-  try { state = JSON.parse(localStorage.getItem('hime_state') || '{}'); } catch(e) { state = {}; }
-
-  if (state.date !== todayKey) {
-    // 日付が変わったらJST基準でカウントのみリセット
-    state = { date: todayKey, count: 0, customers: state.customers || [], selected: null };
-  } else {
-    state.date = todayKey;
-    state.customers = state.customers || [];
+/* ---------- ヘッダ中央ロゴ ---------- */
+function centerLogo(){
+  const header=$('.header'); if(!header) return;
+  let logo = header.querySelector('.logo-img');
+  if(!logo){
+    const img = header.querySelector('img[src*="logo_himegoto"]') || header.querySelector('img.logo, img[alt*="himegoto"]');
+    if(img){
+      img.classList.add('logo-img');
+      let wrap = header.querySelector('.logo-wrap');
+      if(!wrap){ wrap=document.createElement('div'); wrap.className='logo-wrap'; header.appendChild(wrap); }
+      wrap.appendChild(img);
+    }
   }
+}
 
-  const save = () => localStorage.setItem('hime_state', JSON.stringify(state));
-  const remainSend = () => Math.max(0, MAX_SEND - (state.count || 0));
-  const remainReg  = () => Math.max(0, MAX_CUSTOMERS - (state.customers?.length || 0));
+/* ---------- SW: 登録 & 自動更新仕組み ---------- */
+async function registerSW(){
+  if(!('serviceWorker' in navigator)) return null;
+  const reg = await navigator.serviceWorker.register('/service-worker.js', { updateViaCache:'none' });
 
-  // ========= 要素取得 =========
-  const list       = $('.customer-list');
-  const addBtn     = $('#add-btn');
-  const addInput   = $('#add-input');
-  const message    = $('#message');
-  const shareBtn   = $('#share-btn');
-  const insertBtn  = $('#insert-name');
-  const sendBadge  = $('#remain-badge');
-  const regBadge   = $('#reg-remain');
-
-  // ========= リスト描画 =========
-  function renderList() {
-    if (!list) return;
-    list.innerHTML = '';
-
-    (state.customers || []).forEach((name) => {
-      const row = document.createElement('div');
-      row.className = 'row';
-      row.dataset.name = name;
-
-      row.innerHTML = `
-        <span>${name}</span>
-        <div class="row-actions">
-          <a class="memo-btn" href="./customer.html?name=${encodeURIComponent(name)}">メモ</a>
-          <button class="choose-btn">${state.selected === name ? '選択中' : '選択'}</button>
-          <button class="del-btn">削除</button>
-        </div>
-      `;
-
-      const choose = row.querySelector('.choose-btn');
-      const del    = row.querySelector('.del-btn');
-
-      // 選択中の見た目
-      if (state.selected === name) {
-        choose.classList.add('choose-btn--active'); // ピンク強調はCSS側の既存クラスを利用
+  // 新SWが待機したら即適用
+  if(reg.waiting){ reg.waiting.postMessage({type:'SKIP_WAITING'}); }
+  reg.addEventListener('updatefound', ()=>{
+    const sw = reg.installing;
+    if(!sw) return;
+    sw.addEventListener('statechange', ()=>{
+      if(sw.state==='installed' && reg.waiting){
+        reg.waiting.postMessage({type:'SKIP_WAITING'});
       }
-
-      // 「選択」
-      choose.addEventListener('click', () => {
-        state.selected = name;
-        save();
-        renderList();
-      });
-
-      // 「削除」
-      del.addEventListener('click', () => {
-        const i = state.customers.indexOf(name);
-        if (i >= 0) state.customers.splice(i, 1);
-        if (state.selected === name) state.selected = null;
-        save();
-        renderList();
-        updateBadges();
-      });
-
-      list.appendChild(row);
     });
-  }
+  });
 
-  // ========= バッジ更新 =========
-  function updateBadges() {
-    if (sendBadge) sendBadge.textContent = `残り ${remainSend()} 回`;
-    if (regBadge)  regBadge.textContent  = `登録残り ${remainReg()} 名`;
-    if (shareBtn) {
-      const left = remainSend();
-      shareBtn.disabled = left <= 0;
-      shareBtn.textContent = left <= 0 ? '上限到達' : '共有';
+  // コントローラ切り替えで一度だけ自動リロード
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    if(!window.__reloaded){ window.__reloaded=true; location.reload(); }
+  });
+  return reg;
+}
+
+async function checkForUpdate(reg){
+  try{
+    reg = reg || await navigator.serviceWorker.getRegistration();
+    if(!reg) return;
+    await reg.update();                 // 新しいSWがあれば取りに行く
+    if(reg.waiting){                    // 取得できたら即適用
+      reg.waiting.postMessage({type:'SKIP_WAITING'});
     }
-  }
+  }catch(_){}
+}
 
-  // ========= 追加 =========
-  addBtn?.addEventListener('click', () => {
-    const name = (addInput?.value || '').trim();
-    if (!name) return;
-    if ((state.customers || []).length >= MAX_CUSTOMERS) { alert('無料版では顧客登録は5名までです。'); return; }
-    if (state.customers.includes(name)) { alert('同じ名前がすでに登録されています。'); return; }
-    state.customers.push(name);
-    if (!state.selected) state.selected = name;
-    addInput.value = '';
-    save();
-    renderList();
-    updateBadges();
-  });
+/* 起動時・復帰時・定期に更新チェック */
+let swReg = null;
+let lastCheck = 0;
+const CHECK_INTERVAL_MS = 30*60*1000;   // 30分ごと
 
-  // ========= {name} 差し込み =========
-  insertBtn?.addEventListener('click', () => {
-    if (!message) return;
-    const start = message.selectionStart ?? message.value.length;
-    const end   = message.selectionEnd   ?? message.value.length;
-    const before = message.value.slice(0, start);
-    const after  = message.value.slice(end);
-    const token  = '{name}';
-    message.value = before + token + after;
-    message.focus();
-    message.selectionStart = message.selectionEnd = start + token.length;
-  });
+async function boot(){
+  centerLogo();
+  ensureInstallButton();
+  swReg = await registerSW();
 
-  // ========= 共有（押した瞬間にカウント消費） =========
-  function buildMessage() {
-    const name = state.selected || '';
-    return name ? (message?.value || '').replaceAll('{name}', name) : (message?.value || '');
-  }
+  // 起動時にまず1回
+  await checkForUpdate(swReg);
 
-  shareBtn?.addEventListener('click', async () => {
-    // クリック時に先に減らす（コピー共有を含めカウント）
-    if (remainSend() <= 0) { alert('無料版の送信上限（5回）に達しました。'); return; }
-
-    state.count = (state.count || 0) + 1;
-    save();
-    updateBadges();
-
-    const text = buildMessage();
-    try {
-      if (navigator.share) {
-        await navigator.share({ text });
-      } else {
-        // LINEのテキスト共有URL
-        location.href = 'https://line.me/R/msg/text/?' + encodeURIComponent(text);
+  // 画面復帰時（ホームアイコンから開いた時や他アプリから戻った時）
+  document.addEventListener('visibilitychange', async ()=>{
+    if(document.visibilityState === 'visible'){
+      const now = Date.now();
+      if(now - lastCheck > 10*1000){   // 10秒以上空いていれば
+        lastCheck = now;
+        await checkForUpdate(swReg);
       }
-    } catch (e) {
-      // 共有を閉じてもカウントは消費する仕様（ユーザー要件）
-      console.log(e);
     }
   });
 
-  // 初期描画
-  renderList();
-  updateBadges();
-})();
+  // 定期チェック（起動中）
+  setInterval(()=>{ checkForUpdate(swReg); }, CHECK_INTERVAL_MS);
+
+  // ドロワーに「更新」も追加（手動トリガー用）
+  addRefreshMenu(()=>checkForUpdate(swReg));
+}
+
+function addRefreshMenu(onClick){
+  const ul = $('.drawer .nav'); if(!ul || $('#nav-refresh')) return;
+  const li=document.createElement('li'); const b=document.createElement('button');
+  b.id='nav-refresh'; b.className='nav-btn'; b.type='button'; b.textContent='更新（最新に入れ替え）';
+  b.addEventListener('click', onClick); li.appendChild(b); ul.appendChild(li);
+}
+
+document.addEventListener('DOMContentLoaded', boot);

@@ -1,32 +1,82 @@
-:root{--pink:#ff6ea6;--pink-deep:#e84f93;--bg:#fff;--ink:#222;--muted:#666;--card:#fff;--shadow:0 8px 24px rgba(0,0,0,.08)}
-*{box-sizing:border-box}html,body{margin:0;padding:0;color:var(--ink);background:#fff;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif}
-a{color:#0b76ff;text-decoration:none}a:hover{text-decoration:underline}
-.container{padding:84px 16px 32px;max-width:840px;margin:0 auto}
-.header{position:fixed;top:0;left:0;right:0;height:64px;background:linear-gradient(90deg,#ff8ec0,var(--pink));color:#fff;display:flex;align-items:center;padding:0 12px;z-index:20}
-.hamburger{border:0;background:transparent;color:#fff;font-size:24px;padding:8px 12px}
-.brand .logo{height:28px;display:block}
-.spacer{flex:1}
-.version{opacity:.95}
-.pill{display:inline-block;border-radius:999px;padding:.1em .6em;background:#fff;color:#d43778;font-weight:700;font-size:.9em}
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:.2s;z-index:18}
-.scrim.show{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;left:0;height:100dvh;width:86vw;max-width:320px;background:#fff;transform:translateX(-100%);transition:transform .2s;box-shadow:var(--shadow);z-index:19;overflow:auto;padding-bottom:32px}
-.drawer.open{transform:translateX(0)}
-.drawer-header{padding:72px 16px 8px;border-bottom:1px solid #eee}
-.nav{list-style:none;margin:0;padding:8px}.nav a{display:block;padding:12px 16px;border-radius:10px;color:#333}.nav a:hover{background:#f6f6f6}
+/* ===== 基本 ===== */
+:root{
+  --pink:#ff5b9a;
+  --bg:#fff;
+  --text:#222;
+  --muted:#777;
+  --border:#e6e6e6;
+  --card:#fff;
+  --shadow:0 6px 18px rgba(0,0,0,.06);
+}
 
-.card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:16px;margin:16px 0}
-h1{font-size:1.25rem;margin:0 0 8px} /* 小さめに */
-h2{font-size:1.05rem;margin:0 0 10px}
-.row{display:flex;gap:8px;align-items:center}
-.row.right{justify-content:flex-end}
-input[type="text"],input[type="tel"],input[type="date"],select,textarea{width:100%;border:1px solid #ddd;border-radius:12px;padding:10px 12px;font:inherit;background:#fff}
-button{border:0;border-radius:12px;padding:10px 14px;background:#eee;font-weight:700}
-button.primary{background:var(--pink);color:#fff}
-button.ghost{background:#ffe3ef;color:#b22}
-.customer-list .row{justify-content:space-between;border:1px solid #f1f1f1;padding:10px 12px;border-radius:12px}
-.choose-btn--active, .customer-row .choose-btn:active{background:var(--pink);color:#fff} /* ピンク強調 */
-.muted{color:var(--muted)}
-.small{font-size:.9em}
-.note{background:#fff8fb;border:1px dashed #ffa4c9;border-radius:12px;padding:10px}
-.btn-line{display:inline-block;background:#06c755;color:#fff;padding:10px 14px;border-radius:10px;font-weight:700}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fafafa;color:var(--text);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
+
+/* ===== ヘッダ ===== */
+.header{
+  position:sticky; top:0; z-index:1000;
+  height:56px; background:var(--pink); color:#fff;
+  display:flex; align-items:center; justify-content:flex-start;
+  padding:0 12px;
+}
+.header .hamburger{appearance:none;border:0;background:transparent;color:#fff;font-size:22px;font-weight:700}
+.header .spacer{flex:1}
+
+/* 中央ロゴを絶対配置でセンター固定 */
+.header { position:sticky }
+.header .logo-wrap{
+  position:relative; width:100%; height:0; /* 中央配置用のアンカー */
+}
+.header .logo-img{
+  position:absolute; left:50%; top:-28px; transform:translateX(-50%);
+  height:26px; object-fit:contain;
+}
+
+/* 右側エリア（インストール） */
+.header .right{
+  margin-left:auto; display:flex; align-items:center; gap:8px;
+}
+.install-btn{
+  appearance:none; border:0; border-radius:12px;
+  padding:8px 12px; background:#fff; color:var(--pink);
+  font-weight:700; box-shadow:var(--shadow);
+}
+
+/* 右上のバージョンバッジは非表示（verはメニュー最下部にあるため） */
+.header .version{ display:none }
+
+/* ===== 共通レイアウト ===== */
+.container{max-width:980px;margin:0 auto;padding:16px}
+.card{
+  background:var(--card); border:1px solid var(--border);
+  border-radius:16px; padding:16px; box-shadow:var(--shadow); margin:16px 0;
+}
+.btn{appearance:none;border:0;border-radius:12px;padding:12px 16px;font-weight:700}
+.btn-primary{background:var(--pink);color:#fff}
+.btn-outline{background:#fff;color:var(--pink);border:2px solid var(--pink)}
+.badge{display:inline-block;background:#ffe3ef;color:#c51657;border-radius:999px;padding:2px 10px;font-size:12px}
+
+/* 入力系 */
+.input,textarea,select{
+  width:100%; padding:12px 14px; border:1px solid var(--border);
+  border-radius:12px; background:#fff; font-size:16px;
+}
+textarea{min-height:120px; resize:vertical}
+.hint{font-size:12px;color:var(--muted)}
+
+/* ドロワーメニュー（存在する前提。JSが項目追加する） */
+.drawer{position:fixed;inset:0 0 0 auto;width:min(82vw,340px);background:#fff;
+  transform:translateX(100%);transition:transform .25s ease;border-left:1px solid var(--border);z-index:1200}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:700}
+.nav{list-style:none;margin:0;padding:8px}
+.nav li{margin:0;padding:0}
+.nav a, .nav button.nav-btn{
+  display:block;width:100%;text-align:left;padding:14px 16px;border-radius:12px;
+  color:var(--text);background:#fff;border:1px solid var(--border);margin:8px 12px;
+  text-decoration:none;font-weight:700
+}
+.nav a:hover, .nav button.nav-btn:hover{background:#fff5f9;border-color:#f7c6da}
+
+/* 既存の“選択中”色をピンク寄りに */
+.choose-btn--active{background:var(--pink)!important;color:#fff!important}
