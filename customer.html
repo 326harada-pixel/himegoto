@@ -1,87 +1,142 @@
 <!doctype html>
 <html lang="ja">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>顧客メモ - himegoto（β）</title><link rel="stylesheet" href="/style.css"></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>顧客情報メモ | himegoto</title>
+  <link rel="icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .container { max-width: 900px; margin: 0 auto; padding: 16px; }
+    .card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.06); margin-top: 12px; }
+    .row { display: grid; grid-template-columns: 140px 1fr; gap: 12px; align-items: center; margin: 10px 0; }
+    .row textarea { min-height: 90px; }
+    .actions { display:flex; gap:12px; justify-content: flex-end; margin-top: 12px; }
+    .pill { padding: 2px 10px; border-radius: 999px; background: #ffe6f0; color:#d9387a; font-size: 12px; }
+    .section-title { font-weight:700; margin-top: 4px; }
+    .input, textarea, select { width:100%; }
+  </style>
+</head>
 <body>
-<header class="header"><button class="hamburger" id="backBtn" aria-label="back">←</button>
-  <div class="brand"><img src="/logo_himegoto.png" class="logo" alt="himegoto"></div>
-  <div class="spacer"></div><div class="version">ver.1.30β</div>
-</header>
+  <header class="header">
+    <button class="hamburger" onclick="history.back()">戻る</button>
+    <div class="brand">顧客情報メモ</div>
+    <div class="spacer"></div>
+    <div class="version">ver.1.30β</div>
+  </header>
 
-<main class="container">
-  <h1>顧客メモ</h1>
-  <section class="card">
-    <div class="row"><label style="width:120px">名前</label><input id="c_name" type="text" readonly></div>
-    <div class="row"><label style="width:120px">呼び方</label><input id="c_nickname" type="text"></div>
-    <div class="row"><label style="width:120px">誕生日</label><input id="c_birthday" type="date"></div>
-    <div class="row"><label style="width:120px">タバコ</label>
-      <select id="c_smoke">
-        <option value="">未設定</option>
-        <option value="吸わない">吸わない</option>
-        <option value="メビウス">メビウス</option>
-        <option value="セブンスター">セブンスター</option>
-        <option value="その他">その他</option>
-      </select>
+  <main class="container">
+    <div class="card">
+      <div><span class="pill" id="custNamePill"></span></div>
+
+      <div class="section-title">基本情報</div>
+      <div class="row">
+        <label>呼び方</label>
+        <input id="nickname" class="input" placeholder="例）山ちゃん / たかしさん">
+      </div>
+      <div class="row">
+        <label>誕生日</label>
+        <input id="birthday" class="input" type="date">
+      </div>
+      <div class="row">
+        <label>タバコ</label>
+        <select id="cigarette" class="input">
+          <option value="">未設定</option>
+          <option value="吸わない">吸わない</option>
+          <option value="セブンスター">セブンスター</option>
+          <option value="メビウス">メビウス</option>
+          <option value="マールボロ">マールボロ</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+
+      <div class="section-title">お酒</div>
+      <div class="row">
+        <label>キープ状況</label>
+        <input id="bottle" class="input" placeholder="例）鏡月キープ / 山崎12年キープ">
+      </div>
+      <div class="row">
+        <label>よく飲む</label>
+        <input id="favorite" class="input" placeholder="例）ハイボール / 生ビール / シャンパン">
+      </div>
+
+      <div class="section-title">その他メモ</div>
+      <div class="row">
+        <label>メモ</label>
+        <textarea id="memo" class="input" placeholder="仕事・好きな話題・来店頻度・NG話題など"></textarea>
+      </div>
+
+      <div class="actions">
+        <button id="saveBtn" class="primary">保存</button>
+        <button id="exportBtn" class="secondary">CSV保存</button>
+      </div>
+
+      <p style="font-size:12px;color:#666;margin-top:8px;">
+        ※データは端末に保存されます（サーバー送信なし）。将来AI連携のためCSV形式で書き出し可。
+      </p>
     </div>
-    <div class="row"><label style="width:120px">ボトル</label><input id="c_bottle" type="text" placeholder="キープ状況"></div>
-    <div class="row"><label style="width:120px">よく飲む酒</label><input id="c_drink" type="text"></div>
-    <div class="row"><label style="width:120px">その他</label><textarea id="c_memo" rows="5" placeholder="覚えておきたいこと"></textarea></div>
-    <div class="row right">
-      <button id="csv-btn" class="ghost">CSV更新</button>
-      <button id="save-btn" class="primary">保存</button>
-    </div>
-    <p class="small muted">※すべて<strong>端末に保存</strong>。内部的にCSV文字列も保持し、将来AIから読み込みやすい形式にしています。</p>
-  </section>
-</main>
+  </main>
 
-<script>
-const qs=id=>document.getElementById(id);
-const keyBase='hime_customers_v1';
-const keyMemo='hime_customer_memo_v1';
-const keyCSV='hime_customer_csv_v1';
+  <script>
+    // ===== 顧客名取得 =====
+    const params = new URLSearchParams(location.search);
+    const name = params.get('name') || '';
+    const pill  = document.getElementById('custNamePill');
+    pill.textContent = name ? `顧客：${name}` : '顧客：未指定';
 
-const params=new URLSearchParams(location.search);
-const name=params.get('name')||'';
-qs('c_name').value=name;
+    // ===== localStorageキー =====
+    const KEY = (n) => `memo_${n}`;
 
-const loadJSON=(k,def)=>{ try{ return JSON.parse(localStorage.getItem(k)||def);}catch{ return JSON.parse(def);} };
+    // ===== 既存読込 =====
+    function load() {
+      try {
+        const raw = localStorage.getItem(KEY(name));
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        for (const [k,v] of Object.entries(data)) {
+          const el = document.getElementById(k);
+          if (el) el.value = v ?? '';
+        }
+      } catch (e) { console.log(e); }
+    }
 
-let memoMap=loadJSON(keyMemo,'{}');
-const data=memoMap[name]||{nickname:'',birthday:'',smoke:'',bottle:'',drink:'',memo:''};
+    // ===== 保存 =====
+    function save() {
+      const data = {
+        nickname: document.getElementById('nickname').value || '',
+        birthday: document.getElementById('birthday').value || '',
+        cigarette: document.getElementById('cigarette').value || '',
+        bottle: document.getElementById('bottle').value || '',
+        favorite: document.getElementById('favorite').value || '',
+        memo: document.getElementById('memo').value || ''
+      };
+      localStorage.setItem(KEY(name), JSON.stringify(data));
+      alert('保存しました（端末保存）');
+    }
 
-qs('c_nickname').value=data.nickname||'';
-qs('c_birthday').value=data.birthday||'';
-qs('c_smoke').value=data.smoke||'';
-qs('c_bottle').value=data.bottle||'';
-qs('c_drink').value=data.drink||'';
-qs('c_memo').value=data.memo||'';
+    // ===== CSV書き出し（端末内にデータURL） =====
+    function exportCSV() {
+      const raw = localStorage.getItem(KEY(name)) || '{}';
+      const d = JSON.parse(raw);
+      const headers = ['name','nickname','birthday','cigarette','bottle','favorite','memo'];
+      const line = [
+        name,
+        d.nickname || '', d.birthday || '', d.cigarette || '',
+        d.bottle || '', d.favorite || '', (d.memo || '').replace(/\n/g,'\\n')
+      ].map(s => `"${String(s).replace(/"/g,'""')}"`).join(',');
+      const csv = headers.join(',') + '\n' + line + '\n';
+      const url = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `memo_${name || 'unknown'}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
 
-qs('save-btn').addEventListener('click',()=>{
-  memoMap[name]={
-    nickname:qs('c_nickname').value.trim(),
-    birthday:qs('c_birthday').value,
-    smoke:qs('c_smoke').value,
-    bottle:qs('c_bottle').value.trim(),
-    drink:qs('c_drink').value.trim(),
-    memo:qs('c_memo').value.trim()
-  };
-  localStorage.setItem(keyMemo,JSON.stringify(memoMap));
-  alert('保存しました');
-});
-
-function rebuildCSV(){
-  const map=loadJSON(keyMemo,'{}');
-  const headers=['name','nickname','birthday','smoke','bottle','drink','memo'];
-  const rows=[headers.join(',')];
-  Object.keys(map).forEach(n=>{
-    const m=map[n]; const vals=[n,m.nickname||'',m.birthday||'',m.smoke||'',m.bottle||'',m.drink||'',(m.memo||'').replace(/\n/g,' ')];
-    rows.push(vals.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
-  });
-  localStorage.setItem(keyCSV,rows.join('\n'));
-}
-qs('csv-btn').addEventListener('click',()=>{ rebuildCSV(); alert('CSVを更新しました'); });
-
-document.getElementById('backBtn').addEventListener('click',()=>history.back());
-</script>
+    document.getElementById('saveBtn').addEventListener('click', save);
+    document.getElementById('exportBtn').addEventListener('click', exportCSV);
+    load();
+  </script>
 </body>
 </html>
