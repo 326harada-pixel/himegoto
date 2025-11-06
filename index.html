@@ -14,37 +14,33 @@
   <!-- 固定ヘッダ＋ハンバーガー -->
   <header class="header">
     <button class="hamburger" id="menuBtn" aria-label="menu">≡</button>
-    <div class="brand">himegoto</div>
+    <div class="brand">
+      <img src="/logo_himegoto.png" alt="himegoto" class="logo">
+    </div>
     <div class="spacer"></div>
-    <div class="version">ver.1.27β</div>
+    <div class="version">ver.1.30β</div>
   </header>
 
-  <!-- スライドドロワ -->
+  <!-- ドロワ -->
   <aside class="drawer" id="drawer" aria-hidden="true">
-    <div class="drawer-header">
-      <strong>メニュー</strong>
-      <div class="small">必要なページを選択してください</div>
-    </div>
-    <nav>
-      <ul class="nav">
-        <li><a href="/index.html">ホーム</a></li>
-        <li><a href="/help.html">アプリ用途</a></li>
-        <li><a href="/help.html#howto">使い方</a></li>
-        <li><a href="/qa.html">Q&amp;A</a></li>
-        <li><a href="/register.html">登録と紹介</a></li>
-        <li><a href="/privacy.html">プライバシーポリシー</a></li>
-        <li><a href="/terms.html">規約</a></li>
-        <li><a href="/index.html#about">運営者情報</a></li>
-        <li><a href="javascript:void(0)">version：<span class="pill">ver.1.27β</span></a></li>
-      </ul>
-    </nav>
+    <div class="drawer-header"><strong>メニュー</strong></div>
+    <nav><ul class="nav">
+      <li><a href="/index.html">ホーム</a></li>
+      <li><a href="/help.html">アプリ用途</a></li>
+      <li><a href="/help.html#howto">使い方</a></li>
+      <li><a href="/qa.html">Q&amp;A</a></li>
+      <li><a href="/feedback.html">ご意見・ご要望</a></li>
+      <li><a href="/register.html">登録と紹介</a></li>
+      <li><a href="/privacy.html">プライバシーポリシー</a></li>
+      <li><a href="/terms.html">規約</a></li>
+      <li><a href="/terms.html#tokushoho">特定商取引法の表記（準備中）<span class="small">及び運営者情報</span></a></li>
+      <li><a href="javascript:void(0)">version：<span class="pill">ver.1.30β</span></a></li>
+    </ul></nav>
   </aside>
   <div class="scrim" id="scrim"></div>
 
   <main class="container">
-    <h1>メッセージ作成</h1>
-
-    <!-- 顧客選択 -->
+    <!-- 顧客リスト -->
     <section class="card">
       <h2>顧客リスト <small id="reg-remain"></small></h2>
       <div class="row">
@@ -54,40 +50,29 @@
       <div class="customer-list"></div>
     </section>
 
-    <!-- エディタ -->
+    <!-- 本文（見出しはここに） -->
     <section class="card">
-      <h2>本文</h2>
-      <p class="note">本文に <code>{name}</code> を置くと、選択中の顧客名に自動差し替えされます。</p>
-      <textarea id="message" rows="8" placeholder="例：今日はありがとう{name}さん…"></textarea>
+      <h2>メッセージ作成</h2>
+      <p class="note">本文に <code>{name}</code> を入れると選択中の顧客名に差し替わります。</p>
+      <textarea id="message" rows="8" placeholder="今日はありがとう{name}さん。来てくれて本当に助かった〜！この前の話の続きも聞きたいな✨ 次は金曜日に出勤してるから、もし{name}さんの都合が良かったらやけど、また来てくれたら嬉しい…待ってるね❤"></textarea>
       <div class="row right">
         <button id="insert-name" class="ghost">{name} を挿入</button>
         <button id="share-btn" class="primary">共有</button>
       </div>
       <div class="muted" id="remain-badge">残り 5 回</div>
-      <div class="help">共有ボタンを押した時点で当日の回数を消費します（コピー共有も含む）。</div>
-    </section>
-
-    <!-- About / 運営者情報のアンカー -->
-    <section id="about" class="card">
-      <h2>運営者情報（概要）</h2>
-      <p>
-        個人事業（届出準備中）。正式な特定商取引法表記は
-        <a href="/terms.html#tokushoho">規約内の特商法表記</a>をご覧ください。
-      </p>
+      <div class="help">共有ボタンを押した瞬間に当日の回数を消費（コピー共有も対象）。</div>
     </section>
   </main>
 
   <script>
     // ドロワ開閉
     (function(){
-      const drawer = document.getElementById('drawer');
-      const scrim  = document.getElementById('scrim');
-      const btn    = document.getElementById('menuBtn');
-      const open = ()=>{ drawer.classList.add('open'); scrim.classList.add('show'); drawer.setAttribute('aria-hidden','false'); };
-      const close= ()=>{ drawer.classList.remove('open'); scrim.classList.remove('show'); drawer.setAttribute('aria-hidden','true'); };
-      btn.addEventListener('click', open);
-      scrim.addEventListener('click', close);
-      drawer.addEventListener('click', e=>{ if(e.target.matches('a')) close(); });
+      const d=document.getElementById('drawer'),s=document.getElementById('scrim');
+      const open=()=>{d.classList.add('open');s.classList.add('show');d.setAttribute('aria-hidden','false');};
+      const close=()=>{d.classList.remove('open');s.classList.remove('show');d.setAttribute('aria-hidden','true');};
+      document.getElementById('menuBtn').addEventListener('click',open);
+      s.addEventListener('click',close);
+      d.addEventListener('click',e=>{if(e.target.matches('a')) close();});
     })();
   </script>
   <script src="/app.js"></script>

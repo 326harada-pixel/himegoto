@@ -2,16 +2,15 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>アプリ用途 / 使い方 - himegoto（β）</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <header class="header">
     <button class="hamburger" id="menuBtn" aria-label="menu">≡</button>
-    <div class="brand">himegoto</div>
-    <div class="spacer"></div>
-    <div class="version">ver.1.27β</div>
+    <div class="brand"><img src="/logo_himegoto.png" alt="himegoto" class="logo"></div>
+    <div class="spacer"></div><div class="version">ver.1.30β</div>
   </header>
   <aside class="drawer" id="drawer" aria-hidden="true">
     <div class="drawer-header"><strong>メニュー</strong></div>
@@ -20,11 +19,11 @@
       <li><a href="/help.html">アプリ用途</a></li>
       <li><a href="/help.html#howto">使い方</a></li>
       <li><a href="/qa.html">Q&amp;A</a></li>
+      <li><a href="/feedback.html">ご意見・ご要望</a></li>
       <li><a href="/register.html">登録と紹介</a></li>
       <li><a href="/privacy.html">プライバシーポリシー</a></li>
       <li><a href="/terms.html">規約</a></li>
-      <li><a href="/index.html#about">運営者情報</a></li>
-      <li><a href="javascript:void(0)">version：<span class="pill">ver.1.27β</span></a></li>
+      <li><a href="/terms.html#tokushoho">特定商取引法の表記（準備中）及び運営者情報</a></li>
     </ul></nav>
   </aside>
   <div class="scrim" id="scrim"></div>
@@ -32,32 +31,30 @@
   <main class="container">
     <h1>アプリ用途</h1>
     <section class="card">
-      <p>キャバクラ・ホステス等の営業連絡を、定型文＋差し込みで素早く作成し、各SNS共有で送信するPWAです。データは端末ローカル保存で、電話番号ログインは不要（テスト版）。</p>
+      <p><strong>姫たちの営業メッセージを</strong>、<strong>自由文＋顧客名差込で</strong>サッと作って各SNSにシェアするPWA。</p>
       <ul>
-        <li>顧客5名まで登録（無料版）</li>
-        <li>本文への <code>{name}</code> 差し込み</li>
-        <li>1日5回まで共有（無料版）</li>
-        <li>JST 0:00で自動リセット</li>
+        <li>顧客5名まで登録（無料）</li>
+        <li>{name} で顧客名を差し込み</li>
+        <li>1日5回まで共有。毎日0:00に自動リセット</li>
+        <li>データは<strong>端末に保存</strong></li>
       </ul>
     </section>
 
     <h2 id="howto">使い方</h2>
     <section class="card">
       <ol>
-        <li>顧客名を追加し、<strong>選択</strong>にする。</li>
-        <li>本文に <code>{name}</code> を必要箇所に入れる（ボタンで挿入可能）。</li>
-        <li><strong>共有</strong>を押すと、その時点で1カウント消費し、共有UIが開く。</li>
-        <li>当日の上限は5回。翌日0:00（JST）で自動リセット。</li>
+        <li>顧客を追加して<strong>選択</strong>にする。</li>
+        <li>本文に <code>{name}</code> を置く（ボタンで挿入OK）。</li>
+        <li>共有ボタンで送る。押した瞬間に当日の回数を消費。</li>
       </ol>
-      <p class="note">共有を押した時点でカウントされます。コピー用途もカウント対象です。</p>
     </section>
   </main>
 
   <script>
-    const drawer=document.getElementById('drawer'),scrim=document.getElementById('scrim');
-    document.getElementById('menuBtn').addEventListener('click',()=>{drawer.classList.add('open');scrim.classList.add('show');});
-    scrim.addEventListener('click',()=>{drawer.classList.remove('open');scrim.classList.remove('show');});
-    drawer.addEventListener('click',e=>{if(e.target.matches('a')){drawer.classList.remove('open');scrim.classList.remove('show');}});
+    const d=document.getElementById('drawer'),s=document.getElementById('scrim');
+    document.getElementById('menuBtn').addEventListener('click',()=>{d.classList.add('open');s.classList.add('show');});
+    s.addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
+    d.addEventListener('click',e=>{if(e.target.matches('a')){d.classList.remove('open');s.classList.remove('show');}});
   </script>
 </body>
 </html>
