@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Q&amp;A - himegoto（β）</title>
+  <title>登録と紹介 - himegoto（β）</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -28,36 +28,33 @@
   <div class="scrim" id="scrim"></div>
 
   <main class="container">
-    <h1>Q&amp;A</h1>
+    <h1>登録と紹介</h1>
 
-    <section class="faq card">
-      <h2>無料版の制限は？</h2>
-      <p>顧客登録は5名まで、共有は1日5回までです。共有ボタン押下時にカウントされ、キャンセルやコピー共有も消費対象です。</p>
+    <section class="card">
+      <h2>本人確認（SMS）<small class="pill ghost">準備中</small></h2>
+      <p>不正利用防止のため、携帯番号によるSMS認証を予定しています。認証完了後、あなた専用の<strong>紹介ID</strong>が発行されます。</p>
+      <div class="row">
+        <input type="tel" inputmode="tel" placeholder="電話番号（SMS認証・準備中）" disabled>
+        <button disabled>認証する</button>
+      </div>
     </section>
 
-    <section class="faq card">
-      <h2>日付が変わっても回数が戻らない</h2>
-      <p>アプリは日本時間（JST）基準で毎日0:00に自動リセットします。長時間起動しっぱなしの場合は1分以内に追従します。</p>
+    <section class="card">
+      <h2>紹介IDの入力</h2>
+      <p>紹介者のIDを入力して登録すると、<strong>あなたと紹介者の双方に「3日間 無制限」</strong>が付与されます（仕様は今後調整）。</p>
+      <div class="row">
+        <input type="text" placeholder="紹介者IDを入力">
+        <button class="primary">登録（ダミー）</button>
+      </div>
+      <ul class="small">
+        <li>複数人を紹介すると、その日数が加算されます。</li>
+        <li>悪用防止のため、同一端末・同一番号での多重登録は無効化されます。</li>
+      </ul>
     </section>
 
-    <section class="faq card">
-      <h2>{name} の挿入が反映されない</h2>
-      <p>まず顧客リストで「選択中」にしてから共有してください。本文中の <code>{name}</code> が選択名に置換されます。</p>
-    </section>
-
-    <section class="faq card">
-      <h2>データの保管場所</h2>
-      <p>顧客名・残回数など最小限の情報のみ、端末のローカルストレージに保存されます。サーバー側に顧客データは送信されません。</p>
-    </section>
-
-    <section class="faq card">
-      <h2>紹介・無制限期間について</h2>
-      <p>紹介者のIDを入力して登録が成立すると、双方に期間限定の無制限枠が付与されます。詳細は「登録と紹介」を参照。</p>
-    </section>
-
-    <section class="faq card">
-      <h2>広告視聴について</h2>
-      <p>無課金利用時は1日1回の動画広告視聴で当日の利用が有効化されます（実装準備中）。</p>
+    <section class="card">
+      <h2>ステータス</h2>
+      <p>現在のプラン：<strong>無料</strong> / 無制限の残り期間：<strong>0日</strong>（ダミー表示）</p>
     </section>
   </main>
 

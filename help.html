@@ -1,39 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7556383975306687" crossorigin="anonymous"></script>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>使い方 - himegoto（β）</title>
-  <link rel="stylesheet" href="style.css?v=1.27b">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>アプリ用途 / 使い方 - himegoto（β）</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="tabs">
-    <a class="tab-btn" href="index.html">ホーム</a>
-    <a class="tab-btn" href="help.html">使い方</a>
-    <a class="tab-btn" href="qa.html">Q&amp;A</a>
-    <a class="tab-btn" href="terms.html">利用規約</a>
-    <span class="version-badge">ver.1.27β</span>
-  </div>
-</header>
-<main>
-<section class="page">
-  <div class="logo-area"><img src="logo_himegoto.png" alt="ヒメゴトロゴ" class="hime-logo"></div>
+  <header class="header">
+    <button class="hamburger" id="menuBtn" aria-label="menu">≡</button>
+    <div class="brand">himegoto</div>
+    <div class="spacer"></div>
+    <div class="version">ver.1.27β</div>
+  </header>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-header"><strong>メニュー</strong></div>
+    <nav><ul class="nav">
+      <li><a href="/index.html">ホーム</a></li>
+      <li><a href="/help.html">アプリ用途</a></li>
+      <li><a href="/help.html#howto">使い方</a></li>
+      <li><a href="/qa.html">Q&amp;A</a></li>
+      <li><a href="/register.html">登録と紹介</a></li>
+      <li><a href="/privacy.html">プライバシーポリシー</a></li>
+      <li><a href="/terms.html">規約</a></li>
+      <li><a href="/index.html#about">運営者情報</a></li>
+      <li><a href="javascript:void(0)">version：<span class="pill">ver.1.27β</span></a></li>
+    </ul></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 
-  <div class="card">
-    <h2>基本の流れ</h2>
-    <ol>
-      <li>「顧客リスト」に名前を登録（無料版は最大5名／削除で枠が空きます）。</li>
-      <li>本文の差し込みたい位置に<strong>{name}</strong>ボタンでタグを挿入。</li>
-      <li>顧客で<strong>選択</strong>を押してから<strong>共有</strong>。共有時だけ{name}が顧客名に置換されます。</li>
-    </ol>
-    <p class="note">※ デフォ文は常に固定で、選択や共有をしても本文自体は勝手に書き換わりません。</p>
-  </div>
-</section>
-</main>
-<footer class="feedback">
-  <a href="https://line.me/ti/p/_kahjcCa3-" target="_blank" class="feedback-link">ご意見・ご要望はこちら</a>
-</footer>
-<script src="app.js?v=1.27b"></script>
+  <main class="container">
+    <h1>アプリ用途</h1>
+    <section class="card">
+      <p>キャバクラ・ホステス等の営業連絡を、定型文＋差し込みで素早く作成し、各SNS共有で送信するPWAです。データは端末ローカル保存で、電話番号ログインは不要（テスト版）。</p>
+      <ul>
+        <li>顧客5名まで登録（無料版）</li>
+        <li>本文への <code>{name}</code> 差し込み</li>
+        <li>1日5回まで共有（無料版）</li>
+        <li>JST 0:00で自動リセット</li>
+      </ul>
+    </section>
+
+    <h2 id="howto">使い方</h2>
+    <section class="card">
+      <ol>
+        <li>顧客名を追加し、<strong>選択</strong>にする。</li>
+        <li>本文に <code>{name}</code> を必要箇所に入れる（ボタンで挿入可能）。</li>
+        <li><strong>共有</strong>を押すと、その時点で1カウント消費し、共有UIが開く。</li>
+        <li>当日の上限は5回。翌日0:00（JST）で自動リセット。</li>
+      </ol>
+      <p class="note">共有を押した時点でカウントされます。コピー用途もカウント対象です。</p>
+    </section>
+  </main>
+
+  <script>
+    const drawer=document.getElementById('drawer'),scrim=document.getElementById('scrim');
+    document.getElementById('menuBtn').addEventListener('click',()=>{drawer.classList.add('open');scrim.classList.add('show');});
+    scrim.addEventListener('click',()=>{drawer.classList.remove('open');scrim.classList.remove('show');});
+    drawer.addEventListener('click',e=>{if(e.target.matches('a')){drawer.classList.remove('open');scrim.classList.remove('show');}});
+  </script>
 </body>
 </html>

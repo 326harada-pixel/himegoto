@@ -1,155 +1,91 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <!-- ✅ AdSense 所有権スクリプト -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7556383975306687"
-    crossorigin="anonymous"></script>
-
-  <!-- ✅ Google 認定CMP（Funding Choices） -->
-  <script async src="https://fundingchoicesmessages.google.com/i/pub-7556383975306687?ers=1" nonce="cmp"></script>
-  <script nonce="cmp">
-    (function () {
-      function signalGooglefcPresent() {
-        if (!window.frames['__cmpLocator']) {
-          if (document.body) {
-            const iframe = document.createElement('iframe');
-            iframe.style.cssText = 'display:none';
-            iframe.name = '__cmpLocator';
-            document.body.appendChild(iframe);
-          } else {
-            setTimeout(signalGooglefcPresent, 5);
-          }
-        }
-      }
-      signalGooglefcPresent();
-    })();
-  </script>
-
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>利用規約 - himegoto（β）</title>
-  <link rel="stylesheet" href="style.css?v=1.27b">
+  <link rel="stylesheet" href="/style.css">
 </head>
-
 <body>
-  <header class="topbar">
-    <div class="tabs">
-      <a class="tab-btn" href="index.html">ホーム</a>
-      <a class="tab-btn" href="help.html">使い方</a>
-      <a class="tab-btn" href="qa.html">Q&amp;A</a>
-      <a class="tab-btn" href="terms.html">利用規約</a>
-      <span class="version-badge">ver.1.27β</span>
-    </div>
+  <header class="header">
+    <button class="hamburger" id="menuBtn" aria-label="menu">≡</button>
+    <div class="brand">himegoto</div><div class="spacer"></div><div class="version">ver.1.27β</div>
   </header>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-header"><strong>メニュー</strong></div>
+    <nav><ul class="nav">
+      <li><a href="/index.html">ホーム</a></li>
+      <li><a href="/help.html">アプリ用途</a></li>
+      <li><a href="/help.html#howto">使い方</a></li>
+      <li><a href="/qa.html">Q&amp;A</a></li>
+      <li><a href="/register.html">登録と紹介</a></li>
+      <li><a href="/privacy.html">プライバシーポリシー</a></li>
+      <li><a href="/terms.html">規約</a></li>
+      <li><a href="/index.html#about">運営者情報</a></li>
+      <li><a href="javascript:void(0)">version：<span class="pill">ver.1.27β</span></a></li>
+    </ul></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 
-  <main>
-    <section class="page">
-      <h2>利用規約</h2>
-      <div class="card">
-        <h3>1. 本規約の適用</h3>
-        <p>本規約は、himegoto（以下「本サービス」）のβ版を利用するすべての方（以下「利用者」）に適用されます。運営者は、合理的な範囲で本規約を随時改定でき、その場合は本ページへの掲示をもって効力が生じます。</p>
+  <main class="container typ">
+    <h1>利用規約</h1>
+    <p>本規約は、himegoto（以下「本サービス」）の利用条件を定めるものです。利用者は本規約に同意のうえ本サービスを利用します。</p>
 
-        <h3>2. 定義</h3>
-        <ul>
-          <li>「アプリ」：当サイト上で動作するウェブアプリ（PWA含む）</li>
-          <li>「端末内データ」：ブラウザの LocalStorage 等に保存されるデータ</li>
-          <li>「コンテンツ」：利用者が入力・作成・共有する文面等の情報</li>
-        </ul>
+    <h2>第1条（定義）</h2>
+    <p>「利用者」とは、本サービスを閲覧または使用するすべての個人をいいます。</p>
 
-        <h3>3. アカウント・認証</h3>
-        <ul>
-          <li>β版では電話番号等によるログインは提供しません。将来的に導入する場合は本ページで告知します。</li>
-          <li>認証導入後は、虚偽情報の登録や第三者による不正利用を防止するため、当社が必要と判断した場合に利用を制限・停止することがあります。</li>
-        </ul>
+    <h2>第2条（規約の適用・変更）</h2>
+    <p>当方は必要に応じて本規約を変更できます。変更後に本サービスを利用した場合、変更後規約に同意したものとみなします。</p>
 
-        <h3>4. 個人情報とプライバシー</h3>
-        <ul>
-          <li>β版の基本仕様として、入力テキストは端末内で処理され、運営サーバーへ常時送信・保存しません（例外：アクセス解析、広告、エラー計測に必要な最小限の技術情報）。</li>
-          <li>将来、外部ストレージやクラウド保存を提供する場合は、保存範囲・期間・第三者提供の有無を明示し、必要に応じ同意を取得します。</li>
-          <li>プライバシーに関する詳細は別途「プライバシーポリシー」を参照してください。</li>
-        </ul>
+    <h2>第3条（提供内容）</h2>
+    <ul>
+      <li>メッセージ作成機能、差し込み、共有UIの起動</li>
+      <li>無料版の制限：顧客登録5名、1日5回共有</li>
+      <li>JST 0:00の自動リセット</li>
+    </ul>
 
-        <h3>5. データの保存・消去</h3>
-        <ul>
-          <li>顧客名・送信回数などは端末内データとして保存されます。ブラウザの消去や端末の変更・故障等によりデータが失われても、運営は復旧の責任を負いません。</li>
-          <li>利用者はブラウザ設定やアプリ内機能により任意に消去できます。</li>
-        </ul>
+    <h2>第4条（禁止事項）</h2>
+    <ul>
+      <li>法令・公序良俗に反する行為、迷惑行為</li>
+      <li>第三者の権利侵害、なりすまし</li>
+      <li>リバースエンジニアリングその他の不正</li>
+    </ul>
 
-        <h3>6. 広告・クッキー等</h3>
-        <ul>
-          <li>本サービスは広告配信（例：Google AdSense）を利用する場合があります。この際、広告事業者がクッキー等を用いて情報を取得することがあります。</li>
-          <li>EEA・英国・スイス等の地域では、Google 認定 CMP による同意取得のインターフェースを表示する場合があります。</li>
-        </ul>
+    <h2>第5条（免責）</h2>
+    <p>本サービスの提供、変更、中断、終了により利用者に生じた損害について、当方は一切の責任を負いません。</p>
 
-        <h3>7. 利用条件（無料版）</h3>
-        <ul>
-          <li>1日あたりの共有（送信）上限：5回。毎日 JST 0:00 に自動リセットされます。</li>
-          <li>登録できる顧客数：5名まで。削除により空いた枠へ再登録が可能です。</li>
-          <li>共有パネルを開いた時点で回数を消費します（キャンセル時も減算）。</li>
-        </ul>
+    <h2>第6条（有料機能・課金）</h2>
+    <p>将来、課金版または広告視聴により機能制限を解除できる仕組みを提供します。課金条件は別途表示します。</p>
 
-        <h3>8. 禁止事項</h3>
-        <ul>
-          <li>法令・公序良俗・各プラットフォーム規約に反する行為</li>
-          <li>第三者の権利侵害（著作権・商標・肖像・プライバシー・名誉等）</li>
-          <li>差別・誹謗中傷・脅迫・ストーカー等の迷惑行為</li>
-          <li>広告の不正クリック誘導、虚偽・誇大表示</li>
-          <li>リバースエンジニアリング、改変、無断再配布</li>
-          <li>自動化手段による過度なアクセス、負荷を与える行為</li>
-        </ul>
+    <h2>第7条（広告）</h2>
+    <p>本サービス内に広告を表示または配信します。広告により外部サービスへ遷移した場合、その利用条件は遷移先の規約に従います。</p>
 
-        <h3>9. 知的財産</h3>
-        <ul>
-          <li>本サービスに関する著作権・ロゴ・デザイン・プログラム等の知的財産権は運営または正当な権利者に帰属します。</li>
-          <li>利用者は、個人的または業務上の正当な範囲に限り、本サービスを利用できます。無断の複製・転用は禁止します。</li>
-        </ul>
+    <h2>第8条（準拠法・裁判管轄）</h2>
+    <p>日本法を準拠法とし、紛争は当方所在地を管轄する裁判所を第一審の専属的合意管轄とします。</p>
 
-        <h3>10. 有償プラン・課金（将来導入時）</h3>
-        <ul>
-          <li>有償プランを導入する場合、内容・料金・支払方法・解約条件を別途明示します。</li>
-          <li>期間途中の解約・返金可否は個別の約款に従います。</li>
-        </ul>
+    <h2 id="tokushoho">特定商取引法に基づく表記（準備中）</h2>
+    <ul>
+      <li>販売事業者：個人（屋号：himegoto）</li>
+      <li>所在地：京都府（詳細住所は請求があれば遅滞なく開示）</li>
+      <li>電話番号：請求があれば遅滞なく開示</li>
+      <li>メール：<a href="mailto:contact@example.jp">contact@example.jp</a>（仮）</li>
+      <li>運営責任者：個人名（公開名義は屋号）</li>
+      <li>販売価格：各プラン表示のとおり（消費税込）</li>
+      <li>支払方法／時期：カード・各種決済（決済事業者の定める時期）</li>
+      <li>提供時期：決済完了後ただちに有効化</li>
+      <li>解約方法：設定ページからいつでも解約可能。次回更新以降の停止</li>
+      <li>返品・返金：デジタル役務の性質上、提供後の返金は原則不可</li>
+      <li>動作環境：最新のモバイルブラウザ（PWA対応を推奨）</li>
+    </ul>
 
-        <h3>11. 免責事項</h3>
-        <ul>
-          <li>本サービスはメッセージ作成補助ツールであり、内容の正確性・効能・成果を保証しません。</li>
-          <li>利用・不能・障害・データ消失・機会損失・第三者紛争等による損害について、運営は一切の責任を負いません。</li>
-          <li>外部サービス（SNS・メッセージアプリ等）との連携や各社の仕様変更による影響についても同様です。</li>
-        </ul>
-
-        <h3>12. 保証の否認</h3>
-        <p>本サービスは「現状有姿」で提供され、明示・黙示を問わず、商品性・特定目的適合性・非侵害の黙示保証を含め、いかなる保証も行いません。</p>
-
-        <h3>13. 責任の上限</h3>
-        <p>法令で許容される最大限の範囲で、運営の責任総額は、利用者が当該請求の直近1か月に本サービスに対して実際に支払った金額（無償の場合は0円）を上限とします。</p>
-
-        <h3>14. サービスの変更・中断・終了</h3>
-        <p>運営は、メンテナンス・セキュリティ・法令対応・事業上の理由等により、事前通知なくサービスの全部または一部を変更・中断・終了できるものとします。</p>
-
-        <h3>15. 反社会的勢力の排除</h3>
-        <p>利用者が反社会的勢力に該当・関与すると認められる場合、運営は何らの責任を負わず利用停止等の措置を講じることができます。</p>
-
-        <h3>16. 準拠法・裁判管轄</h3>
-        <p>本規約は日本法に準拠します。本サービスに起因または関連して生じる紛争は、運営者の本店所在地を管轄する日本の裁判所を第一審の専属的合意管轄とします。</p>
-
-        <h3>17. 連絡方法</h3>
-        <p>問い合わせは本サイト下部の「ご意見・ご要望」リンク、または別途案内する連絡窓口より行ってください。個別の技術サポートは提供できない場合があります。</p>
-
-        <h3>18. 付則</h3>
-        <p>β版の性質上、予告なく仕様変更が発生します。重要な変更がある場合は本ページで周知します。</p>
-      </div>
-    </section>
+    <p class="small muted">※正式運用開始時に確定情報へ置き換えます。</p>
   </main>
 
-  <!-- ✅ 各ページ共通：最下段のフィードバック導線 -->
-  <footer class="feedback">
-    <a href="https://line.me/ti/p/_kahjcCa3-" target="_blank" class="feedback-link">
-      ご意見・ご要望はこちら
-    </a>
-  </footer>
-
   <script>
-    /* ページ用の追加JSが不要なら空のままでOK */
+    const d=document.getElementById('drawer'),s=document.getElementById('scrim');
+    document.getElementById('menuBtn').addEventListener('click',()=>{d.classList.add('open');s.classList.add('show');});
+    s.addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
+    d.addEventListener('click',e=>{if(e.target.matches('a')){d.classList.remove('open');s.classList.remove('show');}});
   </script>
 </body>
 </html>
