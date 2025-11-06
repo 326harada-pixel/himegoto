@@ -17,12 +17,12 @@ html,body{
   font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
 }
 
-/* ===== ヘッダ（ハンバーガー／中央ロゴ／右側ボタン） ===== */
+/* ===== ヘッダ（中央ロゴ固定） ===== */
 .header{
   position:sticky; top:0; z-index:1000;
   height:56px; background:var(--pink); color:#fff;
   display:flex; align-items:center; justify-content:flex-start;
-  padding:0 12px;
+  padding:0 12px; overflow:visible;
 }
 .header .hamburger{
   appearance:none; border:0; background:transparent;
@@ -30,34 +30,46 @@ html,body{
 }
 .header .right{ margin-left:auto; display:flex; align-items:center; gap:8px }
 
-/* 中央ロゴ（全ページ統一サイズ） */
+/* 中央ロゴ（img がある場合） */
 .header .logo-wrap{ position:relative; width:100%; height:0 }
 .header .logo-img{
   position:absolute; left:50%; top:-28px; transform:translateX(-50%);
-  height:32px; object-fit:contain;
+  height:36px; object-fit:contain;
 }
 @media (min-width:640px){
-  .header .logo-img{ height:36px; top:-30px }
+  .header .logo-img{ height:40px; top:-30px }
 }
 
-/* インストールボタン（右側） */
+/* ★ロゴ自動補完：img が無いヘッダだけロゴを描画 */
+.header:not(:has(.logo-img))::before{
+  content:"";
+  position:absolute; left:50%; top:8px; transform:translateX(-50%);
+  width:200px; height:40px;
+  background:url("/logo_himegoto.png") center/contain no-repeat;
+  pointer-events:none;
+}
+@media (min-width:640px){
+  .header:not(:has(.logo-img))::before{ width:240px; height:44px; top:6px }
+}
+
+/* 右上 ver バッジは使わない（メニュー下部で表示） */
+.header .version{ display:none }
+
+/* インストールボタン */
 .install-btn{
   appearance:none; border:0; border-radius:12px;
   padding:8px 12px; background:#fff; color:var(--pink);
   font-weight:700; box-shadow:var(--shadow);
 }
 
-/* 右上の ver バッジは使わない（メニュー最下部に表示） */
-.header .version{ display:none }
-
-/* ===== レイアウト共通 ===== */
+/* ===== レイアウト ===== */
 .container{ max-width:980px; margin:0 auto; padding:16px }
 .card{
   background:var(--card); border:1px solid var(--border);
   border-radius:16px; padding:16px; box-shadow:var(--shadow); margin:16px 0;
 }
 
-/* 入力系 */
+/* 入力 */
 .input, textarea, select{
   width:100%; padding:12px 14px; border:1px solid var(--border);
   border-radius:12px; background:#fff; font-size:16px;
@@ -76,7 +88,7 @@ textarea{ min-height:120px; resize:vertical }
 .btn-primary{ background:var(--pink); color:#fff }
 .btn-outline{ background:#fff; color:var(--pink); border:2px solid var(--pink) }
 
-/* ===== ドロワーメニュー（左スライド） ===== */
+/* ===== ドロワー（左スライド＆テキストリスト） ===== */
 .drawer{
   position:fixed; top:0; left:0; bottom:0; width:min(82vw,340px);
   background:#fff; border-right:1px solid var(--border);
@@ -96,12 +108,10 @@ textarea{ min-height:120px; resize:vertical }
   border-bottom:1px solid var(--border);
 }
 .nav a:first-child, .nav button.nav-btn:first-child{ border-top:1px solid var(--border) }
-.nav a:hover, .nav button.nav-btn:hover{
-  background:#f9f9f9;
-}
-.nav .pill{ color:var(--pink); font-weight:800 } /* version 表示用 */
+.nav a:hover, .nav button.nav-btn:hover{ background:#f9f9f9 }
+.nav .pill{ color:var(--pink); font-weight:800 } /* version 表示 */
 
-/* ===== ホーム周り ===== */
+/* ===== ホーム ===== */
 .grid.two{ display:grid; grid-template-columns:1fr 1fr; gap:16px }
 @media (max-width:900px){ .grid.two{ grid-template-columns:1fr } }
 
@@ -146,7 +156,7 @@ textarea{ min-height:120px; resize:vertical }
 .feedback-link:hover{ background:#ffe4f1 }
 
 /* ホームのロゴ最小幅抑制 */
-.logo-area img.hime-logo{ max-width:260px; height:auto }
+.logo-area img.hime-logo{ max-width:300px; height:auto }
 @media (min-width:640px){
-  .logo-area img.hime-logo{ max-width:300px }
+  .logo-area img.hime-logo{ max-width:340px }
 }
