@@ -18,6 +18,17 @@ html,body{
 }
 
 /* ===== ヘッダ（中央ロゴ固定） ===== */
+
+/* ===== Header brand / logo adjustments (unify across pages) ===== */
+.header .brand{
+  position:absolute; left:50%; top:0; height:56px; transform:translateX(-50%);
+  display:flex; align-items:center; justify-content:center; pointer-events:none;
+}
+.header img.logo{
+  display:block; height:28px; width:auto;
+}
+.header .hamburger{ width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; }
+
 .header{
   position:sticky; top:0; z-index:1000;
   height:56px; background:var(--pink); color:#fff;
@@ -41,7 +52,7 @@ html,body{
 }
 
 /* ★ロゴ自動補完：img が無いヘッダだけロゴを描画 */
-.header:not(:has(.logo-img))::before{
+.header:not(:has(img.logo))::before{
   content:"";
   position:absolute; left:50%; top:8px; transform:translateX(-50%);
   width:200px; height:40px;
@@ -49,7 +60,7 @@ html,body{
   pointer-events:none;
 }
 @media (min-width:640px){
-  .header:not(:has(.logo-img))::before{ width:240px; height:44px; top:6px }
+  .header:not(:has(img.logo))::before{ width:240px; height:44px; top:6px }
 }
 
 /* 右上 ver バッジは使わない（メニュー下部で表示） */
@@ -95,19 +106,19 @@ textarea{ min-height:120px; resize:vertical }
   transform:translateX(-100%); transition:transform .25s ease; z-index:1200;
 }
 .drawer.open{ transform:translateX(0) }
-.drawer-header{ padding:14px 16px; border-bottom:1px solid var(--border); font-weight:700 }
+.drawer-header{ padding:14px 16px; border-bottom:none; font-weight:700 }
 
 .nav{ list-style:none; margin:0; padding:8px 0 }
-.nav li{ margin:0; padding:0 }
+.nav li{ margin:0; padding:2px 0 }
 .nav a, .nav button.nav-btn{
   display:block; width:100%;
   padding:14px 20px;
   background:transparent; border:none; border-radius:0;
   color:var(--text); text-decoration:none; font-weight:700;
   text-align:left;
-  border-bottom:1px solid var(--border);
+  border-bottom:none;
 }
-.nav a:first-child, .nav button.nav-btn:first-child{ border-top:1px solid var(--border) }
+.nav a:first-child, .nav button.nav-btn:first-child{ border-top:none }
 .nav a:hover, .nav button.nav-btn:hover{ background:#f9f9f9 }
 .nav .pill{ color:var(--pink); font-weight:800 } /* version 表示 */
 
