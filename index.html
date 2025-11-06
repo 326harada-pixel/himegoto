@@ -18,7 +18,7 @@
       <img src="/logo_himegoto.png" alt="himegoto" class="logo">
     </div>
     <div class="spacer"></div>
-    <div class="version">ver.1.30β</div>
+    <div class="version">ver.1.31β</div>
   </header>
 
   <!-- ドロワ -->
@@ -34,7 +34,7 @@
       <li><a href="/privacy.html">プライバシーポリシー</a></li>
       <li><a href="/terms.html">規約</a></li>
       <li><a href="/terms.html#tokushoho">特定商取引法の表記（準備中）<span class="small">及び運営者情報</span></a></li>
-      <li><a href="javascript:void(0)">version：<span class="pill">ver.1.30β</span></a></li>
+      <li><a href="javascript:void(0)">version：<span class="pill">ver.1.31β</span></a></li>
     </ul></nav>
   </aside>
   <div class="scrim" id="scrim"></div>
@@ -62,6 +62,19 @@
       <div class="muted" id="remain-badge">残り 5 回</div>
       <div class="help">共有ボタンを押した瞬間に当日の回数を消費（コピー共有も対象）。</div>
     </section>
+  
+    <!-- バックアップと復元 -->
+    <section class="card">
+      <h2>バックアップと復元</h2>
+      <p class="note">今の登録内容（顧客・選択中の名前・当日の残り回数）をひとつのファイルにまとめます。万が一に備えて、ときどき保存してください。</p>
+      <div class="row">
+        <button id="backup-btn">バックアップを作る</button>
+        <input id="restore-file" type="file" accept=".json" style="display:none">
+        <button id="restore-btn">復元する</button>
+      </div>
+      <p class="help">復元すると、保存時点の内容に入れ替わります。迷ったらまずバックアップを作っておけば安心です。</p>
+    </section>
+    
   </main>
 
   <script>
