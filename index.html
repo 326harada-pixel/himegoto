@@ -50,41 +50,16 @@
         <button id="add-btn">追加</button>
       </div>
       <div class="customer-list"></div>
-    
-    <hr>
-    <h3>文字列バックアップ（ファイル不要）</h3>
-    <p>「文字列を作る」→ コピー → LINE のキープメモに貼って保存。復元は貼り付けて実行。</p>
-    <div class="row">
-      <button id="backup-make">文字列を作る</button>
-      <button id="backup-copy">文字列をコピー</button>
-    </div>
-    <textarea id="backup-text" rows="3" placeholder="ここに文字列が表示/貼り付け"></textarea>
-    <div class="row right">
-      <button id="backup-restore-text" class="primary">文字列から復元</button>
-    </div>
     </section>
     <section class="card">
       <h2>メッセージ作成</h2>
       <p class="note">本文に <code>{name}</code> を入れると選択中の顧客名に置き換わります。</p>
-      <textarea id="message" rows="8" placeholder="今日はありがとう{name}さん。"></textarea>
-<p class="muted">例：本日はありがとうございました、{name} さん。明日以降のご都合はいかがでしょうか？</p>
+      <textarea id="message" rows="8" placeholder="今日はありがとう{name}さん。" placeholder="今日はありがとう、{name} さん。次いつ会える？" ></textarea>
       <div class="row right">
         <button id="insert-name" class="ghost">{name} を挿入</button>
         <button id="share-btn" class="primary">共有</button>
       </div>
       <div class="muted" id="remain-badge">残り 5 回</div>
-    
-    <hr>
-    <h3>文字列バックアップ（ファイル不要）</h3>
-    <p>「文字列を作る」→ コピー → LINE のキープメモに貼って保存。復元は貼り付けて実行。</p>
-    <div class="row">
-      <button id="backup-make">文字列を作る</button>
-      <button id="backup-copy">文字列をコピー</button>
-    </div>
-    <textarea id="backup-text" rows="3" placeholder="ここに文字列が表示/貼り付け"></textarea>
-    <div class="row right">
-      <button id="backup-restore-text" class="primary">文字列から復元</button>
-    </div>
     </section>
     <section class="card">
       <h2>バックアップと復元</h2>
@@ -93,20 +68,21 @@
         <input id="restore-file" type="file" accept=".json" style="display:none">
         <button id="restore-btn">復元する</button>
       </div>
-    
-    <hr>
-    <h3>文字列バックアップ（ファイル不要）</h3>
-    <p>「文字列を作る」→ コピー → LINE のキープメモに貼って保存。復元は貼り付けて実行。</p>
-    <div class="row">
-      <button id="backup-make">文字列を作る</button>
-      <button id="backup-copy">文字列をコピー</button>
-    </div>
-    <textarea id="backup-text" rows="3" placeholder="ここに文字列が表示/貼り付け"></textarea>
-    <div class="row right">
-      <button id="backup-restore-text" class="primary">文字列から復元</button>
-    </div>
     </section>
-  </main>
+  
+<section class="card" id="backup-string">
+  <h2>バックアップ（文字列・ファイル不要）</h2>
+  <p>①「文字列を作る」→ ②「コピー」→ LINEのキープメモに貼る。復元は貼り付けて「文字列から復元」を押すだけ。</p>
+  <div class="row">
+    <button id="backup-make">文字列を作る</button>
+    <button id="backup-copy">コピー</button>
+  </div>
+  <textarea id="backup-text" rows="3" placeholder="ここに長い文字列が表示／ペーストされます"></textarea>
+  <div class="row right">
+    <button id="backup-restore-text" class="primary">文字列から復元</button>
+  </div>
+</section>
+</main>
 
 
   <script>
