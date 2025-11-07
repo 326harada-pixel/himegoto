@@ -1,51 +1,46 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Q&A</title>
-  <link rel="stylesheet" href="/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Q&A</title>
+<link rel="stylesheet" href="/style.css?v=131011">
 </head>
 <body>
-  <header class="appbar">
-    <button id="menu-btn" aria-label="メニュー" class="ghost">≡</button>
-    <a class="brand" href="/index.html" aria-label="home">
-      <span class="logo-text">himegoto</span>
-    </a>
-    <button id="install-btn" class="ghost">インストール</button>
-  </header>
-  <aside class="drawer" id="drawer" aria-hidden="true">
-    <div class="drawer-header">
-      <strong>メニュー</strong>
-      <button id="drawer-close" aria-label="閉じる" class="ghost" style="margin-left:auto">✕</button>
-    </div>
-    <nav>
-      <ul class="nav">
-        <li><a href="/index.html">ホーム</a></li>
-        <li><a href="/help.html">アプリ用途</a></li>
-        <li><a href="/help.html#howto">使い方</a></li>
-        <li><a href="/qa.html">Q&amp;A</a></li>
-        <li><a href="/register.html">登録と紹介</a></li>
-        <li><a href="/privacy.html">プライバシーポリシー</a></li>
-        <li><a href="/terms.html">規約</a></li>
-        <li><a href="/terms.html#tokushoho">特定商取引法の表記（準備中）及び運営者情報</a></li>
-        <li><a href="/feedback.html">ご意見・ご要望</a></li>
-        <li><a href="javascript:void(0)">version：<span class="pill">ver.1.31β</span></a></li>
-      </ul>
-    </nav>
-  </aside>
-  <div class="scrim" id="scrim"></div>
-
-  <main class="container">
-  <section class="card">
+<header class="appbar">
+  <button id="menu-btn" aria-label="メニュー" class="icon">☰</button>
+  <a class="brand" href="/index.html"><span class="logo-text">himegoto</span></a>
+  <button id="install-btn" class="ghost">インストール</button>
+</header>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-header">
+    <strong>メニュー</strong>
+    <button id="drawer-close" aria-label="閉じる" class="icon">✕</button>
+  </div>
+  <nav>
+    <ul class="nav">
+      <li><a href="/index.html">ホーム</a></li>
+      <li><a href="/help.html">アプリ用途</a></li>
+      <li><a href="/help.html#howto">使い方</a></li>
+      <li><a href="/qa.html">Q&amp;A</a></li>
+      <li><a href="/register.html">登録と紹介</a></li>
+      <li><a href="/privacy.html">プライバシーポリシー</a></li>
+      <li><a href="/terms.html">規約</a></li>
+      <li><a href="/terms.html#tokushoho">特商法/運営者情報</a></li>
+      <li><a href="/feedback.html">ご意見ご要望</a></li>
+      <li class="ver">version：<span class="pill">ver.1.31β</span></li>
+    </ul>
+  </nav>
+</aside>
+<div class="scrim" id="scrim"></div>
+<main class="container">
+<section class="card">
   <h2>Q&amp;A</h2>
-  <h3>バックアップはファイルですか？</h3>
-  <p>いいえ、<strong>1行の文字列</strong>だけです。LINE のキープメモに貼っておけます。</p>
-  <h3>復元はどうする？</h3>
-  <p>文字列を貼り付けて「文字列から復元」を押すだけです。</p>
+  <h3>バックアップはファイル？</h3><p>いいえ、1行の文字列だけです。</p>
+  <h3>復元方法は？</h3><p>文字列を貼り付け→「文字列から復元」を押します。</p>
 </section>
 
-  </main>
-  <script src="/app.js?v=131010"></script>
+</main>
+<script src="/app.js?v=131011"></script>
 </body>
 </html>

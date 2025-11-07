@@ -1,66 +1,58 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>アプリ用途 / 使い方</title>
-  <link rel="stylesheet" href="/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>アプリ用途 / 使い方</title>
+<link rel="stylesheet" href="/style.css?v=131011">
 </head>
 <body>
-  <header class="appbar">
-    <button id="menu-btn" aria-label="メニュー" class="ghost">≡</button>
-    <a class="brand" href="/index.html" aria-label="home">
-      <span class="logo-text">himegoto</span>
-    </a>
-    <button id="install-btn" class="ghost">インストール</button>
-  </header>
-  <aside class="drawer" id="drawer" aria-hidden="true">
-    <div class="drawer-header">
-      <strong>メニュー</strong>
-      <button id="drawer-close" aria-label="閉じる" class="ghost" style="margin-left:auto">✕</button>
-    </div>
-    <nav>
-      <ul class="nav">
-        <li><a href="/index.html">ホーム</a></li>
-        <li><a href="/help.html">アプリ用途</a></li>
-        <li><a href="/help.html#howto">使い方</a></li>
-        <li><a href="/qa.html">Q&amp;A</a></li>
-        <li><a href="/register.html">登録と紹介</a></li>
-        <li><a href="/privacy.html">プライバシーポリシー</a></li>
-        <li><a href="/terms.html">規約</a></li>
-        <li><a href="/terms.html#tokushoho">特定商取引法の表記（準備中）及び運営者情報</a></li>
-        <li><a href="/feedback.html">ご意見・ご要望</a></li>
-        <li><a href="javascript:void(0)">version：<span class="pill">ver.1.31β</span></a></li>
-      </ul>
-    </nav>
-  </aside>
-  <div class="scrim" id="scrim"></div>
-
-  <main class="container">
-  <section class="card">
-  <h2>アプリ用途</h2>
-  <p>営業用メッセージを簡単に作って共有するためのツールです。</p>
-</section>
-
+<header class="appbar">
+  <button id="menu-btn" aria-label="メニュー" class="icon">☰</button>
+  <a class="brand" href="/index.html"><span class="logo-text">himegoto</span></a>
+  <button id="install-btn" class="ghost">インストール</button>
+</header>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-header">
+    <strong>メニュー</strong>
+    <button id="drawer-close" aria-label="閉じる" class="icon">✕</button>
+  </div>
+  <nav>
+    <ul class="nav">
+      <li><a href="/index.html">ホーム</a></li>
+      <li><a href="/help.html">アプリ用途</a></li>
+      <li><a href="/help.html#howto">使い方</a></li>
+      <li><a href="/qa.html">Q&amp;A</a></li>
+      <li><a href="/register.html">登録と紹介</a></li>
+      <li><a href="/privacy.html">プライバシーポリシー</a></li>
+      <li><a href="/terms.html">規約</a></li>
+      <li><a href="/terms.html#tokushoho">特商法/運営者情報</a></li>
+      <li><a href="/feedback.html">ご意見ご要望</a></li>
+      <li class="ver">version：<span class="pill">ver.1.31β</span></li>
+    </ul>
+  </nav>
+</aside>
+<div class="scrim" id="scrim"></div>
+<main class="container">
+<section class="card"><h2>アプリ用途</h2><p>営業メッセージを素早く作って共有するためのツールです。</p></section>
 <section class="card" id="howto">
   <h2>使い方</h2>
   <ol>
-    <li>顧客名を追加し、選択します。</li>
-    <li>本文に {name} を入れておくと顧客名に置換されます。</li>
-    <li>共有を押して各アプリへ送ります。</li>
+    <li>顧客名を追加して選択</li>
+    <li>本文に {name} を入れる→顧客名に置換</li>
+    <li>共有ボタンで送信</li>
   </ol>
 </section>
-
 <section class="card" id="backup-usage">
-  <h2>バックアップと復元（文字列方式）</h2>
+  <h2>バックアップ/復元（文字列）</h2>
   <ol>
-    <li>ホームの「バックアップ文字列を作る」を押す</li>
-    <li>表示された文字列をコピー → LINE のキープメモへ保存</li>
-    <li>復元は文字列を貼り付け → 「文字列から復元」を押す</li>
+    <li>ホームで文字列を作成→コピー</li>
+    <li>LINEのキープメモに貼って保存</li>
+    <li>復元は貼り付け→実行</li>
   </ol>
 </section>
 
-  </main>
-  <script src="/app.js?v=131010"></script>
+</main>
+<script src="/app.js?v=131011"></script>
 </body>
 </html>

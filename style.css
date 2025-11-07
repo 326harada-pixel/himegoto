@@ -1,173 +1,29 @@
-/* ===== himegoto 共通スタイル ===== */
-:root{
-  --pink:#ff5b9a;
-  --pink-ghost:#fff5f9;
-  --text:#222;
-  --muted:#777;
-  --bg:#fafafa;
-  --card:#fff;
-  --border:#e6e6e6;
-  --shadow:0 6px 18px rgba(0,0,0,.06);
-}
-
-*{box-sizing:border-box}
-html,body{
-  margin:0; padding:0;
-  background:var(--bg); color:var(--text);
-  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-}
-
-/* ===== ヘッダ（中央ロゴ固定） ===== */
-
-/* ===== Header brand / logo adjustments (unify across pages) ===== */
-.header .brand{
-  position:absolute; left:50%; top:0; height:56px; transform:translateX(-50%);
-  display:flex; align-items:center; justify-content:center; pointer-events:none;
-}
-.header img.logo{
-  display:block; height:28px; width:auto;
-}
-.header .hamburger{ width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; }
-
-.header{
-  position:sticky; top:0; z-index:1000;
-  height:56px; background:var(--pink); color:#fff;
-  display:flex; align-items:center; justify-content:flex-start;
-  padding:0 12px; overflow:visible;
-}
-.header .hamburger{
-  appearance:none; border:0; background:transparent;
-  color:#fff; font-size:22px; font-weight:700;
-}
-.header .right{ margin-left:auto; display:flex; align-items:center; gap:8px }
-
-/* 中央ロゴ（img がある場合） */
-.header .logo-wrap{ position:relative; width:100%; height:0 }
-.header .logo-img{
-  position:absolute; left:50%; top:-28px; transform:translateX(-50%);
-  height:36px; object-fit:contain;
-}
-@media (min-width:640px){
-  .header .logo-img{ height:40px; top:-30px }
-}
-
-/* ★ロゴ自動補完：img が無いヘッダだけロゴを描画 */
-.header:not(:has(img.logo))::before{
-  content:"";
-  position:absolute; left:50%; top:8px; transform:translateX(-50%);
-  width:200px; height:40px;
-  background:url("/logo_himegoto.png") center/contain no-repeat;
-  pointer-events:none;
-}
-@media (min-width:640px){
-  .header:not(:has(img.logo))::before{ width:240px; height:44px; top:6px }
-}
-
-/* 右上 ver バッジは使わない（メニュー下部で表示） */
-.header .version{ display:none }
-
-/* インストールボタン */
-.install-btn{
-  appearance:none; border:0; border-radius:12px;
-  padding:8px 12px; background:#fff; color:var(--pink);
-  font-weight:700; box-shadow:var(--shadow);
-}
-
-/* ===== レイアウト ===== */
-.container{ max-width:980px; margin:0 auto; padding:16px }
-.card{
-  background:var(--card); border:1px solid var(--border);
-  border-radius:16px; padding:16px; box-shadow:var(--shadow); margin:16px 0;
-}
-
-/* 入力 */
-.input, textarea, select{
-  width:100%; padding:12px 14px; border:1px solid var(--border);
-  border-radius:12px; background:#fff; font-size:16px;
-}
-textarea{ min-height:120px; resize:vertical }
-.hint{ font-size:12px; color:var(--muted) }
-
-/* バッジ */
-.badge{
-  display:inline-block; background:#ffe3ef; color:#c51657;
-  border-radius:999px; padding:2px 10px; font-size:12px; font-weight:700;
-}
-
-/* ボタン */
-.btn{ appearance:none; border:0; border-radius:12px; padding:12px 16px; font-weight:700 }
-.btn-primary{ background:var(--pink); color:#fff }
-.btn-outline{ background:#fff; color:var(--pink); border:2px solid var(--pink) }
-
-/* ===== ドロワー（左スライド＆テキストリスト） ===== */
-.drawer{
-  position:fixed; top:0; left:0; bottom:0; width:min(82vw,340px);
-  background:#fff; border-right:1px solid var(--border);
-  transform:translateX(-100%); transition:transform .25s ease; z-index:1200;
-}
-.drawer.open{ transform:translateX(0) }
-.drawer-header{ padding:14px 16px; border-bottom:none; font-weight:700 }
-
-.nav{ list-style:none; margin:0; padding:8px 0 }
-.nav li{ margin:0; padding:2px 0 }
-.nav a, .nav button.nav-btn{
-  display:block; width:100%;
-  padding:14px 20px;
-  background:transparent; border:none; border-radius:0;
-  color:var(--text); text-decoration:none; font-weight:700;
-  text-align:left;
-  border-bottom:none;
-}
-.nav a:first-child, .nav button.nav-btn:first-child{ border-top:none }
-.nav a:hover, .nav button.nav-btn:hover{ background:#f9f9f9 }
-.nav .pill{ color:var(--pink); font-weight:800 } /* version 表示 */
-
-/* ===== ホーム ===== */
-.grid.two{ display:grid; grid-template-columns:1fr 1fr; gap:16px }
-@media (max-width:900px){ .grid.two{ grid-template-columns:1fr } }
-
-.customer-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px }
-.customer-list{ display:flex; flex-direction:column; gap:10px; margin-top:8px }
-.row{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:10px 12px; border-radius:14px; background:#fff; border:1px solid #ffd9ec;
-}
-.row-actions{ display:flex; gap:8px; align-items:center }
-.add-customer{ display:flex; gap:8px; margin-bottom:12px }
-.add-input{ flex:1; padding:8px 10px; border:1px solid #ffd9ec; border-radius:10px }
-.add-btn{
-  padding:8px 14px; border:none; border-radius:999px;
-  background:linear-gradient(90deg,#ff93d3,#ff5fa9); color:#fff; cursor:pointer; font-weight:700;
-}
-.choose-btn{
-  padding:8px 14px; border-radius:999px; border:2px solid #ff8ac8; background:#fff; cursor:pointer; color:#333; font-weight:700;
-  transition:background .15s ease,color .15s ease,border-color .15s ease;
-}
-.choose-btn--active{ background:#ff5b9a !important; color:#fff !important; border-color:#ff5b9a !important }
-.del-btn{ padding:8px 10px; border-radius:999px; border:1px solid #ffc4de; background:#fff; color:#d3356c; cursor:pointer; font-weight:700 }
-
-.message{
-  width:100%; height:300px; border-radius:14px; border:1px solid #ffd9ec; padding:12px; resize:none; background:#fff;
-}
-.actions{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center }
-.primary,.secondary,.quota-display{
-  border:none; border-radius:999px; padding:10px 14px; cursor:pointer; box-shadow:var(--shadow); font-weight:700
-}
-.primary{ background:linear-gradient(90deg,#ff93d3,#ff5fa9); color:#fff }
-.secondary{ background:#fff; color:#c0177a; border:1px solid #ffc0df }
-.quota-display{ background:#fff; border:1px solid #ffd9ec; color:#c0177a; cursor:default }
-.primary[disabled]{ opacity:.6; cursor:not-allowed }
-
-/* ご意見・ご要望リンク */
-.feedback{ text-align:center; margin:40px 0 20px }
-.feedback-link{
-  display:inline-block; padding:10px 20px; border:2px dotted #ff8ac8; border-radius:30px;
-  color:#ff5fa9; text-decoration:none; font-weight:bold; transition:all .3s ease;
-}
-.feedback-link:hover{ background:#ffe4f1 }
-
-/* ホームのロゴ最小幅抑制 */
-.logo-area img.hime-logo{ max-width:300px; height:auto }
-@media (min-width:640px){
-  .logo-area img.hime-logo{ max-width:340px }
-}
+:root{--bg:#fff;--fg:#222;--muted:#666;--pink:#ff6ea6;--line:#eee;--pill:#f4f4f4;}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+.container{max-width:680px;margin:88px auto 80px;padding:0 16px}
+.appbar{position:fixed;top:0;left:0;right:0;height:64px;background:#ffa0c1;display:flex;align-items:center;gap:12px;padding:0 12px;z-index:20}
+.appbar .brand{color:#fff;text-decoration:none;font-weight:700}
+.appbar .ghost{margin-left:auto}
+.icon,.ghost,.primary,.danger,button{border:1px solid #ccc;border-radius:12px;padding:8px 12px;background:#fff}
+.primary{background:#ff6ea6;color:#fff;border-color:#ff6ea6}
+.danger{border-color:#f66;color:#f44;background:#fee}
+.row{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+.row.between{justify-content:space-between}
+.row.right{justify-content:flex-end}
+.g8{gap:8px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin:16px 0;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+input,textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:12px}
+textarea{resize:vertical}
+.pill{display:inline-block;padding:4px 10px;background:var(--pill);border-radius:999px;border:1px solid #ddd}
+/* drawer */
+.drawer{position:fixed;top:0;left:0;height:100dvh;width:280px;background:#fff;border-right:1px solid #ddd;transform:translateX(-110%);transition:.2s ease;z-index:25;padding:12px}
+.drawer[aria-hidden="false"]{transform:none}
+.drawer-header{display:flex;align-items:center;gap:8px;margin:6px 4px 10px}
+.nav{list-style:none;padding:0;margin:0}
+.nav li{padding:8px 6px;border-bottom:1px dashed #eee}
+.nav a{text-decoration:none;color:#333}
+.nav .ver{border-bottom:none}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.2);backdrop-filter:saturate(120%);opacity:0;visibility:hidden;z-index:24}
+.scrim.on{opacity:1;visibility:visible}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
