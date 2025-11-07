@@ -73,6 +73,19 @@
       <p class="help">復元すると、保存時点の内容に入れ替わります。迷ったらまずバックアップを作っておけば安心です。</p>
     </section>
     
+  
+    <!-- 共有モーダル（フォールバック用：自動コピーなし） -->
+    <div id="share-modal" class="modal" aria-hidden="true">
+      <div class="modal__content">
+        <h3>共有</h3>
+        <p class="muted">共有メニューを開けない端末のため、アプリを選んで開いてください。</p>
+        <div class="row">
+          <button id="share-line" class="primary">LINEで共有</button>
+          <button id="share-close" class="ghost">閉じる</button>
+        </div>
+      </div>
+    </div>
+    
   </main>
 
   <script>
@@ -86,7 +99,7 @@
       d.addEventListener('click',e=>{if(e.target.matches('a')) close();});
     })();
   </script>
-  <script src="/app.js"></script>
+  <script src="/app.js?v=131004"></script>
 </body>
 </html>
 <script>

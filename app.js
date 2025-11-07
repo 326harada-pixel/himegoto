@@ -116,23 +116,41 @@
   }
 
   // Message helpers
-  if (insertBtn && msgEl) {
-    insertBtn.addEventListener('click', () => {
-      const tag = '{name}';
-      const start = msgEl.selectionStart ?? msgEl.value.length;
-      const end   = msgEl.selectionEnd   ?? msgEl.value.length;
-      msgEl.setRangeText(tag, start, end, 'end');
+  
+// Robust {name} insertion
+if (insertBtn && msgEl) {
+  insertBtn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    const tag = '{name}';
+    try {
       msgEl.focus();
-    });
-  }
+      const start = (typeof msgEl.selectionStart === 'number') ? msgEl.selectionStart : (msgEl.value?.length ?? 0);
+      const end   = (typeof msgEl.selectionEnd   === 'number') ? msgEl.selectionEnd   : (msgEl.value?.length ?? 0);
+
+      if (typeof msgEl.setRangeText === 'function') {
+        // Modern, spec-compliant
+        msgEl.setRangeText(tag, start, end, 'end');
+      } else {
+        // Fallback for older engines
+        const v = msgEl.value || '';
+        msgEl.value = v.slice(0, start) + tag + v.slice(end);
+        // move caret to after inserted text
+        if (msgEl.setSelectionRange) {
+          const pos = start + tag.length;
+          msgEl.setSelectionRange(pos, pos);
+        }
+      }
+    } catch (e) {
+      // Ultimate fallback: append
+      msgEl.value = (msgEl.value || '') + tag;
+    }
+  });
+}
+
 
   
 // Share (system share sheet like TikTok/Instagram). On press: consume quota. No auto-copy.
-if (shareBtn && msgEl) {
-  shareBtn.addEventListener('click', async () => {
-    const sel = getSelected();
-    const raw = msgEl.value || '';
-    const text = raw.replaceAll('{{name}}', sel ?? '').replaceAll('{name}', sel ?? '');
+', sel ?? '').replaceAll('{name}', sel ?? '');
 
     // Count down immediately on button press (even if user cancels share)
     consumeQuota();
@@ -240,6 +258,49 @@ if (__installBtn){
   });
 }
 
+
+// Share: system share sheet if available; otherwise open in-app modal (no auto-copy).
+// Button press consumes quota immediately (仕様準拠).
+(function(){
+  if (!shareBtn || !msgEl) return;
+  const modal = document.getElementById('share-modal');
+  const btnLine = document.getElementById('share-line');
+  const btnClose = document.getElementById('share-close');
+
+  function getShareText(){
+    const sel = getSelected();
+    const raw = msgEl.value || '';
+    return raw.replaceAll('{{name}}', sel ?? '').replaceAll('{name}', sel ?? '');
+  }
+  function showModal(){ modal?.classList.add('show'); modal?.setAttribute('aria-hidden','false'); }
+  function hideModal(){ modal?.classList.remove('show'); modal?.setAttribute('aria-hidden','true'); }
+
+  btnClose?.addEventListener('click', hideModal);
+  btnLine?.addEventListener('click', ()=>{
+    const text = encodeURIComponent(getShareText());
+    // LINE share URL（Web版の標準的導線）
+    const url = `https://line.me/R/msg/text/?${text}`;
+    window.open(url, '_blank');
+    hideModal();
+  });
+
+  shareBtn.addEventListener('click', async () => {
+    // 仕様：押した瞬間に回数を消費
+    consumeQuota();
+    const text = getShareText();
+    try{
+      if (navigator.share) {
+        await navigator.share({ text });
+      } else {
+        showModal();
+      }
+    }catch(e){
+      // ユーザーキャンセル/失敗でも消費は仕様通り
+      console.warn('share failed', e);
+    }
+  });
+})();
+
 })();
 
   // Service Worker (keep logo centered: no header UI injection)
@@ -279,6 +340,49 @@ if (__installBtn){
     }
   });
 }
+
+
+// Share: system share sheet if available; otherwise open in-app modal (no auto-copy).
+// Button press consumes quota immediately (仕様準拠).
+(function(){
+  if (!shareBtn || !msgEl) return;
+  const modal = document.getElementById('share-modal');
+  const btnLine = document.getElementById('share-line');
+  const btnClose = document.getElementById('share-close');
+
+  function getShareText(){
+    const sel = getSelected();
+    const raw = msgEl.value || '';
+    return raw.replaceAll('{{name}}', sel ?? '').replaceAll('{name}', sel ?? '');
+  }
+  function showModal(){ modal?.classList.add('show'); modal?.setAttribute('aria-hidden','false'); }
+  function hideModal(){ modal?.classList.remove('show'); modal?.setAttribute('aria-hidden','true'); }
+
+  btnClose?.addEventListener('click', hideModal);
+  btnLine?.addEventListener('click', ()=>{
+    const text = encodeURIComponent(getShareText());
+    // LINE share URL（Web版の標準的導線）
+    const url = `https://line.me/R/msg/text/?${text}`;
+    window.open(url, '_blank');
+    hideModal();
+  });
+
+  shareBtn.addEventListener('click', async () => {
+    // 仕様：押した瞬間に回数を消費
+    consumeQuota();
+    const text = getShareText();
+    try{
+      if (navigator.share) {
+        await navigator.share({ text });
+      } else {
+        showModal();
+      }
+    }catch(e){
+      // ユーザーキャンセル/失敗でも消費は仕様通り
+      console.warn('share failed', e);
+    }
+  });
+})();
 
 })();
 
