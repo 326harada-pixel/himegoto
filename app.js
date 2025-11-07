@@ -51,6 +51,9 @@
         del.addEventListener('click', ()=>{ const after=getCustomers().filter((_,i)=>i!==idx); if(getSelected()===name) setSelected(null); setCustomers(after); });
 
         actions.appendChild(choose); actions.appendChild(del);
+        const memo=document.createElement('a'); memo.className='memo-btn'; memo.textContent='メモ';
+        memo.href = '/customer.html?name='+encodeURIComponent(name);
+        actions.appendChild(memo);
         row.appendChild(span); row.appendChild(actions);
         listEl.appendChild(row);
       });
@@ -140,3 +143,61 @@
       const memos = getMemos(); memos[sel] = memoArea.value||''; setMemos(memos);
     });
     
+// --- install state handling ---
+window.addEventListener('appinstalled', ()=>{
+  try{ const b=document.getElementById('install-btn'); if(b) b.style.display='none'; }catch{}
+});
+(function(){ // hide install if already PWA
+  try{
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if(isPWA){ const b=document.getElementById('install-btn'); if(b) b && (b.style.display='none'); }
+  }catch{}
+})();
+
+// --- backup/restore via single-line base64 string (non-destructive addition) ---
+(function(){
+  const makeBtn = document.getElementById('backup-make');
+  const copyBtn = document.getElementById('backup-copy');
+  const textArea = document.getElementById('backup-text');
+  const restoreTextBtn = document.getElementById('backup-restore-text');
+  function exportState(){
+    const keys = Object.keys(localStorage).filter(k=>k.startsWith('hime_')||k.startsWith('himeg')||k.includes('hime'));
+    const obj = {}; keys.forEach(k=>obj[k]=localStorage.getItem(k));
+    const payload = JSON.stringify(obj);
+    const b64 = 'HIME1.' + btoa(unescape(encodeURIComponent(payload)));
+    return b64;
+  }
+  function importState(line){
+    try{
+      if(!line || !line.startsWith('HIME1.')) throw new Error('format');
+      const b64 = line.slice(6);
+      const json = decodeURIComponent(escape(atob(b64)));
+      const obj = JSON.parse(json);
+      Object.keys(obj).forEach(k=> localStorage.setItem(k, obj[k]));
+      alert('復元が完了しました。');
+      location.reload();
+    }catch(e){
+      alert('文字列が不正です。もう一度確認してください。');
+    }
+  }
+  makeBtn && makeBtn.addEventListener('click', ()=>{
+    const s = exportState(); if(textArea) textArea.value = s;
+  });
+  copyBtn && copyBtn.addEventListener('click', async()=>{
+    try{ await navigator.clipboard.writeText(textArea.value||exportState()); alert('コピーしました（LINEへ貼って保存）'); }
+    catch{ alert('コピーに失敗。手動で選択→コピーしてください。'); }
+  });
+  restoreTextBtn && restoreTextBtn.addEventListener('click', ()=> importState(textArea.value||''));
+})();
+
+// --- drawer close button support ---
+(function(){
+  try{
+    const d=document.getElementById('drawer'), s=document.getElementById('scrim');
+    const x=document.getElementById('drawerClose');
+    if(x && d && s){
+      const close=()=>{d.classList.remove('open'); s.classList.remove('show'); d.setAttribute('aria-hidden','true');};
+      x.addEventListener('click', close);
+    }
+  }catch{}
+})();
