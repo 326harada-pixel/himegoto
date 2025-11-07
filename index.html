@@ -1,76 +1,89 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ホーム</title>
-<link rel="stylesheet" href="/style.css?v=131011">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>himegoto（β）</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#ff6ea6">
+  <link rel="icon" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header class="appbar">
-  <button id="menu-btn" aria-label="メニュー" class="icon">☰</button>
-  <a class="brand" href="/index.html"><span class="logo-text">himegoto</span></a>
-  <button id="install-btn" class="ghost">インストール</button>
+  <!-- 固定ヘッダ＋ハンバーガー -->
+  <header class="header">
+    <button class="hamburger" id="menuBtn" aria-label="menu">≡</button>
+    <div class="brand">
+      <img src="/logo_himegoto.png" alt="himegoto" class="logo">
+    </div>
+    <div class="spacer"></div>
+    <div class="version">ver.1.30β</div>
+  
+  <button class="install-btn" id="install-btn" aria-label="install">インストール</button>
 </header>
-<aside class="drawer" id="drawer" aria-hidden="true">
-  <div class="drawer-header">
-    <strong>メニュー</strong>
-    <button id="drawer-close" aria-label="閉じる" class="icon">✕</button>
-  </div>
-  <nav>
-    <ul class="nav">
+
+  <!-- ドロワ -->
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-header"><strong>メニュー</strong></div>
+    <nav><ul class="nav">
       <li><a href="/index.html">ホーム</a></li>
       <li><a href="/help.html">アプリ用途</a></li>
       <li><a href="/help.html#howto">使い方</a></li>
       <li><a href="/qa.html">Q&amp;A</a></li>
+      <li><a href="/feedback.html">ご意見・ご要望</a></li>
       <li><a href="/register.html">登録と紹介</a></li>
       <li><a href="/privacy.html">プライバシーポリシー</a></li>
       <li><a href="/terms.html">規約</a></li>
-      <li><a href="/terms.html#tokushoho">特商法/運営者情報</a></li>
-      <li><a href="/feedback.html">ご意見ご要望</a></li>
-      <li class="ver">version：<span class="pill">ver.1.31β</span></li>
-    </ul>
-  </nav>
-</aside>
-<div class="scrim" id="scrim"></div>
-<main class="container">
-<section class="card">
-  <h2>顧客リスト（無料版は５名まで）</h2>
-  <div class="row g8">
-    <input id="add-input" placeholder="顧客名を入力">
-    <button id="add-btn" class="primary">追加</button>
-  </div>
-  <div id="customers"></div>
-</section>
+      <li><a href="/terms.html#tokushoho">特定商取引法の表記（準備中）<span class="small">及び運営者情報</span></a></li>
+      <li><a href="javascript:void(0)">version：<span class="pill">ver.1.30β</span></a></li>
+    </ul></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 
-<section class="card">
-  <h2>メッセージ作成</h2>
-  <p>本文に {name} を入れると選択中の顧客名に差し替わります。</p>
-  <textarea id="message" rows="8" placeholder="本文を入力..."></textarea>
-  <div class="row between g8">
-    <button id="insert-name" class="ghost">{name} を挿入</button>
-    <span id="remain-badge" class="pill">残り 9999</span>
-    <button id="share-btn" class="primary">共有</button>
-  </div>
-</section>
+  
+  <main class="container">
+    <section class="card">
+      <h2>顧客リスト <small id="reg-remain"></small></h2>
+      <div class="row">
+        <input id="add-input" type="text" placeholder="顧客名を入力">
+        <button id="add-btn">追加</button>
+      </div>
+      <div class="customer-list"></div>
+    </section>
+    <section class="card">
+      <h2>メッセージ作成</h2>
+      <p class="note">本文に <code>{name}</code> を入れると選択中の顧客名に置き換わります。</p>
+      <textarea id="message" rows="8" placeholder="今日はありがとう{name}さん。"></textarea>
+      <div class="row right">
+        <button id="insert-name" class="ghost">{name} を挿入</button>
+        <button id="share-btn" class="primary">共有</button>
+      </div>
+      <div class="muted" id="remain-badge">残り 5 回</div>
+    </section>
+    <section class="card">
+      <h2>バックアップと復元</h2>
+      <div class="row">
+        <button id="backup-btn">バックアップを作る</button>
+        <input id="restore-file" type="file" accept=".json" style="display:none">
+        <button id="restore-btn">復元する</button>
+      </div>
+    </section>
+  </main>
 
-<section class="card">
-  <h2>バックアップと復元（文字列）</h2>
-  <ul>
-    <li>バックアップ文字列を作る → コピー → LINEに貼る</li>
-    <li>復元は文字列を貼り付けて「文字列から復元」</li>
-  </ul>
-  <div class="row g8">
-    <button id="backup-make" class="primary">バックアップ文字列を作る</button>
-    <button id="backup-copy" class="ghost">文字列をコピー</button>
-  </div>
-  <textarea id="backup-text" rows="3" placeholder="ここに文字列が表示/貼り付け"></textarea>
-  <div class="row right g8">
-    <button id="backup-restore-text" class="primary">文字列から復元</button>
-  </div>
-</section>
 
-</main>
-<script src="/app.js?v=131011"></script>
+  <script>
+    // ドロワ開閉
+    (function(){
+      const d=document.getElementById('drawer'),s=document.getElementById('scrim');
+      const open=()=>{d.classList.add('open');s.classList.add('show');d.setAttribute('aria-hidden','false');};
+      const close=()=>{d.classList.remove('open');s.classList.remove('show');d.setAttribute('aria-hidden','true');};
+      document.getElementById('menuBtn').addEventListener('click',open);
+      s.addEventListener('click',close);
+      d.addEventListener('click',e=>{if(e.target.matches('a')) close();});
+    })();
+  </script>
+  
+<script src="/app.js?v=131030"></script>
 </body>
 </html>

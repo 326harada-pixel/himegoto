@@ -1,54 +1,195 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>顧客プロファイル</title>
-<link rel="stylesheet" href="/style.css?v=131011">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>顧客情報メモ | ﾋﾒｺﾞﾄ</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icon-192.png" />
+  <meta name="theme-color" content="#ff5b9a" />
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    /* このページ固有の最小限だけ */
+    .header { position:sticky; top:0; z-index:50; background:#ff5b9a; color:#fff; display:flex; align-items:center; height:56px; padding:0 16px; }
+    .logo { height:26px; margin-left:8px; }
+    .back-btn{ appearance:none; border:0; background:transparent; color:#fff; font-weight:700; font-size:18px; }
+    .version { margin-left:auto; font-size:12px; opacity:.85; }
+    .container { padding:16px; max-width:720px; margin:0 auto; }
+    .section-title { font-weight:700; font-size:18px; margin:8px 0 12px; }
+    .row { display:flex; flex-direction:column; gap:6px; margin:12px 0; }
+    .label { font-weight:700; }
+    .input, .select, .textarea { width:100%; padding:12px 14px; border:1px solid #e6e6e6; border-radius:12px; font-size:16px; background:#fff; }
+    .textarea { min-height:110px; resize:vertical; }
+    .hint { font-size:12px; color:#777; margin-top:4px; }
+    .actions { display:flex; gap:12px; margin-top:16px; }
+    .btn { flex:1; padding:12px 16px; border-radius:12px; border:0; font-weight:700; font-size:16px; }
+    .btn-primary { background:#ff5b9a; color:#fff; }
+    .btn-outline { background:#fff; color:#ff5b9a; border:2px solid #ff5b9a; }
+    .note { font-size:12px; color:#666; margin-top:16px; }
+    .readonly { background:#fafafa; }
+  </style>
 </head>
 <body>
-<header class="appbar">
-  <button id="menu-btn" aria-label="メニュー" class="icon">☰</button>
-  <a class="brand" href="/index.html"><span class="logo-text">himegoto</span></a>
-  <button id="install-btn" class="ghost">インストール</button>
-</header>
-<aside class="drawer" id="drawer" aria-hidden="true">
-  <div class="drawer-header">
-    <strong>メニュー</strong>
-    <button id="drawer-close" aria-label="閉じる" class="icon">✕</button>
-  </div>
-  <nav>
-    <ul class="nav">
-      <li><a href="/index.html">ホーム</a></li>
-      <li><a href="/help.html">アプリ用途</a></li>
-      <li><a href="/help.html#howto">使い方</a></li>
-      <li><a href="/qa.html">Q&amp;A</a></li>
-      <li><a href="/register.html">登録と紹介</a></li>
-      <li><a href="/privacy.html">プライバシーポリシー</a></li>
-      <li><a href="/terms.html">規約</a></li>
-      <li><a href="/terms.html#tokushoho">特商法/運営者情報</a></li>
-      <li><a href="/feedback.html">ご意見ご要望</a></li>
-      <li class="ver">version：<span class="pill">ver.1.31β</span></li>
-    </ul>
-  </nav>
-</aside>
-<div class="scrim" id="scrim"></div>
-<main class="container">
-<section class="card">
-  <h2 id="cust-title">顧客プロファイル</h2>
-  <div class="grid">
-    <label>顧客名<br><input id="c-name" readonly></label>
-    <label>年齢<br><input id="c-age" type="number" min="0" max="120"></label>
-    <label>誕生日<br><input id="c-birthday" type="date"></label>
-    <label>好きなお酒<br><input id="c-drink"></label>
-    <label>タバコ<br><input id="c-smoke"></label>
-    <label>趣味嗜好<br><input id="c-likes"></label>
-  </div>
-  <label>自由メモ<br><textarea id="c-note" rows="6"></textarea></label>
-  <div class="row right g8"><a class="button ghost" href="/index.html">ホームへ戻る</a></div>
-</section>
+  <!-- 固定ヘッダ -->
+  <header class="header">
+    <button class="back-btn" id="backBtn">戻る</button>
+    <img class="logo" src="/logo_himegoto.png" alt="himegoto" />
+    <div class="version">ver.1.30β</div>
+  </header>
 
-</main>
-<script src="/customer.js?v=131011"></script>
+  <main class="container">
+    <div class="section-title">顧客情報メモ</div>
+
+    <div class="row">
+      <div class="label">対象の顧客</div>
+      <input id="displayName" class="input readonly" readonly />
+      <div class="hint">顧客一覧から「メモ」ボタンで開くページです。</div>
+    </div>
+
+    <div class="section-title">基本情報</div>
+
+    <div class="row">
+      <label class="label" for="nickname">呼び方</label>
+      <input id="nickname" class="input" placeholder="例）山ちゃん / たかしさん" />
+    </div>
+
+    <div class="row">
+      <label class="label" for="birthday">誕生日</label>
+      <input id="birthday" class="input" type="date" />
+    </div>
+
+    <div class="row">
+      <label class="label" for="cigarette">タバコ</label>
+      <input id="cigarette" class="input" placeholder="例）吸わない / セブンスター / IQOS 等、自由入力" />
+    </div>
+
+    <div class="row">
+      <label class="label" for="bottle">ボトルのキープ状況</label>
+      <input id="bottle" class="input" placeholder="例）山崎12空 / ﾌﾞﾗｯｸﾆｯｶ半分 / 無し 等" />
+    </div>
+
+    <div class="row">
+      <label class="label" for="drink">よく飲むお酒</label>
+      <input id="drink" class="input" placeholder="例）ﾊｲﾎﾞｰﾙ / ﾚｯﾄﾞﾌﾞﾙ割 / ﾓｴ白 等" />
+    </div>
+
+    <div class="row">
+      <label class="label" for="notes">その他メモ</label>
+      <textarea id="notes" class="textarea" placeholder="接客の気づきやNG話題、同伴OK日、同席した友人名 等"></textarea>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-outline" id="exportBtn">CSV書き出し</button>
+      <button class="btn btn-primary" id="saveBtn">保存</button>
+    </div>
+
+    <p class="note">※全データは端末に保存されます（サーバー送信なし）。将来AI連携のためCSV形式で書き出し可。</p>
+  </main>
+
+  <script>
+    // ------ 設定 ------
+    const STATE_KEY = "hime_state";          // 顧客リスト等（既存）
+    const MEMO_KEY  = "hime_memo_v1";        // 顧客ごとのメモ保存（本ページ）
+
+    // ------ ユーティリティ ------
+    function getParam(name){
+      const url = new URL(location.href);
+      return url.searchParams.get(name);
+    }
+
+    function loadJSON(key, fallback){
+      try{
+        const v = localStorage.getItem(key);
+        return v ? JSON.parse(v) : fallback;
+      }catch(e){ return fallback; }
+    }
+
+    function saveJSON(key, obj){
+      localStorage.setItem(key, JSON.stringify(obj));
+    }
+
+    function toast(msg){
+      // 簡易トースト
+      alert(msg);
+    }
+
+    // ------ 顧客名の取得 ------
+    // ?name=山田 のように渡される想定
+    const customerName = getParam("name");
+
+    // DOM参照
+    const elDisplayName = document.getElementById("displayName");
+    const elNickname    = document.getElementById("nickname");
+    const elBirthday    = document.getElementById("birthday");
+    const elCigarette   = document.getElementById("cigarette");
+    const elBottle      = document.getElementById("bottle");
+    const elDrink       = document.getElementById("drink");
+    const elNotes       = document.getElementById("notes");
+    const elSave        = document.getElementById("saveBtn");
+    const elExport      = document.getElementById("exportBtn");
+    const elBack        = document.getElementById("backBtn");
+
+    // ------ 初期化 ------
+    (function init(){
+      elDisplayName.value = customerName || "(未指定)";
+      if(!customerName){
+        toast("顧客名が指定されていません。顧客一覧から開いてください。");
+      }
+
+      // 既存メモを読み込み
+      const memos = loadJSON(MEMO_KEY, {});
+      const data = memos[customerName] || null;
+      if(data){
+        elNickname.value  = data.nickname || "";
+        elBirthday.value  = data.birthday || "";
+        elCigarette.value = data.cigarette || "";
+        elBottle.value    = data.bottle || "";
+        elDrink.value     = data.drink || "";
+        elNotes.value     = data.notes || "";
+      }
+
+      // 保存
+      elSave.addEventListener("click", () => {
+        if(!customerName){ toast("顧客名が不明です。"); return; }
+        const memos = loadJSON(MEMO_KEY, {});
+        memos[customerName] = {
+          nickname:  elNickname.value.trim(),
+          birthday:  elBirthday.value,
+          cigarette: elCigarette.value.trim(),
+          bottle:    elBottle.value.trim(),
+          drink:     elDrink.value.trim(),
+          notes:     elNotes.value.trim(),
+          updatedAt: new Date().toISOString()
+        };
+        saveJSON(MEMO_KEY, memos);
+        toast("保存しました。");
+      });
+
+      // CSV書き出し（この顧客のみ）
+      elExport.addEventListener("click", () => {
+        if(!customerName){ toast("顧客名が不明です。"); return; }
+        const memos = loadJSON(MEMO_KEY, {});
+        const d = memos[customerName] || {
+          nickname:"", birthday:"", cigarette:"", bottle:"", drink:"", notes:"", updatedAt:""
+        };
+        const headers = ["顧客名","呼び方","誕生日","タバコ","ボトル","よく飲むお酒","その他メモ","更新日時"];
+        const row = [
+          customerName, d.nickname, d.birthday, d.cigarette, d.bottle, d.drink,
+          (d.notes||"").replace(/\r?\n/g,"\\n"),
+          d.updatedAt || ""
+        ];
+        const csv = headers.join(",") + "\n" + row.map(s => `"${String(s).replace(/"/g,'""')}"`).join(",");
+        const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `hime_memo_${customerName}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+
+      // 戻る
+      elBack.addEventListener("click", () => history.back());
+    })();
+  </script>
 </body>
 </html>
