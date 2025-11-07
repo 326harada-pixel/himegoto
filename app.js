@@ -10,6 +10,7 @@
     const listEl=q('.customer-list'), addInput=q('#add-input'), addBtn=q('#add-btn');
     const regRemain=q('#reg-remain'), msgEl=q('#message'), insertBtn=q('#insert-name');
     const shareBtn=q('#share-btn'), remainBadge=q('#remain-badge');
+    const memoArea=q('#customer-memo'), memoSave=q('#memo-save');
     const backupBtn=q('#backup-btn'), restoreBtn=q('#restore-btn'), restoreFile=q('#restore-file');
     const drawer=q('#drawer'), scrim=q('#scrim'), menuBtn=q('#menuBtn'), installBtn=q('#install-btn');
 
@@ -29,7 +30,7 @@
     function getCustomers(){ return load(LS_KEYS.CUSTOMERS,[]); }
     function setCustomers(a){ save(LS_KEYS.CUSTOMERS,a); renderCustomers(); updateRegRemain(); }
     function getSelected(){ return load(LS_KEYS.SELECTED,null); }
-    function setSelected(n){ save(LS_KEYS.SELECTED,n); renderCustomers(); }
+    function setSelected(n){ save(LS_KEYS.SELECTED,n); renderCustomers(); loadSelectedMemo(); }
 
     function renderCustomers(){
       if(!listEl) return;
@@ -119,6 +120,23 @@
       else{ alert('ブラウザのメニューから「ホーム画面に追加」を選んでください。'); }
     });
 
-    renderCustomers(); updateRegRemain(); renderQuota();
+    renderCustomers(); updateRegRemain(); renderQuota(); loadSelectedMemo();
   }
 })();
+    function loadSelectedMemo(){
+      if(!memoArea) return;
+      const sel = getSelected();
+      const memos = getMemos();
+      memoArea.value = sel && memos[sel] ? memos[sel] : '';
+    }
+    
+    memoSave?.addEventListener('click', ()=>{
+      const sel = getSelected(); if(!sel) { alert('先に顧客を選択してください'); return; }
+      const memos = getMemos(); memos[sel] = memoArea.value||''; setMemos(memos);
+      alert('メモを保存しました');
+    });
+    memoArea?.addEventListener('input', ()=>{
+      const sel = getSelected(); if(!sel) return;
+      const memos = getMemos(); memos[sel] = memoArea.value||''; setMemos(memos);
+    });
+    
