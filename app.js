@@ -1,153 +1,168 @@
-/* ===== ﾋﾒｺﾞﾄ app.js  =====
-   - 起動/復帰/定期で SW を自動update → 新SWは即適用（skipWaiting）→ 自動リロード
-   - ヘッダ中央ロゴ / 右側インストールボタン
-==================================== */
 
-const $ = (sel, root=document)=>root.querySelector(sel);
-const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+(() => {
+  'use strict';
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
-/* ---------- PWA: インストール ---------- */
-let deferredPrompt = null;
-function isStandalone(){
-  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-}
-function ensureInstallButton(){
-  const header = $('.header'); if(!header) return;
-  let right = header.querySelector('.right');
-  if(!right){ right = document.createElement('div'); right.className='right'; header.appendChild(right); }
-  let btn = $('#install-btn', right);
-  if(!btn){
-    btn = document.createElement('button');
-    btn.id='install-btn'; btn.className='install-btn'; btn.textContent='インストール'; btn.style.display='none';
-    right.appendChild(btn);
-  }
-  btn.style.display = (!isStandalone() && deferredPrompt) ? 'inline-block' : 'none';
-  btn.onclick = async ()=>{
-    if(!deferredPrompt) return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice; deferredPrompt=null; ensureInstallButton();
+  const LS = {
+    CUSTOMERS: 'hime_customers_v1',
+    SELECTED : 'hime_selected_v1',
+    QUOTA_CNT: 'hime_quota_cnt_v1',
+    QUOTA_DAY: 'hime_quota_day_v1',
+    PLAN     : 'hime_plan_v1',
+    MEMOS    : 'hime_memos_v1',
+    PROFILES : 'hime_profiles_v1'
   };
-}
-window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt=e; ensureInstallButton(); });
-window.addEventListener('appinstalled', ()=>{ deferredPrompt=null; ensureInstallButton(); });
+  const load = (k, d=null) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const todayKey = () => new Date().toISOString().slice(0,10);
 
-/* ---------- ヘッダ中央ロゴ ---------- */
-function centerLogo(){
-  const header=$('.header'); if(!header) return;
-  let logo = header.querySelector('.logo-img');
-  if(!logo){
-    const img = header.querySelector('img[src*="logo_himegoto"]') || header.querySelector('img.logo, img[alt*="himegoto"]');
-    if(img){
-      img.classList.add('logo-img');
-      let wrap = header.querySelector('.logo-wrap');
-      if(!wrap){ wrap=document.createElement('div'); wrap.className='logo-wrap'; header.appendChild(wrap); }
-      wrap.appendChild(img);
+  // Drawer
+  const openDrawer = () => { $('#drawer')?.setAttribute('aria-hidden','false'); $('#scrim')?.classList.add('on'); };
+  const closeDrawer = () => { $('#drawer')?.setAttribute('aria-hidden','true'); $('#scrim')?.classList.remove('on'); };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // menu
+    $('#menu-btn')?.addEventListener('click', openDrawer);
+    $('#drawer-close')?.addEventListener('click', closeDrawer);
+    $('#scrim')?.addEventListener('click', closeDrawer);
+
+    // install prompt (no-op fallback)
+    $('#install-btn')?.addEventListener('click', () => alert('ホーム画面に追加からインストールしてください'));
+
+    // customers
+    const addInput = $('#add-input');
+    const addBtn   = $('#add-btn');
+    const list     = $('#customers');
+
+    const getCustomers = () => load(LS.CUSTOMERS, []);
+    const setCustomers = (arr) => save(LS.CUSTOMERS, arr);
+    const getSelected  = () => load(LS.SELECTED, null);
+    const setSelected  = (n) => save(LS.SELECTED, n);
+
+    function renderCustomers(){
+      if(!list) return;
+      const cur = getSelected();
+      list.innerHTML = '';
+      getCustomers().forEach(name => {
+        const row = document.createElement('div');
+        row.className = 'row between';
+        const left = document.createElement('div');
+        left.textContent = name;
+        const actions = document.createElement('div');
+        const memo = document.createElement('a');
+        memo.href = `/customer.html?name=${encodeURIComponent(name)}`;
+        memo.className = 'ghost';
+        memo.textContent = 'メモ';
+        const choose = document.createElement('button');
+        choose.className = cur===name ? 'primary' : 'ghost';
+        choose.textContent = cur===name ? '選択中' : '選択';
+        choose.addEventListener('click', ()=>{ setSelected(name); renderCustomers(); updateRemain(); });
+        const del = document.createElement('button');
+        del.className='danger ghost';
+        del.textContent='削除';
+        del.addEventListener('click', ()=>{
+          const arr = getCustomers().filter(x=>x!==name);
+          setCustomers(arr);
+          if(getSelected()===name) setSelected(arr[0]||null);
+          renderCustomers(); updateRemain();
+        });
+        actions.appendChild(memo);
+        actions.appendChild(choose);
+        actions.appendChild(del);
+        row.appendChild(left);
+        row.appendChild(actions);
+        list.appendChild(row);
+      });
     }
-  }
-}
 
-/* ---------- SW: 登録 & 自動更新仕組み ---------- */
-async function registerSW(){
-  if(!('serviceWorker' in navigator)) return null;
-  const reg = await navigator.serviceWorker.register('/service-worker.js', { updateViaCache:'none' });
-
-  // 新SWが待機したら即適用
-  if(reg.waiting){ reg.waiting.postMessage({type:'SKIP_WAITING'}); }
-  reg.addEventListener('updatefound', ()=>{
-    const sw = reg.installing;
-    if(!sw) return;
-    sw.addEventListener('statechange', ()=>{
-      if(sw.state==='installed' && reg.waiting){
-        reg.waiting.postMessage({type:'SKIP_WAITING'});
-      }
+    addBtn?.addEventListener('click', ()=>{
+      const name = (addInput?.value||'').trim();
+      if(!name) return;
+      const arr = getCustomers();
+      if(arr.includes(name)) { alert('同名は追加できません'); return; }
+      if(arr.length>=5 && (localStorage.getItem(LS.PLAN)||'free')==='free'){ alert('無料版は5名までです'); return; }
+      arr.push(name); setCustomers(arr); setSelected(name);
+      addInput.value=''; renderCustomers();
     });
-  });
 
-  // コントローラ切り替えで一度だけ自動リロード
-  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-    if(!window.__reloaded){ window.__reloaded=true; location.reload(); }
-  });
-  return reg;
-}
-
-async function checkForUpdate(reg){
-  try{
-    reg = reg || await navigator.serviceWorker.getRegistration();
-    if(!reg) return;
-    await reg.update();                 // 新しいSWがあれば取りに行く
-    if(reg.waiting){                    // 取得できたら即適用
-      reg.waiting.postMessage({type:'SKIP_WAITING'});
-    }
-  }catch(_){}
-}
-
-/* 起動時・復帰時・定期に更新チェック */
-let swReg = null;
-let lastCheck = 0;
-const CHECK_INTERVAL_MS = 30*60*1000;   // 30分ごと
-
-async function boot(){
-  centerLogo();
-  ensureInstallButton();
-  swReg = await registerSW();
-
-  // 起動時にまず1回
-  await checkForUpdate(swReg);
-
-  // 画面復帰時（ホームアイコンから開いた時や他アプリから戻った時）
-  document.addEventListener('visibilitychange', async ()=>{
-    if(document.visibilityState === 'visible'){
-      const now = Date.now();
-      if(now - lastCheck > 10*1000){   // 10秒以上空いていれば
-        lastCheck = now;
-        await checkForUpdate(swReg);
-      }
-    }
-  });
-
-  // 定期チェック（起動中）
-  setInterval(()=>{ checkForUpdate(swReg); }, CHECK_INTERVAL_MS);
-
-  // ドロワーに「更新」も追加（手動トリガー用）
-  addRefreshMenu(()=>checkForUpdate(swReg));
-}
-
-function addRefreshMenu(onClick){
-  const ul = $('.drawer .nav'); if(!ul || $('#nav-refresh')) return;
-  const li=document.createElement('li'); const b=document.createElement('button');
-  b.id='nav-refresh'; b.className='nav-btn'; b.type='button'; b.textContent='更新（最新に入れ替え）';
-  b.addEventListener('click', onClick); li.appendChild(b); ul.appendChild(li);
-}
-
-document.addEventListener('DOMContentLoaded', boot);
-    function loadSelectedMemo(){
-      if(!memoArea) return;
-      const sel=getSelected(); const mem=getMemos();
-      memoArea.value = sel && mem[sel] ? mem[sel] : '';
-    }
-    
-    memoSave?.addEventListener('click', ()=>{
-      const sel=getSelected(); if(!sel){ alert('先に顧客を選択してください'); return; }
-      const mem=getMemos(); mem[sel]=memoArea.value||''; setMemos(mem); alert('メモを保存しました');
+    // name insert
+    const msg = $('#message');
+    $('#insert-name')?.addEventListener('click', ()=>{
+      const sel = getSelected(); if(!sel || !msg) { alert('先に顧客を選択してください'); return; }
+      const t = msg; const ins = sel;
+      const start = t.selectionStart ?? t.value.length;
+      const end   = t.selectionEnd ?? t.value.length;
+      t.value = t.value.slice(0,start) + ins + t.value.slice(end);
+      const pos = start + ins.length;
+      t.setSelectionRange(pos,pos); t.focus();
     });
-    memoArea?.addEventListener('input', ()=>{
-      const sel=getSelected(); if(!sel) return;
-      const mem=getMemos(); mem[sel]=memoArea.value||''; setMemos(mem);
+
+    // share (count on click; navigator.share fallback to LINE)
+    function quotaResetIfNeeded(){
+      const d = load(LS.QUOTA_DAY, ''); 
+      if(d !== todayKey()){ save(LS.QUOTA_DAY, todayKey()); save(LS.QUOTA_CNT, 0); }
+    }
+    function quotaUse(){ quotaResetIfNeeded(); const c = load(LS.QUOTA_CNT,0)+1; save(LS.QUOTA_CNT,c); return c; }
+    function remain(){ quotaResetIfNeeded(); const used = load(LS.QUOTA_CNT,0); const cap = 9999; return Math.max(0, cap - used); }
+    function updateRemain(){ const r = $('#remain-badge'); if(r) r.textContent = `残り ${remain()}`; }
+    updateRemain();
+
+    $('#share-btn')?.addEventListener('click', async()=>{
+      const used = quotaUse(); updateRemain();
+      const text = msg?.value || '';
+      try {
+        if(navigator.share){ await navigator.share({ text }); }
+        else {
+          const url = `https://line.me/R/share?text=${encodeURIComponent(text)}`;
+          window.location.href = url;
+        }
+      } catch(e){ /* 共有ダイアログを閉じてもカウントは戻さない */ }
     });
-    
+
+    // backup string
+    const btxt = $('#backup-text');
+    function makeBackupPayload(){
+      return {
+        v: 'HIME1',
+        customers: getCustomers(),
+        selected: getSelected(),
+        quota_cnt: load(LS.QUOTA_CNT,0),
+        quota_day: load(LS.QUOTA_DAY,''),
+        plan: localStorage.getItem(LS.PLAN)||'free',
+        memos: load(LS.MEMOS, {}),
+        profiles: load(LS.PROFILES, {})
+      };
+    }
     function makeBackupString(){
-      const payload={ customers:getCustomers(), selected:getSelected(), quota_cnt:load(LS_KEYS.QUOTA_CNT,0), quota_day:load(LS_KEYS.QUOTA_DAY,0), plan:getPlan(), memos:getMemos(), v:'HIME1' };
-      const raw=JSON.stringify(payload);
-      const b64=btoa(unescape(encodeURIComponent(raw))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      const raw = JSON.stringify(makeBackupPayload());
+      const b64 = btoa(unescape(encodeURIComponent(raw))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
       return 'HIME1.'+b64;
     }
     function parseBackupString(s){
-      const m=s&&s.match(/^HIME1\.([A-Za-z0-9\-_]+)$/); if(!m) throw new Error('invalid');
-      const b64=m[1].replace(/-/g,'+').replace(/_/g,'/'); const pad=b64.length%4? '==='.slice(b64.length%4):'';
-      const json=decodeURIComponent(escape(atob(b64+pad))); return JSON.parse(json);
+      const m = s && s.match(/^HIME1\.([A-Za-z0-9\-_]+)$/); if(!m) throw new Error('format');
+      const b64 = m[1].replace(/-/g,'+').replace(/_/g,'/'); const pad = b64.length%4? '==='.slice(b64.length%4):'';
+      const json = decodeURIComponent(escape(atob(b64+pad))); return JSON.parse(json);
     }
-    const btxt=document.getElementById('backup-text');
-    document.getElementById('backup-make')?.addEventListener('click',()=>{ const s=makeBackupString(); if(btxt){ btxt.value=s; btxt.select(); } });
-    document.getElementById('backup-copy')?.addEventListener('click', async()=>{ try{ await navigator.clipboard.writeText(btxt?.value||makeBackupString()); alert('バックアップ文字列をコピーしました'); }catch{ alert('コピーできませんでした'); } });
-    document.getElementById('backup-restore-text')?.addEventListener('click',()=>{ try{ const d=parseBackupString(btxt?.value||''); save(LS_KEYS.CUSTOMERS, Array.isArray(d.customers)? d.customers:[]); save(LS_KEYS.SELECTED, d.selected??null); save(LS_KEYS.QUOTA_CNT, d.quota_cnt??0); save(LS_KEYS.QUOTA_DAY, d.quota_day??0); if(d.plan) localStorage.setItem(LS_KEYS.PLAN,d.plan); if(d.memos) localStorage.setItem(LS_KEYS.MEMOS, JSON.stringify(d.memos)); renderCustomers(); renderQuota(); updateRegRemain(); loadSelectedMemo(); alert('文字列から復元しました'); }catch(e){ alert('文字列の形式が正しくありません'); } });
-    
+    $('#backup-make')?.addEventListener('click', ()=>{ const s = makeBackupString(); if(btxt){ btxt.value = s; btxt.select(); } });
+    $('#backup-copy')?.addEventListener('click', async()=>{
+      try{ await navigator.clipboard.writeText(btxt?.value || makeBackupString()); alert('コピーしました'); }catch{ alert('コピーできませんでした'); }
+    });
+    $('#backup-restore-text')?.addEventListener('click', ()=>{
+      try {
+        const d = parseBackupString(btxt?.value||'');
+        save(LS.CUSTOMERS, Array.isArray(d.customers)? d.customers: []);
+        save(LS.SELECTED, d.selected ?? null);
+        save(LS.QUOTA_CNT, d.quota_cnt ?? 0);
+        save(LS.QUOTA_DAY, d.quota_day ?? '');
+        localStorage.setItem(LS.PLAN, d.plan || 'free');
+        save(LS.MEMOS, d.memos || {});
+        save(LS.PROFILES, d.profiles || {});
+        renderCustomers(); updateRemain();
+        alert('復元しました');
+      } catch(e){ alert('文字列の形式が正しくありません'); }
+    });
+
+    renderCustomers();
+  });
+})();
