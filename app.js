@@ -1,142 +1,168 @@
-/* himegoto ver.1.31β stable */
-(function(){
-  const ready = (fn)=> (document.readyState==='loading') ? document.addEventListener('DOMContentLoaded', fn, {once:true}) : fn();
-  ready(init);
 
-  function q(sel,root=document){ return root.querySelector(sel); }
-  function qa(sel,root=document){ return Array.from(root.querySelectorAll(sel)); }
+(() => {
+  'use strict';
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
-  function init(){
-    const listEl=q('.customer-list'), addInput=q('#add-input'), addBtn=q('#add-btn');
-    const regRemain=q('#reg-remain'), msgEl=q('#message'), insertBtn=q('#insert-name');
-    const shareBtn=q('#share-btn'), remainBadge=q('#remain-badge');
-    const memoArea=q('#customer-memo'), memoSave=q('#memo-save');
-    const backupBtn=q('#backup-btn'), restoreBtn=q('#restore-btn'), restoreFile=q('#restore-file');
-    const drawer=q('#drawer'), scrim=q('#scrim'), menuBtn=q('#menuBtn'), installBtn=q('#install-btn');
+  const LS = {
+    CUSTOMERS: 'hime_customers_v1',
+    SELECTED : 'hime_selected_v1',
+    QUOTA_CNT: 'hime_quota_cnt_v1',
+    QUOTA_DAY: 'hime_quota_day_v1',
+    PLAN     : 'hime_plan_v1',
+    MEMOS    : 'hime_memos_v1',
+    PROFILES : 'hime_profiles_v1'
+  };
+  const load = (k, d=null) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const todayKey = () => new Date().toISOString().slice(0,10);
 
-    const LS_KEYS={ PLAN:'hime_plan_v1', CUSTOMERS:'hime_customers_v1', SELECTED:'hime_selected_v1', QUOTA_CNT:'hime_quota_cnt_v1', QUOTA_DAY:'hime_quota_day_v1' };
-    const LIMITS={ customers:5, quotaPerDay:5 };
-    const getPlan=()=> localStorage.getItem(LS_KEYS.PLAN)||'free';
-    const isPro =()=> getPlan()==='pro';
-    const load=(k,def)=>{ try{ const v=JSON.parse(localStorage.getItem(k)); return v??def; }catch{ return def; } };
-    const save=(k,v)=> localStorage.setItem(k, JSON.stringify(v));
+  // Drawer
+  const openDrawer = () => { $('#drawer')?.setAttribute('aria-hidden','false'); $('#scrim')?.classList.add('on'); };
+  const closeDrawer = () => { $('#drawer')?.setAttribute('aria-hidden','true'); $('#scrim')?.classList.remove('on'); };
 
-    function ensureQuotaDay(){ const t=new Date(); t.setHours(0,0,0,0); const d=load(LS_KEYS.QUOTA_DAY,0); if(d!==t.getTime()){ save(LS_KEYS.QUOTA_DAY,t.getTime()); save(LS_KEYS.QUOTA_CNT,0);} }
-    function getRemainQuota(){ ensureQuotaDay(); const u=load(LS_KEYS.QUOTA_CNT,0); return Math.max(0, LIMITS.quotaPerDay-u); }
-    function consumeQuota(){ ensureQuotaDay(); const u=load(LS_KEYS.QUOTA_CNT,0); save(LS_KEYS.QUOTA_CNT,u+1); renderQuota(); }
-    function renderQuota(){ const r=getRemainQuota(); if(remainBadge) remainBadge.textContent=`残り ${r} 回`; if(shareBtn) shareBtn.disabled = r<=0; }
+  document.addEventListener('DOMContentLoaded', () => {
+    // menu
+    $('#menu-btn')?.addEventListener('click', openDrawer);
+    $('#drawer-close')?.addEventListener('click', closeDrawer);
+    $('#scrim')?.addEventListener('click', closeDrawer);
 
-    function updateRegRemain(){ if(regRemain) regRemain.textContent = isPro()? '(上限なし)' : `(無料版は ${LIMITS.customers} 名まで)`; }
-    function getCustomers(){ return load(LS_KEYS.CUSTOMERS,[]); }
-    function setCustomers(a){ save(LS_KEYS.CUSTOMERS,a); renderCustomers(); updateRegRemain(); }
-    function getSelected(){ return load(LS_KEYS.SELECTED,null); }
-    function setSelected(n){ save(LS_KEYS.SELECTED,n); renderCustomers(); loadSelectedMemo(); }
+    // install prompt (no-op fallback)
+    $('#install-btn')?.addEventListener('click', () => alert('ホーム画面に追加からインストールしてください'));
+
+    // customers
+    const addInput = $('#add-input');
+    const addBtn   = $('#add-btn');
+    const list     = $('#customers');
+
+    const getCustomers = () => load(LS.CUSTOMERS, []);
+    const setCustomers = (arr) => save(LS.CUSTOMERS, arr);
+    const getSelected  = () => load(LS.SELECTED, null);
+    const setSelected  = (n) => save(LS.SELECTED, n);
 
     function renderCustomers(){
-      if(!listEl) return;
-      const cs=getCustomers(), sel=getSelected();
-      listEl.innerHTML='';
-      cs.forEach((name,idx)=>{
-        const row=document.createElement('div'); row.className='row';
-        const span=document.createElement('span'); span.textContent=name;
-        const actions=document.createElement('div'); actions.className='row-actions';
-
-        const choose=document.createElement('button');
-        const active = sel===name;
-        choose.className = `choose-btn ${active?'choose-btn--active':''}`;
-        choose.textContent = active? '選択中':'選択';
-        choose.addEventListener('click', ()=> setSelected(name));
-
-        const del=document.createElement('button'); del.className='del-btn'; del.textContent='削除';
-        del.addEventListener('click', ()=>{ const after=getCustomers().filter((_,i)=>i!==idx); if(getSelected()===name) setSelected(null); setCustomers(after); });
-
-        actions.appendChild(choose); actions.appendChild(del);
-        row.appendChild(span); row.appendChild(actions);
-        listEl.appendChild(row);
+      if(!list) return;
+      const cur = getSelected();
+      list.innerHTML = '';
+      getCustomers().forEach(name => {
+        const row = document.createElement('div');
+        row.className = 'row between';
+        const left = document.createElement('div');
+        left.textContent = name;
+        const actions = document.createElement('div');
+        const memo = document.createElement('a');
+        memo.href = `/customer.html?name=${encodeURIComponent(name)}`;
+        memo.className = 'ghost';
+        memo.textContent = 'メモ';
+        const choose = document.createElement('button');
+        choose.className = cur===name ? 'primary' : 'ghost';
+        choose.textContent = cur===name ? '選択中' : '選択';
+        choose.addEventListener('click', ()=>{ setSelected(name); renderCustomers(); updateRemain(); });
+        const del = document.createElement('button');
+        del.className='danger ghost';
+        del.textContent='削除';
+        del.addEventListener('click', ()=>{
+          const arr = getCustomers().filter(x=>x!==name);
+          setCustomers(arr);
+          if(getSelected()===name) setSelected(arr[0]||null);
+          renderCustomers(); updateRemain();
+        });
+        actions.appendChild(memo);
+        actions.appendChild(choose);
+        actions.appendChild(del);
+        row.appendChild(left);
+        row.appendChild(actions);
+        list.appendChild(row);
       });
     }
 
-    if(addBtn&&addInput){
-      addBtn.addEventListener('click', (e)=>{
-        e.preventDefault();
-        const name=(addInput.value||'').trim();
-        if(!name){ alert('名前を入力してください'); return; }
-        const arr=getCustomers();
-        if(!isPro() && arr.length>=LIMITS.customers){ alert('無料版は5名までです'); return; }
-        if(arr.includes(name)){ alert('同じ名前が既にあります'); return; }
-        arr.push(name); setCustomers(arr); addInput.value='';
-      });
-    }
-
-    if(insertBtn&&msgEl){
-      insertBtn.addEventListener('click', (e)=>{
-        e.preventDefault();
-        const tag='{name}';
-        try{
-          msgEl.focus();
-          const s=typeof msgEl.selectionStart==='number'? msgEl.selectionStart : (msgEl.value?.length||0);
-          const t=typeof msgEl.selectionEnd==='number'? msgEl.selectionEnd : (msgEl.value?.length||0);
-          if(typeof msgEl.setRangeText==='function'){ msgEl.setRangeText(tag,s,t,'end'); }
-          else{ const v=msgEl.value||''; msgEl.value=v.slice(0,s)+tag+v.slice(t); if(msgEl.setSelectionRange){ const pos=s+tag.length; msgEl.setSelectionRange(pos,pos);} }
-        }catch{ msgEl.value=(msgEl.value||'')+tag; }
-      });
-    }
-
-    if(shareBtn&&msgEl){
-      shareBtn.addEventListener('click', async()=>{
-        const sel=getSelected();
-        const raw=msgEl.value||'';
-        const text=raw.replaceAll('{{name}}', sel??'').replaceAll('{name}', sel??'');
-        consumeQuota(); // 押した瞬間に消費
-        try{
-          if(navigator.share){ await navigator.share({text}); }
-          else{ window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank'); }
-        }catch(e){ console.warn('share canceled/failed', e); }
-      });
-    }
-
-    function makeBackupData(){ return { customers:getCustomers(), selected:getSelected(), quota_cnt:load(LS_KEYS.QUOTA_CNT,0), quota_day:load(LS_KEYS.QUOTA_DAY,0), plan:getPlan(), exported_at:new Date().toISOString() }; }
-    function downloadJSON(name,obj){ const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},0); }
-    function handleBackup(){ const d=makeBackupData(); const y=new Date(); const stamp=`${y.getFullYear()}${String(y.getMonth()+1).padStart(2,'0')}${String(y.getDate()).padStart(2,'0')}`; downloadJSON(`himegoto_backup_${stamp}.json`, d); alert('バックアップを作成しました'); }
-    function handleRestoreFile(file){ const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); save(LS_KEYS.CUSTOMERS, Array.isArray(d.customers)? d.customers:[]); save(LS_KEYS.SELECTED, d.selected??null); save(LS_KEYS.QUOTA_CNT, d.quota_cnt??0); save(LS_KEYS.QUOTA_DAY, d.quota_day??0); if(d.plan) localStorage.setItem(LS_KEYS.PLAN,d.plan); renderCustomers(); renderQuota(); updateRegRemain(); alert('復元が完了しました'); }catch(e){ alert('復元に失敗しました'); } }; r.readAsText(file,'utf-8'); }
-
-    backupBtn?.addEventListener('click', handleBackup);
-    if(restoreBtn&&restoreFile){
-      restoreBtn.addEventListener('click', ()=> restoreFile.click());
-      restoreFile.addEventListener('change', ev=>{ const f=ev.target.files?.[0]; if(f) handleRestoreFile(f); ev.target.value=''; });
-    }
-
-    if(menuBtn&&drawer&&scrim){
-      menuBtn.addEventListener('click', ()=>{drawer.classList.add('open'); scrim.classList.add('show');});
-      scrim.addEventListener('click', ()=>{drawer.classList.remove('open'); scrim.classList.remove('show');});
-      drawer.addEventListener('click', e=>{ if(e.target.matches('a')){drawer.classList.remove('open'); scrim.classList.remove('show');} });
-    }
-
-    let __deferredPrompt=null;
-    window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); __deferredPrompt=e; document.getElementById('install-btn')?.classList.add('show'); });
-    document.getElementById('install-btn')?.addEventListener('click', async()=>{
-      const btn=document.getElementById('install-btn');
-      if(__deferredPrompt){ try{ btn.disabled=true; __deferredPrompt.prompt(); await __deferredPrompt.userChoice; }finally{ __deferredPrompt=null; btn.classList.remove('show'); btn.disabled=false; } }
-      else{ alert('ブラウザのメニューから「ホーム画面に追加」を選んでください。'); }
+    addBtn?.addEventListener('click', ()=>{
+      const name = (addInput?.value||'').trim();
+      if(!name) return;
+      const arr = getCustomers();
+      if(arr.includes(name)) { alert('同名は追加できません'); return; }
+      if(arr.length>=5 && (localStorage.getItem(LS.PLAN)||'free')==='free'){ alert('無料版は5名までです'); return; }
+      arr.push(name); setCustomers(arr); setSelected(name);
+      addInput.value=''; renderCustomers();
     });
 
-    renderCustomers(); updateRegRemain(); renderQuota(); loadSelectedMemo();
-  }
+    // name insert
+    const msg = $('#message');
+    $('#insert-name')?.addEventListener('click', ()=>{
+      const sel = getSelected(); if(!sel || !msg) { alert('先に顧客を選択してください'); return; }
+      const t = msg; const ins = sel;
+      const start = t.selectionStart ?? t.value.length;
+      const end   = t.selectionEnd ?? t.value.length;
+      t.value = t.value.slice(0,start) + ins + t.value.slice(end);
+      const pos = start + ins.length;
+      t.setSelectionRange(pos,pos); t.focus();
+    });
+
+    // share (count on click; navigator.share fallback to LINE)
+    function quotaResetIfNeeded(){
+      const d = load(LS.QUOTA_DAY, ''); 
+      if(d !== todayKey()){ save(LS.QUOTA_DAY, todayKey()); save(LS.QUOTA_CNT, 0); }
+    }
+    function quotaUse(){ quotaResetIfNeeded(); const c = load(LS.QUOTA_CNT,0)+1; save(LS.QUOTA_CNT,c); return c; }
+    function remain(){ quotaResetIfNeeded(); const used = load(LS.QUOTA_CNT,0); const cap = 9999; return Math.max(0, cap - used); }
+    function updateRemain(){ const r = $('#remain-badge'); if(r) r.textContent = `残り ${remain()}`; }
+    updateRemain();
+
+    $('#share-btn')?.addEventListener('click', async()=>{
+      const used = quotaUse(); updateRemain();
+      const text = msg?.value || '';
+      try {
+        if(navigator.share){ await navigator.share({ text }); }
+        else {
+          const url = `https://line.me/R/share?text=${encodeURIComponent(text)}`;
+          window.location.href = url;
+        }
+      } catch(e){ /* 共有ダイアログを閉じてもカウントは戻さない */ }
+    });
+
+    // backup string
+    const btxt = $('#backup-text');
+    function makeBackupPayload(){
+      return {
+        v: 'HIME1',
+        customers: getCustomers(),
+        selected: getSelected(),
+        quota_cnt: load(LS.QUOTA_CNT,0),
+        quota_day: load(LS.QUOTA_DAY,''),
+        plan: localStorage.getItem(LS.PLAN)||'free',
+        memos: load(LS.MEMOS, {}),
+        profiles: load(LS.PROFILES, {})
+      };
+    }
+    function makeBackupString(){
+      const raw = JSON.stringify(makeBackupPayload());
+      const b64 = btoa(unescape(encodeURIComponent(raw))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      return 'HIME1.'+b64;
+    }
+    function parseBackupString(s){
+      const m = s && s.match(/^HIME1\.([A-Za-z0-9\-_]+)$/); if(!m) throw new Error('format');
+      const b64 = m[1].replace(/-/g,'+').replace(/_/g,'/'); const pad = b64.length%4? '==='.slice(b64.length%4):'';
+      const json = decodeURIComponent(escape(atob(b64+pad))); return JSON.parse(json);
+    }
+    $('#backup-make')?.addEventListener('click', ()=>{ const s = makeBackupString(); if(btxt){ btxt.value = s; btxt.select(); } });
+    $('#backup-copy')?.addEventListener('click', async()=>{
+      try{ await navigator.clipboard.writeText(btxt?.value || makeBackupString()); alert('コピーしました'); }catch{ alert('コピーできませんでした'); }
+    });
+    $('#backup-restore-text')?.addEventListener('click', ()=>{
+      try {
+        const d = parseBackupString(btxt?.value||'');
+        save(LS.CUSTOMERS, Array.isArray(d.customers)? d.customers: []);
+        save(LS.SELECTED, d.selected ?? null);
+        save(LS.QUOTA_CNT, d.quota_cnt ?? 0);
+        save(LS.QUOTA_DAY, d.quota_day ?? '');
+        localStorage.setItem(LS.PLAN, d.plan || 'free');
+        save(LS.MEMOS, d.memos || {});
+        save(LS.PROFILES, d.profiles || {});
+        renderCustomers(); updateRemain();
+        alert('復元しました');
+      } catch(e){ alert('文字列の形式が正しくありません'); }
+    });
+
+    renderCustomers();
+  });
 })();
-    function loadSelectedMemo(){
-      if(!memoArea) return;
-      const sel = getSelected();
-      const memos = getMemos();
-      memoArea.value = sel && memos[sel] ? memos[sel] : '';
-    }
-    
-    memoSave?.addEventListener('click', ()=>{
-      const sel = getSelected(); if(!sel) { alert('先に顧客を選択してください'); return; }
-      const memos = getMemos(); memos[sel] = memoArea.value||''; setMemos(memos);
-      alert('メモを保存しました');
-    });
-    memoArea?.addEventListener('input', ()=>{
-      const sel = getSelected(); if(!sel) return;
-      const memos = getMemos(); memos[sel] = memoArea.value||''; setMemos(memos);
-    });
-    
