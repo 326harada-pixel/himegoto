@@ -51,9 +51,6 @@
         del.addEventListener('click', ()=>{ const after=getCustomers().filter((_,i)=>i!==idx); if(getSelected()===name) setSelected(null); setCustomers(after); });
 
         actions.appendChild(choose); actions.appendChild(del);
-        const memo=document.createElement('a'); memo.className='memo-btn'; memo.textContent='メモ';
-        memo.href = '/customer.html?name='+encodeURIComponent(name);
-        actions.appendChild(memo);
         row.appendChild(span); row.appendChild(actions);
         listEl.appendChild(row);
       });
@@ -143,61 +140,64 @@
       const memos = getMemos(); memos[sel] = memoArea.value||''; setMemos(memos);
     });
     
-// --- install state handling ---
-window.addEventListener('appinstalled', ()=>{
-  try{ const b=document.getElementById('install-btn'); if(b) b.style.display='none'; }catch{}
-});
-(function(){ // hide install if already PWA
+/* drawer-close-support */
+(function(){
   try{
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if(isPWA){ const b=document.getElementById('install-btn'); if(b) b && (b.style.display='none'); }
-  }catch{}
+    const drawer=document.getElementById('drawer');
+    const scrim=document.getElementById('scrim');
+    const closeBtns=drawer?drawer.querySelectorAll('.close-btn,#drawerClose'):[];
+    const close=()=>{ if(drawer){drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');} if(scrim){scrim.classList.remove('show');scrim.hidden=true;} };
+    closeBtns&&closeBtns.forEach(b=>b.addEventListener('click', close));
+  }catch(e){}
 })();
 
-// --- backup/restore via single-line base64 string (non-destructive addition) ---
+/* install-state-hide */
+window.addEventListener('appinstalled', ()=>{
+  const b=document.getElementById('install-btn')||document.getElementById('install-trigger');
+  if(b) b.style.display='none';
+});
 (function(){
-  const makeBtn = document.getElementById('backup-make');
-  const copyBtn = document.getElementById('backup-copy');
-  const textArea = document.getElementById('backup-text');
-  const restoreTextBtn = document.getElementById('backup-restore-text');
+  try{
+    const isPWA=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+    if(isPWA){ const b=document.getElementById('install-btn')||document.getElementById('install-trigger'); if(b) b.style.display='none'; }
+  }catch(e){}
+})();
+
+/* base64-backup-unified */
+(function(){
+  const makeBtn=document.getElementById('backup-make');
+  const copyBtn=document.getElementById('backup-copy');
+  const textArea=document.getElementById('backup-text');
+  const restoreBtn=document.getElementById('backup-restore-text');
   function exportState(){
-    const keys = Object.keys(localStorage).filter(k=>k.startsWith('hime_')||k.startsWith('himeg')||k.includes('hime'));
-    const obj = {}; keys.forEach(k=>obj[k]=localStorage.getItem(k));
-    const payload = JSON.stringify(obj);
-    const b64 = 'HIME1.' + btoa(unescape(encodeURIComponent(payload)));
-    return b64;
+    const obj={}; Object.keys(localStorage).forEach(k=>obj[k]=localStorage.getItem(k));
+    return 'HIME1.'+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
   }
   function importState(line){
+    if(!line||!line.startsWith('HIME1.')){ alert('文字列形式が違います。'); return; }
     try{
-      if(!line || !line.startsWith('HIME1.')) throw new Error('format');
-      const b64 = line.slice(6);
-      const json = decodeURIComponent(escape(atob(b64)));
-      const obj = JSON.parse(json);
-      Object.keys(obj).forEach(k=> localStorage.setItem(k, obj[k]));
-      alert('復元が完了しました。');
-      location.reload();
-    }catch(e){
-      alert('文字列が不正です。もう一度確認してください。');
-    }
+      const json=decodeURIComponent(escape(atob(line.slice(6))));
+      const obj=JSON.parse(json); Object.keys(obj).forEach(k=>localStorage.setItem(k,obj[k]));
+      alert('復元しました。アプリを再起動します。'); location.reload();
+    }catch(e){ alert('復元に失敗しました。文字列を確認してください。'); }
   }
-  makeBtn && makeBtn.addEventListener('click', ()=>{
-    const s = exportState(); if(textArea) textArea.value = s;
-  });
-  copyBtn && copyBtn.addEventListener('click', async()=>{
-    try{ await navigator.clipboard.writeText(textArea.value||exportState()); alert('コピーしました（LINEへ貼って保存）'); }
+  makeBtn&&makeBtn.addEventListener('click', ()=>{ if(textArea) textArea.value=exportState(); });
+  copyBtn&&copyBtn.addEventListener('click', async()=>{
+    try{ await navigator.clipboard.writeText(textArea&&textArea.value?textArea.value:exportState()); alert('コピーしました。LINEのキープメモに貼って保存してください。'); }
     catch{ alert('コピーに失敗。手動で選択→コピーしてください。'); }
   });
-  restoreTextBtn && restoreTextBtn.addEventListener('click', ()=> importState(textArea.value||''));
+  restoreBtn&&restoreBtn.addEventListener('click', ()=> importState(textArea?textArea.value:''));
 })();
 
-// --- drawer close button support ---
+/* daily-beta-popup */
 (function(){
   try{
-    const d=document.getElementById('drawer'), s=document.getElementById('scrim');
-    const x=document.getElementById('drawerClose');
-    if(x && d && s){
-      const close=()=>{d.classList.remove('open'); s.classList.remove('show'); d.setAttribute('aria-hidden','true');};
-      x.addEventListener('click', close);
+    const key='hime_daily_notice_v1';
+    const today=(new Date()).toISOString().slice(0,10);
+    const last=localStorage.getItem(key);
+    if(last!==today){
+      localStorage.setItem(key,today);
+      alert('【お知らせ】\n現在ベータ版のため、内部を不定期で更新しています。\n急に使えなくなったり画面が乱れる場合がありますが、都度改善しております。ご了承ください。');
     }
-  }catch{}
+  }catch(e){}
 })();

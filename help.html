@@ -13,17 +13,18 @@
     <div class="spacer"></div><div class="version">ver.1.30β</div>
   </header>
   <aside class="drawer" id="drawer" aria-hidden="true">
-    <div class="drawer-header"><strong>メニュー</strong><button id="drawerClose" class="close-btn" aria-label="閉じる">✕</button></div><nav><ul class="nav">
-<li><a href="/index.html">ホーム</a></li>
-<li><a href="/help.html">アプリ用途</a></li>
-<li><a href="/help.html#howto">使い方</a></li>
-<li><a href="/qa.html">Q&amp;A</a></li>
-<li><a href="/register.html">登録と紹介</a></li>
-<li><a href="/privacy.html">プライバシーポリシー</a></li>
-<li><a href="/terms.html">規約</a></li>
-<li><a href="/terms.html#tokushoho">特定商取引法（準備中）及び運営者情報</a></li>
-<li><a href="/feedback.html">ご意見・ご要望</a></li>
-</ul></nav>
+    <div class="drawer-header"><strong>メニュー</strong><button id="drawerClose" class="close-btn" aria-label="閉じる">✕</button></div>
+    <nav><ul class="nav">
+      <li><a href="/index.html">ホーム</a></li>
+      <li><a href="/help.html">アプリ用途</a></li>
+      <li><a href="/help.html#howto">使い方</a></li>
+      <li><a href="/qa.html">Q&amp;A</a></li>
+      <li><a href="/feedback.html">ご意見・ご要望</a></li>
+      <li><a href="/register.html">登録と紹介</a></li>
+      <li><a href="/privacy.html">プライバシーポリシー</a></li>
+      <li><a href="/terms.html">規約</a></li>
+      <li><a href="/terms.html#tokushoho">特定商取引法の表記（準備中）及び運営者情報</a></li>
+    </ul></nav>
   </aside>
   <div class="scrim" id="scrim"></div>
 
@@ -56,9 +57,18 @@
         <li>復元は「復元する」から JSON を選ぶだけ。保存時点の顧客・選択・回数・プランが戻ります。</li>
       </ol>
       <p class="muted">専門用語は使っていません。PWA などの言葉は本アプリでは表示しません。</p>
-    </section>
     
-</main>
+      <section class="card" id="backup-string">
+        <h2>バックアップ（かんたん・文字列）</h2>
+        <ol>
+          <li>ホームの「文字列を作る」を押す</li>
+          <li>「文字列をコピー」を押す</li>
+          <li>LINEのキープメモに貼って保存</li>
+          <li>戻すときは文字列を貼って「文字列から復元」を押す</li>
+        </ol>
+        <p class="muted">専門用語は使いません。1行をコピペするだけです。</p>
+      </section>
+    </main>
 
   <script>
     const d=document.getElementById('drawer'),s=document.getElementById('scrim');

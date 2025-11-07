@@ -25,17 +25,19 @@
 
   <!-- ドロワ -->
   <aside class="drawer" id="drawer" aria-hidden="true">
-    <div class="drawer-header"><strong>メニュー</strong><button id="drawerClose" class="close-btn" aria-label="閉じる">✕</button></div><nav><ul class="nav">
-<li><a href="/index.html">ホーム</a></li>
-<li><a href="/help.html">アプリ用途</a></li>
-<li><a href="/help.html#howto">使い方</a></li>
-<li><a href="/qa.html">Q&amp;A</a></li>
-<li><a href="/register.html">登録と紹介</a></li>
-<li><a href="/privacy.html">プライバシーポリシー</a></li>
-<li><a href="/terms.html">規約</a></li>
-<li><a href="/terms.html#tokushoho">特定商取引法（準備中）及び運営者情報</a></li>
-<li><a href="/feedback.html">ご意見・ご要望</a></li>
-</ul></nav>
+    <div class="drawer-header"><strong>メニュー</strong><button id="drawerClose" class="close-btn" aria-label="閉じる">✕</button></div>
+    <nav><ul class="nav">
+      <li><a href="/index.html">ホーム</a></li>
+      <li><a href="/help.html">アプリ用途</a></li>
+      <li><a href="/help.html#howto">使い方</a></li>
+      <li><a href="/qa.html">Q&amp;A</a></li>
+      <li><a href="/feedback.html">ご意見・ご要望</a></li>
+      <li><a href="/register.html">登録と紹介</a></li>
+      <li><a href="/privacy.html">プライバシーポリシー</a></li>
+      <li><a href="/terms.html">規約</a></li>
+      <li><a href="/terms.html#tokushoho">特定商取引法の表記（準備中）<span class="small">及び運営者情報</span></a></li>
+      <li><a href="javascript:void(0)">version：<span class="pill">ver.1.30β</span></a></li>
+    </ul></nav>
   </aside>
   <div class="scrim" id="scrim"></div>
 
@@ -48,16 +50,41 @@
         <button id="add-btn">追加</button>
       </div>
       <div class="customer-list"></div>
+    
+    <hr>
+    <h3>文字列バックアップ（ファイル不要）</h3>
+    <p>「文字列を作る」→ コピー → LINE のキープメモに貼って保存。復元は貼り付けて実行。</p>
+    <div class="row">
+      <button id="backup-make">文字列を作る</button>
+      <button id="backup-copy">文字列をコピー</button>
+    </div>
+    <textarea id="backup-text" rows="3" placeholder="ここに文字列が表示/貼り付け"></textarea>
+    <div class="row right">
+      <button id="backup-restore-text" class="primary">文字列から復元</button>
+    </div>
     </section>
     <section class="card">
       <h2>メッセージ作成</h2>
       <p class="note">本文に <code>{name}</code> を入れると選択中の顧客名に置き換わります。</p>
       <textarea id="message" rows="8" placeholder="今日はありがとう{name}さん。"></textarea>
+<p class="muted">例：本日はありがとうございました、{name} さん。明日以降のご都合はいかがでしょうか？</p>
       <div class="row right">
         <button id="insert-name" class="ghost">{name} を挿入</button>
         <button id="share-btn" class="primary">共有</button>
       </div>
       <div class="muted" id="remain-badge">残り 5 回</div>
+    
+    <hr>
+    <h3>文字列バックアップ（ファイル不要）</h3>
+    <p>「文字列を作る」→ コピー → LINE のキープメモに貼って保存。復元は貼り付けて実行。</p>
+    <div class="row">
+      <button id="backup-make">文字列を作る</button>
+      <button id="backup-copy">文字列をコピー</button>
+    </div>
+    <textarea id="backup-text" rows="3" placeholder="ここに文字列が表示/貼り付け"></textarea>
+    <div class="row right">
+      <button id="backup-restore-text" class="primary">文字列から復元</button>
+    </div>
     </section>
     <section class="card">
       <h2>バックアップと復元</h2>
@@ -66,6 +93,18 @@
         <input id="restore-file" type="file" accept=".json" style="display:none">
         <button id="restore-btn">復元する</button>
       </div>
+    
+    <hr>
+    <h3>文字列バックアップ（ファイル不要）</h3>
+    <p>「文字列を作る」→ コピー → LINE のキープメモに貼って保存。復元は貼り付けて実行。</p>
+    <div class="row">
+      <button id="backup-make">文字列を作る</button>
+      <button id="backup-copy">文字列をコピー</button>
+    </div>
+    <textarea id="backup-text" rows="3" placeholder="ここに文字列が表示/貼り付け"></textarea>
+    <div class="row right">
+      <button id="backup-restore-text" class="primary">文字列から復元</button>
+    </div>
     </section>
   </main>
 
