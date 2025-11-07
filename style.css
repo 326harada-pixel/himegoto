@@ -171,22 +171,3 @@ textarea{ min-height:120px; resize:vertical }
 @media (min-width:640px){
   .logo-area img.hime-logo{ max-width:340px }
 }
-
-/* keep header logo centered and prevent overlap with install button */
-.header{ position:sticky; top:0; z-index:1000; padding-right:84px; } /* reserve space on right */
-.header .install-btn{
-  position:absolute; right:12px; top:50%; transform:translateY(-50%);
-  height:32px; padding:0 12px; border-radius:16px; border:1px solid rgba(255,255,255,.7);
-  background:rgba(255,255,255,.15); color:#fff; font-size:14px; line-height:32px;
-  z-index:1100;
-  display:none;
-}
-.header .install-btn.show{ display:inline-block; }
-.header .brand{ margin:0 auto; }
-
-/* fallback share modal */
-.modal{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:2000; }
-.modal.show{ display:flex; }
-.modal__content{ background:#fff; color:#222; border-radius:12px; padding:16px; width:min(92vw,420px); box-shadow:0 10px 30px rgba(0,0,0,.25); }
-.modal__content h3{ margin:0 0 8px; font-size:18px; }
-.modal .row{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
