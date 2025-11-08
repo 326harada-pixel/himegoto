@@ -1,4 +1,3 @@
-// app-index.js（完全版：{name}そのまま挿入＋共有時のみ置換＋無料版制限＋残回数UI）
 (function () {
   const $ = (s) => document.querySelector(s);
   const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
@@ -6,48 +5,20 @@
   const lst = $('#customerList');
   const nameI = $('#nameInput');
   const addB = $('#addBtn');
-
   const msg = $('#messageBox');
   const ins = $('#insertName');
   const rem = $('#remain');
   const share = $('#shareBtn');
+  const remainCust = $('#remainCustomers');
+  const remainShare = $('#remainShares');
 
   const KC = 'hime_customers';
   const KS = 'hime_selected';
+  const KL = 'hime_sharelog';
 
-  // === 送信制限関連 ===
-  const SEND_LIMIT_PER_DAY = 5;
-  const SEND_LIMIT_KEY = 'hime_send_cnt_v1';
+  const MAX_CUSTOMERS = 5;
+  const MAX_SENDS = 5;
 
-  function loadSendLimit() {
-    try {
-      return JSON.parse(localStorage.getItem(SEND_LIMIT_KEY) || '{}') || {};
-    } catch {
-      return {};
-    }
-  }
-
-  function saveSendLimit(d) {
-    localStorage.setItem(SEND_LIMIT_KEY, JSON.stringify(d || {}));
-  }
-
-  function ensureTodaySendData(d) {
-    const today = new Date().toDateString();
-    if (!d || d.date !== today) {
-      d = { date: today, count: 0 };
-    }
-    return d;
-  }
-
-  function updateSendRemainUI() {
-    const el = document.getElementById('sendRemain'); // 「あと◯回」表示用要素
-    if (!el) return;
-    let d = ensureTodaySendData(loadSendLimit());
-    const remain = Math.max(0, SEND_LIMIT_PER_DAY - (d.count || 0));
-    el.textContent = `あと${remain}回`;
-  }
-
-  // === 顧客データ ===
   function load() {
     try {
       return {
@@ -64,6 +35,37 @@
     localStorage.setItem(KS, JSON.stringify(s));
   }
 
+  // 残数表示更新
+  function updateCounters() {
+    const st = load();
+    const custRemain = Math.max(0, MAX_CUSTOMERS - st.list.length);
+    if (remainCust) remainCust.textContent = `残 ${custRemain}人`;
+
+    const log = JSON.parse(localStorage.getItem(KL) || '{}');
+    const today = new Date().toLocaleDateString('ja-JP');
+    const count = log.date === today ? (log.count || 0) : 0;
+    const shareRemain = Math.max(0, MAX_SENDS - count);
+    if (remainShare) remainShare.textContent = `残 ${shareRemain}回`;
+  }
+
+  // 顧客追加
+  on(addB, 'click', () => {
+    const v = (nameI && nameI.value || '').trim();
+    if (!v) return;
+    const st = load();
+    if (st.list.length >= MAX_CUSTOMERS) {
+      alert('無料版では顧客の登録は5名までです。');
+      return;
+    }
+    st.list.push(v);
+    st.sel = st.list.length - 1;
+    save(st.list, st.sel);
+    if (nameI) nameI.value = '';
+    render();
+    updateCounters();
+  });
+
+  // 顧客表示
   function render() {
     const st = load();
     lst.innerHTML = '';
@@ -81,26 +83,8 @@
       lst.appendChild(li);
     });
   }
-  render();
-  updateSendRemainUI();
 
-  // === 顧客追加（無料版: 5名まで） ===
-  on(addB, 'click', () => {
-    const v = (nameI && nameI.value || '').trim();
-    if (!v) return;
-    const st = load();
-    if ((st.list || []).length >= 5) {
-      alert('無料版では顧客の登録は5名までです。');
-      return;
-    }
-    st.list.push(v);
-    st.sel = st.list.length - 1;
-    save(st.list, st.sel);
-    if (nameI) nameI.value = '';
-    render();
-  });
-
-  // === 顧客リストの選択／削除 ===
+  // 削除・選択
   on(lst, 'click', (e) => {
     const t = e.target;
     if (!(t instanceof HTMLElement)) return;
@@ -116,95 +100,46 @@
       if (st.sel === i) st.sel = null;
       save(st.list, st.sel);
       render();
+      updateCounters();
     }
   });
 
-  // === {name} 挿入 ===
+  // 名前挿入
   on(ins, 'click', () => {
     if (!msg) return;
     const s = msg.selectionStart || 0;
     const e = msg.selectionEnd || 0;
-    const tag = '{name}';
-    msg.value = (msg.value || '').slice(0, s) + tag + (msg.value || '').slice(e);
+    msg.value = msg.value.slice(0, s) + '{name}' + msg.value.slice(e);
     msg.focus();
-    msg.selectionStart = msg.selectionEnd = s + tag.length;
-    updateRemain();
+    msg.selectionStart = msg.selectionEnd = s + 6;
   });
 
-  // === 文字数カウンタ ===
-  const limit = 10000;
-  function updateRemain() {
-    if (!msg || !rem) return;
-    rem.textContent = Math.max(0, limit - (msg.value || '').length);
-  }
-  if (msg) {
-    on(msg, 'input', updateRemain);
-    updateRemain();
-  }
-
-  // === 共有ボタン（送信制限＋置換＋カウントUI更新） ===
+  // 共有
   on(share, 'click', async () => {
-    if (!msg) return;
+    const st = load();
+    const nm = st.sel != null ? st.list[st.sel] : null;
+    const log = JSON.parse(localStorage.getItem(KL) || '{}');
+    const today = new Date().toLocaleDateString('ja-JP');
+    if (log.date !== today) { log.date = today; log.count = 0; }
 
-    let d = ensureTodaySendData(loadSendLimit());
-    if ((d.count || 0) >= SEND_LIMIT_PER_DAY) {
-      updateSendRemainUI();
+    if (log.count >= MAX_SENDS) {
       alert('無料版では1日の送信は5回までです。');
       return;
     }
 
-    d.count = (d.count || 0) + 1;
-    saveSendLimit(d);
-    updateSendRemainUI();
-
-    const st = load();
-    const selName = (st.sel != null && st.list[st.sel]) ? st.list[st.sel] : null;
-    const out = selName ? (msg.value || '').replaceAll('{name}', selName) : (msg.value || '');
+    const out = nm ? msg.value.replaceAll('{name}', nm) : msg.value;
     try {
-      if (navigator.share) {
-        await navigator.share({ text: out });
-      } else {
+      if (navigator.share) await navigator.share({ text: out });
+      else {
         await navigator.clipboard.writeText(out);
-        alert('共有に非対応のためテキストをコピーしました。');
+        alert('共有に非対応のためコピーしました。');
       }
-    } catch { /* キャンセル時もカウント維持 */ }
+      log.count++;
+      localStorage.setItem(KL, JSON.stringify(log));
+      updateCounters();
+    } catch { }
   });
 
-  // === バックアップ（Base64文字列） ===
-  const mk = document.getElementById('makeString');
-  const cp = document.getElementById('copyString');
-  const rs = document.getElementById('restoreFromString');
-  const ar = document.getElementById('backupStringArea');
-
-  const enc = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
-  const dec = (b) => JSON.parse(decodeURIComponent(escape(atob(b))));
-
-  const collect = () => {
-    const d = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (/^hime/i.test(k)) d[k] = localStorage.getItem(k);
-    }
-    return d;
-  };
-  const apply = (d) => Object.keys(d || {}).forEach((k) => localStorage.setItem(k, d[k]));
-
-  on(mk, 'click', () => {
-    if (!ar) return;
-    ar.value = enc(collect());
-  });
-  on(cp, 'click', async () => {
-    if (!ar || !ar.value) return;
-    try { await navigator.clipboard.writeText(ar.value); } catch {}
-  });
-  on(rs, 'click', () => {
-    if (!ar || !ar.value) return;
-    try {
-      apply(dec(ar.value.trim()));
-      alert('復元しました。再読み込みします。');
-      location.reload();
-    } catch {
-      alert('文字列の形式が正しくありません。');
-    }
-  });
+  updateCounters();
+  render();
 })();
