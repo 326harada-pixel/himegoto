@@ -1,24 +1,32 @@
+// app-index.js（完全修正版）
+// 仕様：{name}はそのまま挿入／共有時のみ選択名に置換
+// 無料版：顧客5名まで／送信1日5回（共有ボタン「タップ時」に即減算）
+// 残数表示：見出し右「残◯人」「残◯回」／説明文は下段
 (function () {
   const $ = (s) => document.querySelector(s);
   const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
 
+  // --- DOM ---
   const lst = $('#customerList');
   const nameI = $('#nameInput');
   const addB = $('#addBtn');
+
   const msg = $('#messageBox');
   const ins = $('#insertName');
   const rem = $('#remain');
   const share = $('#shareBtn');
-  const remainCust = $('#remainCustomers');
-  const remainShare = $('#remainShares');
 
+  const remainCust = $('#remainCustomers');  // 見出し横「残◯人」
+  const remainShare = $('#remainShares');    // 見出し横「残◯回」
+
+  // --- Keys / Limits ---
   const KC = 'hime_customers';
   const KS = 'hime_selected';
-  const KL = 'hime_sharelog';
-
+  const SEND_KEY = 'hime_send_cnt_v1'; // 送信回数保存キー（既存仕様に合わせる）
   const MAX_CUSTOMERS = 5;
   const MAX_SENDS = 5;
 
+  // --- State I/O ---
   function load() {
     try {
       return {
@@ -29,43 +37,40 @@
       return { list: [], sel: null };
     }
   }
-
-  function save(l, s) {
-    localStorage.setItem(KC, JSON.stringify(l || []));
-    localStorage.setItem(KS, JSON.stringify(s));
+  function save(list, sel) {
+    localStorage.setItem(KC, JSON.stringify(list || []));
+    localStorage.setItem(KS, JSON.stringify(sel));
   }
 
-  // 残数表示更新
-  function updateCounters() {
-    const st = load();
-    const custRemain = Math.max(0, MAX_CUSTOMERS - st.list.length);
-    if (remainCust) remainCust.textContent = `残 ${custRemain}人`;
-
-    const log = JSON.parse(localStorage.getItem(KL) || '{}');
-    const today = new Date().toLocaleDateString('ja-JP');
-    const count = log.date === today ? (log.count || 0) : 0;
-    const shareRemain = Math.max(0, MAX_SENDS - count);
-    if (remainShare) remainShare.textContent = `残 ${shareRemain}回`;
+  // --- Send Counter (per day) ---
+  function loadSend() {
+    try { return JSON.parse(localStorage.getItem(SEND_KEY) || '{}') || {}; }
+    catch { return {}; }
+  }
+  function saveSend(d) {
+    localStorage.setItem(SEND_KEY, JSON.stringify(d || {}));
+  }
+  function ensureToday(d) {
+    const today = new Date().toDateString(); // JST環境でも安定
+    if (!d || d.date !== today) d = { date: today, count: 0 };
+    return d;
   }
 
-  // 顧客追加
-  on(addB, 'click', () => {
-    const v = (nameI && nameI.value || '').trim();
-    if (!v) return;
+  // --- UI Counters ---
+  function updateCustomerRemainUI() {
+    if (!remainCust) return;
     const st = load();
-    if (st.list.length >= MAX_CUSTOMERS) {
-      alert('無料版では顧客の登録は5名までです。');
-      return;
-    }
-    st.list.push(v);
-    st.sel = st.list.length - 1;
-    save(st.list, st.sel);
-    if (nameI) nameI.value = '';
-    render();
-    updateCounters();
-  });
+    const left = Math.max(0, MAX_CUSTOMERS - (st.list || []).length);
+    remainCust.textContent = `残 ${left}人`;
+  }
+  function updateSendRemainUI() {
+    if (!remainShare) return;
+    let d = ensureToday(loadSend());
+    const left = Math.max(0, MAX_SENDS - (d.count || 0));
+    remainShare.textContent = `送信残り ${left}回`;
+  }
 
-  // 顧客表示
+  // --- Render list ---
   function render() {
     const st = load();
     lst.innerHTML = '';
@@ -82,9 +87,26 @@
         </span>`;
       lst.appendChild(li);
     });
+    updateCustomerRemainUI();
   }
 
-  // 削除・選択
+  // --- Add customer (free: 5 max) ---
+  on(addB, 'click', () => {
+    const v = (nameI && nameI.value || '').trim();
+    if (!v) return;
+    const st = load();
+    if ((st.list || []).length >= MAX_CUSTOMERS) {
+      alert('無料版では顧客の登録は5名までです。');
+      return;
+    }
+    st.list.push(v);
+    st.sel = st.list.length - 1;
+    save(st.list, st.sel);
+    if (nameI) nameI.value = '';
+    render();
+  });
+
+  // --- Select / Delete in list ---
   on(lst, 'click', (e) => {
     const t = e.target;
     if (!(t instanceof HTMLElement)) return;
@@ -100,46 +122,109 @@
       if (st.sel === i) st.sel = null;
       save(st.list, st.sel);
       render();
-      updateCounters();
     }
   });
 
-  // 名前挿入
+  // --- Insert {name} (literal) ---
   on(ins, 'click', () => {
     if (!msg) return;
     const s = msg.selectionStart || 0;
     const e = msg.selectionEnd || 0;
-    msg.value = msg.value.slice(0, s) + '{name}' + msg.value.slice(e);
+    const tag = '{name}';
+    msg.value = (msg.value || '').slice(0, s) + tag + (msg.value || '').slice(e);
     msg.focus();
-    msg.selectionStart = msg.selectionEnd = s + 6;
+    msg.selectionStart = msg.selectionEnd = s + tag.length;
+    updateRemain();
   });
 
-  // 共有
-  on(share, 'click', async () => {
-    const st = load();
-    const nm = st.sel != null ? st.list[st.sel] : null;
-    const log = JSON.parse(localStorage.getItem(KL) || '{}');
-    const today = new Date().toLocaleDateString('ja-JP');
-    if (log.date !== today) { log.date = today; log.count = 0; }
+  // --- Char counter ---
+  const limit = 10000;
+  function updateRemain() {
+    if (!msg || !rem) return;
+    rem.textContent = Math.max(0, limit - (msg.value || '').length);
+  }
+  if (msg) {
+    on(msg, 'input', updateRemain);
+    updateRemain();
+  }
 
-    if (log.count >= MAX_SENDS) {
+  // --- Share (tap = consume 1 count immediately) ---
+  on(share, 'click', async () => {
+    if (!msg) return;
+
+    // 1) 先に消費（タップで減算する仕様）
+    let d = ensureToday(loadSend());
+    if ((d.count || 0) >= MAX_SENDS) {
+      updateSendRemainUI();
       alert('無料版では1日の送信は5回までです。');
       return;
     }
+    d.count = (d.count || 0) + 1;
+    saveSend(d);
+    updateSendRemainUI();
 
-    const out = nm ? msg.value.replaceAll('{name}', nm) : msg.value;
+    // 2) {name}置換 → 共有 or クリップボード
+    const st = load();
+    const selName = (st.sel != null && st.list[st.sel]) ? st.list[st.sel] : null;
+    const out = selName ? (msg.value || '').replaceAll('{name}', selName) : (msg.value || '');
+
     try {
-      if (navigator.share) await navigator.share({ text: out });
-      else {
+      if (navigator.share) {
+        await navigator.share({ text: out });
+      } else {
         await navigator.clipboard.writeText(out);
         alert('共有に非対応のためコピーしました。');
       }
-      log.count++;
-      localStorage.setItem(KL, JSON.stringify(log));
-      updateCounters();
-    } catch { }
+    } catch {
+      // キャンセルなどでもカウントは戻さない（仕様通り）
+    }
   });
 
-  updateCounters();
+  // --- Backup (Base64 string) ---
+  const mk = document.getElementById('makeString');
+  const cp = document.getElementById('copyString');
+  const rs = document.getElementById('restoreFromString');
+  const ar = document.getElementById('backupStringArea');
+
+  const enc = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+  const dec = (b) => JSON.parse(decodeURIComponent(escape(atob(b))));
+
+  const collect = () => {
+    const d = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (/^hime/i.test(k)) d[k] = localStorage.getItem(k);
+    }
+    return d;
+  };
+  const apply = (data) => {
+    Object.keys(data || {}).forEach((k) => localStorage.setItem(k, data[k]));
+  };
+
+  on(mk, 'click', () => {
+    if (!ar) return;
+    try {
+      ar.value = enc(collect());
+    } catch {
+      alert('バックアップ文字列の作成に失敗しました。');
+    }
+  });
+  on(cp, 'click', async () => {
+    if (!ar || !ar.value) return;
+    try { await navigator.clipboard.writeText(ar.value); } catch {}
+  });
+  on(rs, 'click', () => {
+    if (!ar || !ar.value) return;
+    try {
+      apply(dec(ar.value.trim()));
+      alert('復元しました。再読み込みします。');
+      location.reload();
+    } catch {
+      alert('文字列の形式が正しくありません。');
+    }
+  });
+
+  // --- Init ---
   render();
+  updateSendRemainUI();
 })();
