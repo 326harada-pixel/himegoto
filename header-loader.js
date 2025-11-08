@@ -1,0 +1,2 @@
+
+(function(){async function inject(){try{const r=await fetch('header.html',{cache:'no-cache'});const h=await r.text();const w=document.createElement('div');w.innerHTML=h;document.body.prepend(w);if(window.himeInitCommonUI)window.himeInitCommonUI();}catch(e){console.error('header inject failed',e);}}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',inject);}else{inject();}})();
