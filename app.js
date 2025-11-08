@@ -191,3 +191,15 @@
     }
   }catch(e){}
 })();
+
+/* install-state-hide */
+window.addEventListener('appinstalled', function(){
+  var b=document.getElementById('install-btn')||document.getElementById('install-trigger');
+  if(b) b.style.display='none';
+});
+(function(){
+  try{
+    var isPWA=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+    if(isPWA){ var b=document.getElementById('install-btn')||document.getElementById('install-trigger'); if(b) b.style.display='none'; }
+  }catch(e){}
+})();
