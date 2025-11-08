@@ -1,105 +1,114 @@
-// app.js 修正版 ({name}挿入修正対応)
 
-document.addEventListener("DOMContentLoaded", function () {
-  const customerList = document.getElementById("customerList");
-  const nameInput = document.getElementById("nameInput");
-  const addBtn = document.getElementById("addBtn");
-  const insertNameBtn = document.getElementById("insertNameBtn");
-  const shareBtn = document.getElementById("shareBtn");
-  const message = document.getElementById("message");
+/* himegoto app glue (drawer, install, beta notice, backup string) */
+(function(){
+  const $ = (sel)=>document.querySelector(sel);
+  const on = (el,ev,fn)=>el&&el.addEventListener(ev,fn);
 
-  // ローカルストレージに保存されている顧客データを読み込み
-  let customers = JSON.parse(localStorage.getItem("customers")) || [];
-  let selectedCustomer = null;
+  // Drawer
+  const drawer = $('#drawer');
+  const overlay = $('#drawerOverlay');
+  const menuBtn = $('#menuBtn');
+  const closeBtn = $('#menuCloseBtn');
+  function openDrawer(){
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden','false');
+    overlay.hidden = false;
+    document.body.style.overflow='hidden';
+  }
+  function closeDrawer(){
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden','true');
+    overlay.hidden = true;
+    document.body.style.overflow='';
+  }
+  on(menuBtn,'click',openDrawer);
+  on(closeBtn,'click',closeDrawer);
+  on(overlay,'click',closeDrawer);
+  on(document,'keydown',e=>{if(e.key==='Escape') closeDrawer();});
 
-  function saveCustomers() {
-    localStorage.setItem("customers", JSON.stringify(customers));
+  // Install
+  let deferredPrompt = null;
+  const installBtn = $('#installBtn');
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault();
+    deferredPrompt = e;
+    if(installBtn) installBtn.classList.remove('hidden');
+  });
+  on(installBtn,'click', async ()=>{
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installBtn.classList.add('hidden');
+  });
+  // Hide if already in standalone
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    installBtn && installBtn.classList.add('hidden');
   }
 
-  function renderCustomers() {
-    customerList.innerHTML = "";
-    customers.forEach((name, index) => {
-      const row = document.createElement("div");
-      row.className = "customer-row";
+  // Beta notice once a day
+  try{
+    const key='hime_beta_notice_date';
+    const today=new Date().toISOString().slice(0,10);
+    const last=localStorage.getItem(key);
+    if(last!==today){
+      alert('現在ベータ版のため、プログラム内部を不定期で編集しています。\n急に使えなくなったり画面が乱れることがありますが、順次改善しています。');
+      localStorage.setItem(key,today);
+    }
+  }catch{}
 
-      const nameSpan = document.createElement("span");
-      nameSpan.textContent = name;
-
-      const selectBtn = document.createElement("button");
-      selectBtn.textContent = selectedCustomer === name ? "選択中" : "選択";
-      selectBtn.className =
-        selectedCustomer === name ? "selected-btn" : "select-btn";
-      selectBtn.onclick = () => {
-        selectedCustomer = name;
-        renderCustomers();
-      };
-
-      const memoBtn = document.createElement("button");
-      memoBtn.textContent = "メモ";
-      memoBtn.className = "memo-btn";
-      memoBtn.onclick = () => {
-        localStorage.setItem("currentCustomer", name);
-        window.location.href = "customer.html";
-      };
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.textContent = "削除";
-      deleteBtn.className = "delete-btn";
-      deleteBtn.onclick = () => {
-        customers.splice(index, 1);
-        if (selectedCustomer === name) selectedCustomer = null;
-        saveCustomers();
-        renderCustomers();
-      };
-
-      row.appendChild(nameSpan);
-      row.appendChild(selectBtn);
-      row.appendChild(memoBtn);
-      row.appendChild(deleteBtn);
-      customerList.appendChild(row);
+  // === Backup string (Base64) ===
+  function encode(obj){
+    return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+  }
+  function decode(b64){
+    return JSON.parse(decodeURIComponent(escape(atob(b64))));
+  }
+  function collect(){
+    // 端末内キーのうち hime で始まるものをまとめる
+    const data={};
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(/^hime/i.test(k)) data[k]=localStorage.getItem(k);
+    }
+    return data;
+  }
+  function apply(data){
+    Object.keys(data||{}).forEach(k=>localStorage.setItem(k,data[k]));
+  }
+  // Bind buttons if present
+  const makeBtn = document.getElementById('makeString');
+  const copyBtn = document.getElementById('copyString');
+  const restoreBtn = document.getElementById('restoreFromString');
+  const area = document.getElementById('backupStringArea');
+  if(makeBtn && area){
+    makeBtn.addEventListener('click', ()=>{
+      const b64 = encode(collect());
+      area.value = b64;
     });
   }
-
-  addBtn.addEventListener("click", () => {
-    const name = nameInput.value.trim();
-    if (!name) return;
-    if (customers.includes(name)) return alert("同じ名前が存在します");
-    if (customers.length >= 5)
-      return alert("無料版では5名まで登録できます");
-    customers.push(name);
-    nameInput.value = "";
-    saveCustomers();
-    renderCustomers();
-  });
-
-  // {name}を挿入ボタンの動作修正版
-  insertNameBtn.addEventListener("click", () => {
-    const textarea = message;
-    const insertText = "{name}";
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentText = textarea.value;
-
-    textarea.value =
-      currentText.substring(0, start) +
-      insertText +
-      currentText.substring(end);
-
-    const newPos = start + insertText.length;
-    textarea.selectionStart = textarea.selectionEnd = newPos;
-    textarea.focus();
-  });
-
-  shareBtn.addEventListener("click", async () => {
-    if (!selectedCustomer) return alert("顧客を選択してください");
-    const text = message.value.replaceAll("{name}", selectedCustomer);
-    try {
-      await navigator.share({ text });
-    } catch (err) {
-      console.error("共有エラー:", err);
-      alert("共有できませんでした");
-    }
-  });
-
-  renderCustomers();
-});
+  if(copyBtn && area){
+    copyBtn.addEventListener('click', async ()=>{
+      if(!area.value) return;
+      try{
+        await navigator.clipboard.writeText(area.value);
+        copyBtn.textContent='コピー済み';
+        setTimeout(()=>copyBtn.textContent='コピー',1200);
+      }catch{}
+    });
+  }
+  if(restoreBtn && area){
+    restoreBtn.addEventListener('click', ()=>{
+      const v = area.value.trim();
+      if(!v) return;
+      try{
+        const obj = decode(v);
+        apply(obj);
+        alert('復元しました。画面を再読み込みします。');
+        location.reload();
+      }catch(e){
+        alert('文字列の形式が正しくありません。');
+      }
+    });
+  }
+})();
