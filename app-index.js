@@ -1,2 +1,224 @@
+/* app-index.js (safe add-on)
+ * - Strictly additive: does not remove or restructure existing DOM
+ * - Robust event delegation: works even if element IDs differ
+ * - Backup: Base64URL (prefix HIME1.)
+ * - Restore merges into localStorage; does not delete unknown keys
+ * - Install button wiring (id=installBtn or text 'インストール')
+ */
+(function(){
+  'use strict';
 
-(function(){const $=(s)=>document.querySelector(s);const on=(el,ev,fn)=>el&&el.addEventListener(ev,fn);const lst=$('#customerList'), nameI=$('#nameInput'), addB=$('#addBtn');const msg=$('#messageBox'), ins=$('#insertName'), rem=$('#remain'), share=$('#shareBtn');const KC='hime_customers', KS='hime_selected';function load(){try{return{list:JSON.parse(localStorage.getItem(KC)||'[]'),sel:JSON.parse(localStorage.getItem(KS)||'null')}}catch(e){return{list:[],sel:null}}}function save(l,s){localStorage.setItem(KC,JSON.stringify(l||[]));localStorage.setItem(KS,JSON.stringify(s));}function render(){const st=load();lst.innerHTML='';(st.list||[]).forEach((nm,i)=>{const li=document.createElement('li');li.innerHTML=`<span>${nm}</span><span><button class="btn ${st.sel===i?'primary':''}" data-a="sel" data-i="${i}">${st.sel===i?'選択中':'選択'}</button><a class="btn" href="customer.html#${encodeURIComponent(nm)}">メモ</a><button class="btn" data-a="del" data-i="${i}">削除</button></span>`;lst.appendChild(li);});}render();on(addB,'click',()=>{const v=(nameI&&nameI.value||'').trim();if(!v)return;const st=load();st.list.push(v);st.sel=st.list.length-1;save(st.list,st.sel);if(nameI)nameI.value='';render();});on(lst,'click',(e)=>{const t=e.target; if(!(t instanceof HTMLElement))return; const a=t.getAttribute('data-a');const i=Number(t.getAttribute('data-i'));const st=load();if(a==='sel'){st.sel=i;save(st.list,st.sel);render();}if(a==='del'){st.list.splice(i,1);if(st.sel===i)st.sel=null;save(st.list,st.sel);render();}});on(ins,'click',()=>{const st=load();if(st.sel==null||!msg)return;const nm=st.list[st.sel]||'';const s=msg.selectionStart||0,e=msg.selectionEnd||0;msg.value=msg.value.slice(0,s)+nm+msg.value.slice(e);msg.focus();msg.selectionStart=msg.selectionEnd=s+nm.length;});if(msg&&rem){const lim=10000;const upd=()=>{rem.textContent=Math.max(0,lim-(msg.value||'').length);};msg.addEventListener('input',upd);upd();}on(share,'click',async()=>{if(!msg)return;const text=msg.value||'';try{if(navigator.share){await navigator.share({text});}else{await navigator.clipboard.writeText(text);alert('共有非対応のためコピーしました。');}}catch{}});const mk=document.getElementById('makeString'),cp=document.getElementById('copyString'),rs=document.getElementById('restoreFromString'),ar=document.getElementById('backupStringArea');const enc=(o)=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));const dec=(b)=>JSON.parse(decodeURIComponent(escape(atob(b))));const collect=()=>{const d={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^hime/i.test(k))d[k]=localStorage.getItem(k);}return d;};const apply=(d)=>Object.keys(d||{}).forEach(k=>localStorage.setItem(k,d[k]));on(mk,'click',()=>{if(!ar)return;ar.value=enc(collect());});on(cp,'click',async()=>{if(!ar||!ar.value)return;try{await navigator.clipboard.writeText(ar.value);}catch{}});on(rs,'click',()=>{if(!ar||!ar.value)return;try{apply(dec(ar.value.trim()));alert('復元しました。再読み込みします。');location.reload();}catch(e){alert('文字列の形式が正しくありません。');}});})();
+  // --- small utilities ---
+  const d = document;
+  const $ = (sel, root) => (root||d).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root||d).querySelectorAll(sel));
+  const on = (root, evt, selectorOrHandler, handler) => {
+    // if handler omitted, attach directly
+    if (typeof selectorOrHandler === 'function') {
+      root.addEventListener(evt, (e)=>{ try{ selectorOrHandler(e); }catch(_){} }, {passive:false});
+    } else {
+      root.addEventListener(evt, (e)=>{
+        const t = e.target.closest(selectorOrHandler);
+        if (t && root.contains(t)) { try{ handler.call(t, e); }catch(_){ /* swallow */ } }
+      }, {passive:false});
+    }
+  };
+
+  const b64urlEncode = (str) => {
+    try {
+      return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    } catch(e) {
+      // fallback per-character
+      const utf8 = new TextEncoder().encode(str);
+      let bin='';
+      utf8.forEach(b=>bin+=String.fromCharCode(b));
+      return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }
+  };
+  const b64urlDecode = (data) => {
+    data = (data||'').replace(/-/g,'+').replace(/_/g,'/');
+    while (data.length % 4) data += '=';
+    try {
+      return decodeURIComponent(escape(atob(data)));
+    } catch(e) {
+      const bin = atob(data);
+      const buf = new Uint8Array(bin.length);
+      for (let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+      return new TextDecoder().decode(buf);
+    }
+  };
+
+  // --- backup core ---
+  const BK_PREFIX = 'HIME1.';
+  const isHimeString = (s) => typeof s === 'string' && s.startsWith(BK_PREFIX);
+
+  const collect = () => {
+    // collect known important keys first (if存在), then the rest
+    const keys = [];
+    try {
+      for (let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        keys.push(k);
+      }
+    } catch(_){}
+    const obj = { _ts: Date.now(), _ver:'1', data:{} };
+    keys.forEach(k=>{
+      try {
+        obj.data[k] = localStorage.getItem(k);
+      } catch(_){}
+    });
+    return obj;
+  };
+
+  const makeString = () => {
+    const json = JSON.stringify(collect());
+    return BK_PREFIX + b64urlEncode(json);
+  };
+
+  const putIntoArea = (text) => {
+    // Try common selectors
+    const area = $('#backupText') || $('#backupArea') ||
+                 document.querySelector('textarea[name="backup"]') ||
+                 document.querySelector('textarea');
+    if (area) {
+      area.value = text;
+      try { area.dispatchEvent(new Event('input',{bubbles:true})); }catch(_){}
+      return true;
+    }
+    return false;
+  };
+
+  const readFromArea = () => {
+    const area = $('#backupText') || $('#backupArea') ||
+                 document.querySelector('textarea[name="backup"]') ||
+                 document.querySelector('textarea');
+    return area ? (area.value || '') : '';
+  };
+
+  const restoreFromString = (raw) => {
+    let s = raw || readFromArea();
+    if (!s) return false;
+    if (!isHimeString(s)) return false;
+    try {
+      const json = b64urlDecode(s.slice(BK_PREFIX.length));
+      const payload = JSON.parse(json);
+      const data = payload && payload.data || {};
+      Object.keys(data).forEach(k=>{
+        try { localStorage.setItem(k, data[k]); } catch(_){}
+      });
+      return true;
+    } catch(_){ return false; }
+  };
+
+  const copyText = async (t) => {
+    try {
+      await navigator.clipboard.writeText(t);
+      return true;
+    } catch(_){
+      // fallback
+      const ok = putIntoArea(t);
+      if (ok) {
+        const sel = document.getSelection();
+        const area = $('#backupText') || $('#backupArea') || document.querySelector('textarea[name="backup"]') || document.querySelector('textarea');
+        if (area) { area.select(); try{ document.execCommand('copy'); }catch(_){ } }
+      }
+      return false;
+    }
+  };
+
+  // --- wire buttons (event delegation; no reliance on specific IDs) ---
+  on(document, 'click', (e)=>{
+    const btn = e.target.closest('button, [role="button"]');
+    if (!btn) return;
+
+    const label = (btn.getAttribute('data-action') || btn.id || btn.textContent || '').trim();
+
+    // make string
+    if (/(make\-string|makeStr|文字列を作る|バックアップを作る)/.test(label)) {
+      e.preventDefault();
+      try {
+        const s = makeString();
+        putIntoArea(s);
+      } catch(_){}
+      return;
+    }
+
+    // copy
+    if (/(copy\-string|copyStr|コピー)/.test(label)) {
+      e.preventDefault();
+      const s = readFromArea() || makeString();
+      copyText(s);
+      return;
+    }
+
+    // restore
+    if (/(restore\-string|restoreFromStr|文字列から復元|復元する)/.test(label)) {
+      e.preventDefault();
+      const s = readFromArea();
+      restoreFromString(s);
+      return;
+    }
+
+    // install
+    if (/(installBtn|インストール)/.test(label)) {
+      e.preventDefault();
+      if (window.__deferredPrompt) {
+        window.__deferredPrompt.prompt();
+        window.__deferredPrompt.userChoice.finally(()=>{
+          try {
+            const el = $('#installBtn') || $$('button').find(b=>/インストール/.test(b.textContent||''));
+            if (el) el.style.display='none';
+          }catch(_){}
+        });
+      }
+      return;
+    }
+  });
+
+  // --- install prompt handling ---
+  window.addEventListener('beforeinstallprompt', (e)=>{
+    e.preventDefault();
+    window.__deferredPrompt = e;
+    try {
+      const btn = $('#installBtn') || $$('button').find(b=>/インストール/.test(b.textContent||''));
+      if (btn) btn.style.display = '';
+    }catch(_){}
+  });
+
+  window.addEventListener('appinstalled', ()=>{
+    try {
+      const btn = $('#installBtn') || $$('button').find(b=>/インストール/.test(b.textContent||''));
+      if (btn) btn.style.display = 'none';
+    }catch(_){}
+  });
+
+  // --- logo fallback (non-destructive) ---
+  const tryLogo = () => {
+    try {
+      const candidates = [
+        'img#logo', '.logo img', 'img[data-logo]'
+      ];
+      let img = null;
+      for (const sel of candidates){ img = $(sel); if (img) break; }
+      if (!img) return;
+      const ok = () => {
+        // center by adding style only (non-destructive)
+        try { img.style.display='block'; img.style.margin='8px auto'; }catch(_){}
+      };
+      const fail = () => {
+        const paths = ['/logo.png','/img/logo.png','/assets/logo.png'];
+        if (!img.getAttribute('src') || img.naturalWidth===0) {
+          for (const p of paths){ img.setAttribute('src', p); break; }
+        }
+        ok();
+      };
+      if (!img.getAttribute('src')) { fail(); return; }
+      if (typeof img.complete !== 'boolean' || img.complete===false || img.naturalWidth===0) {
+        img.addEventListener('error', fail, {once:true});
+        img.addEventListener('load', ok, {once:true});
+      } else { ok(); }
+    } catch(_){}
+  };
+  tryLogo();
+
+})();
