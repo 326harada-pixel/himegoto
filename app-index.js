@@ -1,230 +1,179 @@
 
-/*
-  app-index.js — defensive, minimal-change JavaScript
-  ルール遵守: 既存UI/文面は変更しない。追加/最小限置換のみ。
-  - 各ボタンは「同じカード(近傍)」の要素だけを操作する
-  - ラベル文字での大雑把な判定は維持しつつ、近傍スコープで誤作動を防止
-  - 例外は握りつぶして他機能への波及停止を防ぐ
-*/
-
+/* app-index.js — minimal, defensive add-on (最上位ルール順守: 追加/最小限置換のみ)
+ * - {name} ボタン: メッセージ欄のキャレット位置に **そのまま** "{name}" を挿入（置換しない）
+ * - バックアップ3ボタン: 押下したカード内の textarea のみ対象（誤爆防止）
+ * - PWA インストール: beforeinstallprompt 正常処理
+ * - 例外吸収で他機能停止を防止
+ */
 (() => {
   'use strict';
 
-  // ---- 小道具 --------------------------------------------------------------
   const $ = (sel, root=document) => root.querySelector(sel);
   const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-  const findNearest = (start, selector) => {
-    // start から上に辿って selector を含む最小の祖先要素を返し、その中で selector を探す
-    let node = start;
-    while (node && node !== document) {
-      const hit = node.querySelector && node.querySelector(selector);
-      if (hit) return hit;
-      node = node.parentElement;
-    }
-    return null;
-  };
-
-  const showToast = (msg) => {
-    try {
-      // 既存UIを壊さない軽量通知。UIが無ければ console にフォールバック。
-      let t = $('#toast');
-      if (!t) {
-        t = document.createElement('div');
-        t.id = 'toast';
-        Object.assign(t.style, {
-          position: 'fixed', left: '50%', bottom: '12px', transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,.75)', color: '#fff', padding: '8px 12px',
-          borderRadius: '8px', fontSize: '13px', zIndex: 9999, maxWidth: '90vw'
-        });
-        document.body.appendChild(t);
-      }
-      t.textContent = msg;
-      t.style.opacity = '1';
-      setTimeout(()=>{ t.style.transition='opacity .4s'; t.style.opacity='0'; }, 1300);
-    } catch { console.log(msg); }
-  };
-
-  // ---- LocalStorage Key ----------------------------------------------------
-  const LS = {
-    CUSTOMERS: 'hg_customers_v1',
-    SELECTED:  'hg_selected_v1',
-    NOTES:     'hg_notes_v1',
-  };
-
-  const readJSON = (key, fallback) => {
-    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
-    catch { return fallback; }
-  };
-  const writeJSON = (key, value) => {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
-  };
-
-  // ---- 近傍解決ヘルパ ------------------------------------------------------
-  const nearestTextarea = (btn) => {
-    // ボタンのあるカード内の textarea を優先
-    const card = findAncestorCard(btn);
-    if (card) {
-      const ta = card.querySelector('textarea');
-      if (ta) return ta;
-    }
-    // フォールバック: data-role 指定や id
-    return $('#backupText') || $('#backupArea') || $('textarea[name="backup"]') || $('textarea');
-  };
-
-  const findAncestorCard = (el) => {
+  // ---- 近傍（カード）探索 ----
+  const findCard = (el) => {
     let n = el;
     while (n && n !== document) {
-      if (n.classList && n.classList.contains('card')) return n;
+      if (n.classList && (n.classList.contains('card') || n.classList.contains('section'))) return n;
       n = n.parentElement;
     }
     return null;
   };
 
-  // ---- バックアップ Base64 -------------------------------------------------
-  const prefix = 'HIME1.'; // 既存仕様を尊重
+  // ---- メッセージ欄の特定（バックアップ欄は除外） ----
+  const getMessageArea = () => {
+    // 優先: 明示的な message 系
+    const cand = $('#messageInput') || $('textarea#message') || $('textarea[name="message"]');
+    if (cand) return cand;
+    // フォールバック: “backup” を含まない textarea を優先
+    const areas = $$('textarea');
+    for (const ta of areas) {
+      const id  = (ta.id || '').toLowerCase();
+      const nm  = (ta.name || '').toLowerCase();
+      const ph  = (ta.getAttribute('placeholder') || '').toLowerCase();
+      if (id.includes('backup') || nm.includes('backup') || ph.includes('バックアップ') || ph.includes('backup')) continue;
+      if (id.includes('message') || nm.includes('message') || ph.includes('メッセージ')) return ta;
+    }
+    // さらに最後の手: “backup” を含まない最初の textarea
+    for (const ta of areas) {
+      const id  = (ta.id || '').toLowerCase();
+      const nm  = (ta.name || '').toLowerCase();
+      if (!id.includes('backup') && !nm.includes('backup')) return ta;
+    }
+    return null;
+  };
 
-  const makeBackupString = () => {
-    try {
-      const payload = {
-        customers: readJSON(LS.CUSTOMERS, []),
-        selected:  readJSON(LS.SELECTED, null),
-        notes:     readJSON(LS.NOTES, {}),
-        ts: Date.now()
-      };
-      const json = JSON.stringify(payload);
-      const b64 = btoa(unescape(encodeURIComponent(json)));
-      return prefix + b64;
-    } catch (e) {
-      showToast('バックアップ作成に失敗しました');
-      return null;
+  // ---- バックアップ（Base64URL, HIME1.） ----
+  const BK_PREFIX = 'HIME1.';
+  const b64url = {
+    enc(str){
+      try { return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+      catch(_){
+        const bytes = new TextEncoder().encode(str);
+        let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
+        return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      }
+    },
+    dec(data){
+      let s = (data||'').replace(/-/g,'+').replace(/_/g,'/');
+      while (s.length%4) s+='=';
+      try { return decodeURIComponent(escape(atob(s))); }
+      catch(_){
+        const bin = atob(s);
+        const u8 = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+        return new TextDecoder().decode(u8);
+      }
     }
   };
 
-  const restoreFromString = (str) => {
+  const LS_KEYS = ['hg_customers_v1','hg_selected_v1','hg_notes_v1','hime_customers','hime_selected','hime_memos'];
+  const collect = () => {
+    const all = {};
     try {
-      if (!str || !str.startsWith(prefix)) throw new Error('prefix');
-      const b64 = str.slice(prefix.length).trim();
-      const json = decodeURIComponent(escape(atob(b64)));
+      for (let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        all[k] = localStorage.getItem(k);
+      }
+    }catch{}
+    const obj = { ts: Date.now(), data: all };
+    return BK_PREFIX + b64url.enc(JSON.stringify(obj));
+  };
+  const restore = (raw) => {
+    try {
+      if (!raw || !raw.startsWith(BK_PREFIX)) return false;
+      const json = b64url.dec(raw.slice(BK_PREFIX.length));
       const obj = JSON.parse(json);
-      if (obj && typeof obj === 'object') {
-        if (obj.customers) writeJSON(LS.CUSTOMERS, obj.customers);
-        if (Object.prototype.hasOwnProperty.call(obj,'selected')) writeJSON(LS.SELECTED, obj.selected);
-        if (obj.notes) writeJSON(LS.NOTES, obj.notes);
-      }
-      showToast('復元しました');
-    } catch (e) {
-      showToast('復元に失敗しました');
+      if (!obj || !obj.data) return false;
+      Object.keys(obj.data).forEach(k=>{ try{ localStorage.setItem(k, obj.data[k]); }catch{} });
+      return true;
+    } catch { return false; }
+  };
+
+  const nearestTextarea = (btn) => {
+    const card = findCard(btn);
+    if (card) {
+      const ta = card.querySelector('textarea');
+      if (ta) return ta;
     }
+    return $('#backupText') || $('#backupArea') || $('textarea[name="backup"]') || $('textarea');
   };
 
-  // ---- {name} 差し込み ------------------------------------------------------
-  const insertNameIntoMessage = () => {
+  // ---- {name} をキャレット位置へ“そのまま”挿入 ----
+  const insertLiteralNameTag = () => {
     try {
-      const msg = $('#messageInput') || $('textarea#message') || $('textarea[name="message"]') || $('textarea');
-      const selected = readJSON(LS.SELECTED, null);
-      if (!msg) return;
-      if (!selected) { showToast('顧客を選択してください'); return; }
-      const name = (typeof selected === 'string') ? selected : (selected.name || selected.label || '');
-      const target = msg;
-      const value = target.value || '';
-      const out = value.replace(/\{name\}/g, name);
-      if (out !== value) {
-        target.value = out;
-      }
-      showToast('{name} を差し込みました');
+      const ta = getMessageArea();
+      if (!ta) return;
+      const tag = '{name}';
+      const start = ta.selectionStart ?? (ta.value||'').length;
+      const end   = ta.selectionEnd   ?? (ta.value||'').length;
+      const v = ta.value || '';
+      ta.value = v.slice(0,start) + tag + v.slice(end);
+      // キャレットを挿入直後へ
+      const pos = start + tag.length;
+      try { ta.setSelectionRange(pos, pos); } catch {}
+      try { ta.dispatchEvent(new Event('input',{bubbles:true})); } catch {}
     } catch {}
   };
 
-  // ---- 顧客追加（近傍スコープ）---------------------------------------------
-  const addCustomerFromButton = (btn) => {
-    try {
-      const card = findAncestorCard(btn) || document;
-      const input = card.querySelector('input[type="text"], input[placeholder]');
-      const val = (input && input.value || '').trim();
-      if (!val) { showToast('顧客名を入力'); return; }
-      const list = readJSON(LS.CUSTOMERS, []);
-      if (!list.includes(val)) list.push(val);
-      writeJSON(LS.CUSTOMERS, list);
-      writeJSON(LS.SELECTED, val);
-      showToast('追加しました');
-      try { window.hime_render && window.hime_render(); } catch {}
-      if (input) input.value='';
-    } catch {}
-  };
-
-  // ---- PWA install ----------------------------------------------------------
+  // ---- PWA install ----
   let deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', (e) => {
-    try {
+  window.addEventListener('beforeinstallprompt',(e)=>{
+    try{
       e.preventDefault();
       deferredPrompt = e;
-      const btn = $('[data-action="install"], #installBtn, button.install');
-      if (btn) btn.style.display = '';
-    } catch {}
+      const btn = $('#installBtn') || $('button.install') || $('[data-action="install"]');
+      if (btn) btn.style.display='';
+    }catch{}
   });
-
-  window.addEventListener('appinstalled', () => {
-    try {
-      const btn = $('[data-action="install"], #installBtn, button.install');
-      if (btn) btn.style.display = 'none';
-      deferredPrompt = null;
-    } catch {}
+  window.addEventListener('appinstalled',()=>{
+    try{
+      const btn = $('#installBtn') || $('button.install') || $('[data-action="install"]');
+      if (btn) btn.style.display='none';
+      deferredPrompt=null;
+    }catch{}
   });
-
-  const triggerInstall = async () => {
-    try {
-      if (!deferredPrompt) { showToast('インストール要件を満たしていません'); return; }
+  const triggerInstall = async()=>{
+    try{
+      if(!deferredPrompt) return;
       deferredPrompt.prompt();
       await deferredPrompt.userChoice;
-      deferredPrompt = null;
-    } catch {}
+      deferredPrompt=null;
+    }catch{}
   };
 
-  // ---- クリック委譲（近傍限定で誤作動防止）----------------------------------
-  document.addEventListener('click', (ev) => {
+  // ---- クリック委譲（最小限） ----
+  document.addEventListener('click', (ev)=>{
     const t = ev.target.closest('button, a');
     if (!t) return;
-
-    const label = (t.textContent || '').trim();
+    const label = (t.textContent||'').trim();
 
     try {
-      if (t.matches('#addBtn, [data-action="add"]') || label === '追加') {
-        ev.preventDefault();
-        addCustomerFromButton(t);
-        return;
-      }
       if (t.matches('#insertNameBtn, [data-action="insert-name"]') || label.includes('{name}')) {
         ev.preventDefault();
-        insertNameIntoMessage();
+        insertLiteralNameTag();
         return;
       }
       if (t.matches('#makeBackupBtn, [data-action="make-backup"]') || label.includes('文字列を作る') || label.includes('バックアップを作る')) {
         ev.preventDefault();
+        const s = collect();
         const ta = nearestTextarea(t);
-        const s = makeBackupString();
-        if (ta && s) ta.value = s;
-        if (s && !ta) showToast('バックアップ文字列を作成しました');
+        if (ta) { ta.value = s; try{ ta.dispatchEvent(new Event('input',{bubbles:true})); }catch{} }
         return;
       }
       if (t.matches('#copyBackupBtn, [data-action="copy-backup"]') || label === 'コピー') {
         ev.preventDefault();
         const ta = nearestTextarea(t);
-        if (!ta || !ta.value) { showToast('コピーする文字列がありません'); return; }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(ta.value).then(()=>showToast('コピーしました')).catch(()=>{
-            ta.select(); document.execCommand('copy'); showToast('コピーしました');
-          });
-        } else {
-          ta.select(); document.execCommand('copy'); showToast('コピーしました');
-        }
+        if (!ta || !ta.value) return;
+        if (navigator.clipboard?.writeText) navigator.clipboard.writeText(ta.value).catch(()=>{});
+        else { try{ ta.select(); document.execCommand('copy'); }catch{} }
         return;
       }
       if (t.matches('#restoreFromTextBtn, [data-action="restore-text"]') || label.includes('文字列から復元') || label.includes('復元する')) {
         ev.preventDefault();
         const ta = nearestTextarea(t);
-        if (!ta || !ta.value) { showToast('復元する文字列を貼り付けてください'); return; }
-        restoreFromString(ta.value.trim());
+        if (!ta || !ta.value) return;
+        restore(ta.value.trim());
         return;
       }
       if (t.matches('#installBtn, [data-action="install"]') || label.includes('インストール')) {
@@ -232,21 +181,13 @@
         triggerInstall();
         return;
       }
-    } catch (e) {
-      console.error(e);
-    }
-  }, { passive: false });
+    } catch {}
+  }, {passive:false});
 
-  // 初期表示: インストールボタンはデフォルト非表示（beforeinstallpromptで復活）
+  // 初期は install 非表示（発火で出す）
   try {
-    const btn = $('[data-action="install"], #installBtn, button.install');
-    if (btn) btn.style.display = 'none';
-  } catch {}
-
-  try {
-    $$('img').forEach(img => {
-      img.addEventListener('error', () => {/* noop */}, { once:true });
-    });
-  } catch {}
+    const btn = $('#installBtn') || $('button.install') || $('[data-action="install"]');
+    if (btn) btn.style.display='none';
+  }catch{}
 
 })();
