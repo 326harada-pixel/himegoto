@@ -1,71 +1,23 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>アプリ用途 / 使い方 - himegoto（β）</title>
-  <link rel="stylesheet" href="/style.css">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>使い方</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="header">
-    <button class="hamburger" id="menuBtn" aria-label="menu">≡</button>
-    <div class="brand"><img src="/logo_himegoto.png" alt="himegoto" class="logo"></div>
-    <div class="spacer"></div><div class="version">ver.1.30β</div>
-  </header>
-  <aside class="drawer" id="drawer" aria-hidden="true">
-    <div class="drawer-header"><strong>メニュー</strong><button id="drawerClose" class="close-btn" aria-label="閉じる">✕</button></div>
-    <nav><ul class="nav">
-      <li><a href="/index.html">ホーム</a></li>
-      <li><a href="/help.html">アプリ用途</a></li>
-      <li><a href="/help.html#howto">使い方</a></li>
-      <li><a href="/qa.html">Q&amp;A</a></li>
-      <li><a href="/feedback.html">ご意見・ご要望</a></li>
-      <li><a href="/register.html">登録と紹介</a></li>
-      <li><a href="/privacy.html">プライバシーポリシー</a></li>
-      <li><a href="/terms.html">規約</a></li>
-      <li><a href="/terms.html#tokushoho">特定商取引法の表記（準備中）及び運営者情報</a></li>
-    </ul></nav>
-  </aside>
-  <div class="scrim" id="scrim"></div>
-
-  <main class="container">
-    <h1>アプリ用途</h1>
-    <section class="card">
-      <p>このアプリは【ヒメ】のおし【ゴト】、営業LINEを楽に出来るお客様には秘密の事(秘め事)♥を目的としています(´&gt;ω∂｀)</p>
-      <ul>
-        <li>顧客5名まで登録（無料）</li>
-        <li>{name} で顧客名を差し込み</li>
-        <li>1日5回まで共有。毎日0:00に自動リセット</li>
-        <li>データは<strong>端末に保存</strong></li>
-      </ul>
-    </section>
-
-    <h2 id="howto">使い方</h2>
-    <section class="card">
-      <ol>
-        <li>顧客を追加して<strong>選択</strong>にする。</li>
-        <li>本文に <code>{name}</code> を置く（ボタンで挿入OK）。</li>
-        <li>共有ボタンで送る。押した瞬間に当日の回数を消費。</li>
-      </ol>
-    </section>
-  
-    <section class="card">
-  <h2>バックアップと復元</h2>
-  <ol>
-    <li>ホームで「文字列を作る」を押す</li>
-    <li>「コピー」を押す</li>
-    <li>LINEのキープメモに貼る（機種変しても残ります）</li>
-    <li>戻すときは文字列を貼って「文字列から復元」を押す</li>
-  </ol>
-  <p class="muted">難しい用語は不要。1行をコピペするだけでOK。</p>
-</section>
+<header class="pink"><button class="btn" onclick="history.back()">←</button><div class="center">himegoto</div></header>
+<main class="container">
+  <section class="card">
+    <h2>バックアップと復元</h2>
+    <ol>
+      <li>ホームで「文字列を作る」を押す</li>
+      <li>「コピー」を押す</li>
+      <li>LINE のキープメモに貼る（機種変更しても残ります）</li>
+      <li>戻すときは文字列を貼り付けて「文字列から復元」を押す</li>
+    </ol>
+    <p class="muted">むずかしい用語は不要。1行をコピペするだけでOK。</p>
+  </section>
 </main>
-
-  <script>
-    const d=document.getElementById('drawer'),s=document.getElementById('scrim');
-    document.getElementById('menuBtn').addEventListener('click',()=>{d.classList.add('open');s.classList.add('show');});
-    s.addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
-    d.addEventListener('click',e=>{if(e.target.matches('a')){d.classList.remove('open');s.classList.remove('show');}});
-  </script>
 </body>
 </html>

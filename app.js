@@ -1,205 +1,138 @@
-/* himegoto ver.1.31β stable */
-(function(){
-  const ready = (fn)=> (document.readyState==='loading') ? document.addEventListener('DOMContentLoaded', fn, {once:true}) : fn();
-  ready(init);
+/* build-20251109c */
+(() => {
+  const LS_KEY = 'hime_data_v1';
+  const BK_PREFIX = 'HIME1.';
 
-  function q(sel,root=document){ return root.querySelector(sel); }
-  function qa(sel,root=document){ return Array.from(root.querySelectorAll(sel)); }
+  const $ = (id) => document.getElementById(id);
 
-  function init(){
-    const listEl=q('.customer-list'), addInput=q('#add-input'), addBtn=q('#add-btn');
-    const regRemain=q('#reg-remain'), msgEl=q('#message'), insertBtn=q('#insert-name');
-    const shareBtn=q('#share-btn'), remainBadge=q('#remain-badge');
-    const memoArea=q('#customer-memo'), memoSave=q('#memo-save');
-    const backupBtn=q('#backup-btn'), restoreBtn=q('#restore-btn'), restoreFile=q('#restore-file');
-    const drawer=q('#drawer'), scrim=q('#scrim'), menuBtn=q('#menuBtn'), installBtn=q('#install-btn');
-
-    const LS_KEYS={ PLAN:'hime_plan_v1', CUSTOMERS:'hime_customers_v1', SELECTED:'hime_selected_v1', QUOTA_CNT:'hime_quota_cnt_v1', QUOTA_DAY:'hime_quota_day_v1' };
-    const LIMITS={ customers:5, quotaPerDay:5 };
-    const getPlan=()=> localStorage.getItem(LS_KEYS.PLAN)||'free';
-    const isPro =()=> getPlan()==='pro';
-    const load=(k,def)=>{ try{ const v=JSON.parse(localStorage.getItem(k)); return v??def; }catch{ return def; } };
-    const save=(k,v)=> localStorage.setItem(k, JSON.stringify(v));
-
-    function ensureQuotaDay(){ const t=new Date(); t.setHours(0,0,0,0); const d=load(LS_KEYS.QUOTA_DAY,0); if(d!==t.getTime()){ save(LS_KEYS.QUOTA_DAY,t.getTime()); save(LS_KEYS.QUOTA_CNT,0);} }
-    function getRemainQuota(){ ensureQuotaDay(); const u=load(LS_KEYS.QUOTA_CNT,0); return Math.max(0, LIMITS.quotaPerDay-u); }
-    function consumeQuota(){ ensureQuotaDay(); const u=load(LS_KEYS.QUOTA_CNT,0); save(LS_KEYS.QUOTA_CNT,u+1); renderQuota(); }
-    function renderQuota(){ const r=getRemainQuota(); if(remainBadge) remainBadge.textContent=`残り ${r} 回`; if(shareBtn) shareBtn.disabled = r<=0; }
-
-    function updateRegRemain(){ if(regRemain) regRemain.textContent = isPro()? '(上限なし)' : `(無料版は ${LIMITS.customers} 名まで)`; }
-    function getCustomers(){ return load(LS_KEYS.CUSTOMERS,[]); }
-    function setCustomers(a){ save(LS_KEYS.CUSTOMERS,a); renderCustomers(); updateRegRemain(); }
-    function getSelected(){ return load(LS_KEYS.SELECTED,null); }
-    function setSelected(n){ save(LS_KEYS.SELECTED,n); renderCustomers(); loadSelectedMemo(); }
-
-    function renderCustomers(){
-      if(!listEl) return;
-      const cs=getCustomers(), sel=getSelected();
-      listEl.innerHTML='';
-      cs.forEach((name,idx)=>{
-        const row=document.createElement('div'); row.className='row';
-        const span=document.createElement('span'); span.textContent=name;
-        const actions=document.createElement('div'); actions.className='row-actions';
-
-        const choose=document.createElement('button');
-        const active = sel===name;
-        choose.className = `choose-btn ${active?'choose-btn--active':''}`;
-        choose.textContent = active? '選択中':'選択';
-        choose.addEventListener('click', ()=> setSelected(name));
-
-        const del=document.createElement('button'); del.className='del-btn'; del.textContent='削除';
-        del.addEventListener('click', ()=>{ const after=getCustomers().filter((_,i)=>i!==idx); if(getSelected()===name) setSelected(null); setCustomers(after); });
-
-        actions.appendChild(choose); actions.appendChild(del);
-        row.appendChild(span); row.appendChild(actions);
-        listEl.appendChild(row);
-      });
-    }
-
-    if(addBtn&&addInput){
-      addBtn.addEventListener('click', (e)=>{
-        e.preventDefault();
-        const name=(addInput.value||'').trim();
-        if(!name){ alert('名前を入力してください'); return; }
-        const arr=getCustomers();
-        if(!isPro() && arr.length>=LIMITS.customers){ alert('無料版は5名までです'); return; }
-        if(arr.includes(name)){ alert('同じ名前が既にあります'); return; }
-        arr.push(name); setCustomers(arr); addInput.value='';
-      });
-    }
-
-    if(insertBtn&&msgEl){
-      insertBtn.addEventListener('click', (e)=>{
-        e.preventDefault();
-        const tag='{name}';
-        try{
-          msgEl.focus();
-          const s=typeof msgEl.selectionStart==='number'? msgEl.selectionStart : (msgEl.value?.length||0);
-          const t=typeof msgEl.selectionEnd==='number'? msgEl.selectionEnd : (msgEl.value?.length||0);
-          if(typeof msgEl.setRangeText==='function'){ msgEl.setRangeText(tag,s,t,'end'); }
-          else{ const v=msgEl.value||''; msgEl.value=v.slice(0,s)+tag+v.slice(t); if(msgEl.setSelectionRange){ const pos=s+tag.length; msgEl.setSelectionRange(pos,pos);} }
-        }catch{ msgEl.value=(msgEl.value||'')+tag; }
-      });
-    }
-
-    if(shareBtn&&msgEl){
-      shareBtn.addEventListener('click', async()=>{
-        const sel=getSelected();
-        const raw=msgEl.value||'';
-        const text=raw.replaceAll('{{name}}', sel??'').replaceAll('{name}', sel??'');
-        consumeQuota(); // 押した瞬間に消費
-        try{
-          if(navigator.share){ await navigator.share({text}); }
-          else{ window.open('https://line.me/R/msg/text/?'+encodeURIComponent(text),'_blank'); }
-        }catch(e){ console.warn('share canceled/failed', e); }
-      });
-    }
-
-    function makeBackupData(){ return { customers:getCustomers(), selected:getSelected(), quota_cnt:load(LS_KEYS.QUOTA_CNT,0), quota_day:load(LS_KEYS.QUOTA_DAY,0), plan:getPlan(), exported_at:new Date().toISOString() }; }
-    function downloadJSON(name,obj){ const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(url); a.remove();},0); }
-    function handleBackup(){ const d=makeBackupData(); const y=new Date(); const stamp=`${y.getFullYear()}${String(y.getMonth()+1).padStart(2,'0')}${String(y.getDate()).padStart(2,'0')}`; downloadJSON(`himegoto_backup_${stamp}.json`, d); alert('バックアップを作成しました'); }
-    function handleRestoreFile(file){ const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); save(LS_KEYS.CUSTOMERS, Array.isArray(d.customers)? d.customers:[]); save(LS_KEYS.SELECTED, d.selected??null); save(LS_KEYS.QUOTA_CNT, d.quota_cnt??0); save(LS_KEYS.QUOTA_DAY, d.quota_day??0); if(d.plan) localStorage.setItem(LS_KEYS.PLAN,d.plan); renderCustomers(); renderQuota(); updateRegRemain(); alert('復元が完了しました'); }catch(e){ alert('復元に失敗しました'); } }; r.readAsText(file,'utf-8'); }
-
-    backupBtn?.addEventListener('click', handleBackup);
-    if(restoreBtn&&restoreFile){
-      restoreBtn.addEventListener('click', ()=> restoreFile.click());
-      restoreFile.addEventListener('change', ev=>{ const f=ev.target.files?.[0]; if(f) handleRestoreFile(f); ev.target.value=''; });
-    }
-
-    if(menuBtn&&drawer&&scrim){
-      menuBtn.addEventListener('click', ()=>{drawer.classList.add('open'); scrim.classList.add('show');});
-      scrim.addEventListener('click', ()=>{drawer.classList.remove('open'); scrim.classList.remove('show');});
-      drawer.addEventListener('click', e=>{ if(e.target.matches('a')){drawer.classList.remove('open'); scrim.classList.remove('show');} });
-    }
-
-    let __deferredPrompt=null;
-    window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); __deferredPrompt=e; document.getElementById('install-btn')?.classList.add('show'); });
-    document.getElementById('install-btn')?.addEventListener('click', async()=>{
-      const btn=document.getElementById('install-btn');
-      if(__deferredPrompt){ try{ btn.disabled=true; __deferredPrompt.prompt(); await __deferredPrompt.userChoice; }finally{ __deferredPrompt=null; btn.classList.remove('show'); btn.disabled=false; } }
-      else{ alert('ブラウザのメニューから「ホーム画面に追加」を選んでください。'); }
-    });
-
-    renderCustomers(); updateRegRemain(); renderQuota(); loadSelectedMemo();
+  // Drawer
+  const overlay = $('overlay');
+  const drawer = $('drawer');
+  function openDrawer() {
+    overlay.style.display = 'block'; drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false');
   }
-})();
-    function loadSelectedMemo(){
-      if(!memoArea) return;
-      const sel = getSelected();
-      const memos = getMemos();
-      memoArea.value = sel && memos[sel] ? memos[sel] : '';
-    }
-    
-    memoSave?.addEventListener('click', ()=>{
-      const sel = getSelected(); if(!sel) { alert('先に顧客を選択してください'); return; }
-      const memos = getMemos(); memos[sel] = memoArea.value||''; setMemos(memos);
-      alert('メモを保存しました');
-    });
-    memoArea?.addEventListener('input', ()=>{
-      const sel = getSelected(); if(!sel) return;
-      const memos = getMemos(); memos[sel] = memoArea.value||''; setMemos(memos);
-    });
-    
-/* base64-backup-only */
-(function(){
-  const makeBtn=document.getElementById('backup-make');
-  const copyBtn=document.getElementById('backup-copy');
-  const textArea=document.getElementById('backup-text');
-  const restoreBtn=document.getElementById('backup-restore-text');
+  function closeDrawer() {
+    overlay.style.display = 'none'; drawer.classList.remove('open'); drawer.setAttribute('aria-hidden','true');
+  }
+  $('menuBtn').addEventListener('click', openDrawer);
+  $('closeDrawer').addEventListener('click', closeDrawer);
+  overlay.addEventListener('click', closeDrawer);
 
-  function exportState(){
-    const obj={};
-    Object.keys(localStorage).forEach(k=>obj[k]=localStorage.getItem(k));
-    return 'HIME1.'+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
-  }
-  function importState(line){
-    if(!line||!line.startsWith('HIME1.')){ alert('文字列が正しくありません'); return; }
-    try{
-      const json=decodeURIComponent(escape(atob(line.slice(6))));
-      const obj=JSON.parse(json);
-      Object.keys(obj).forEach(k=>localStorage.setItem(k,obj[k]));
-      alert('復元しました。アプリを再起動します。');
-      location.reload();
-    }catch(e){ alert('復元に失敗しました'); }
-  }
-  makeBtn && makeBtn.addEventListener('click', ()=>{ if(textArea) textArea.value = exportState(); });
-  copyBtn && copyBtn.addEventListener('click', async()=>{
-    const v = textArea && textArea.value ? textArea.value : exportState();
-    try{ await navigator.clipboard.writeText(v); alert('コピーしました。LINEに貼って保存してください。'); }
-    catch(e){ alert('コピーに失敗しました。手動で選択してコピーしてください。'); }
+  // Install button
+  let deferredPrompt = null;
+  const installBtn = $('installBtn');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); deferredPrompt = e; installBtn.classList.remove('hidden');
   });
-  restoreBtn && restoreBtn.addEventListener('click', ()=> importState(textArea?textArea.value:''));
-})();
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installBtn.classList.add('hidden');
+  });
+  // If already installed (standalone), hide
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    installBtn.classList.add('hidden');
+  }
 
-/* drawer-x */
-(function(){
-  const drawer=document.getElementById('drawer');
-  const scrim=document.getElementById('scrim');
-  const closeBtns=drawer?drawer.querySelectorAll('.close-btn,#drawerClose'):[];
-  const close=()=>{ if(drawer){drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');} if(scrim){scrim.classList.remove('show');scrim.hidden=true;} };
-  closeBtns.forEach(b=>b.addEventListener('click', close));
-})();
+  // Beta popup 1/day
+  const lastPopup = localStorage.getItem('hime_beta_popup_date');
+  const today = new Date().toISOString().slice(0,10);
+  if (lastPopup !== today) {
+    alert('現在ベータ版のため、内部を不定期で更新しています。動作が不安定になることがありますが、順次改善中です。');
+    localStorage.setItem('hime_beta_popup_date', today);
+  }
 
-/* beta-daily */
-(function(){
-  try{
-    const k='hime_notice_daily_v1';
-    const d=(new Date()).toISOString().slice(0,10);
-    if(localStorage.getItem(k)!==d){
-      localStorage.setItem(k,d);
-      alert('【お知らせ】\n現在ベータ版のため、内部を不定期で更新しています。\n急に使えなくなったり画面がおかしくなることがありますが、すぐ直していきます。ご了承ください。');
-    }
-  }catch(e){}
-})();
+  // Data helpers
+  function load() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '{"customers":[],"selected":null,"quota":5}'); }
+    catch { return {"customers":[],"selected":null,"quota":5}; }
+  }
+  function save(data) { localStorage.setItem(LS_KEY, JSON.stringify(data)); }
 
-/* install-state-hide */
-window.addEventListener('appinstalled', function(){
-  var b=document.getElementById('install-btn')||document.getElementById('install-trigger');
-  if(b) b.style.display='none';
-});
-(function(){
-  try{
-    var isPWA=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
-    if(isPWA){ var b=document.getElementById('install-btn')||document.getElementById('install-trigger'); if(b) b.style.display='none'; }
-  }catch(e){}
+  // Render customers
+  const list = $('customerList');
+  function render() {
+    const data = load();
+    list.innerHTML = '';
+    data.customers.forEach((c, idx) => {
+      const row = document.createElement('div');
+      row.className = 'customer';
+      const left = document.createElement('div');
+      left.textContent = c.name;
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const sel = document.createElement('button'); sel.className='pill'; sel.textContent = (data.selected===idx?'選択中':'選択');
+      sel.addEventListener('click', () => { data.selected = idx; save(data); render(); });
+      const memo = document.createElement('button'); memo.className='pill'; memo.textContent='メモ';
+      memo.addEventListener('click', () => {
+        location.href = `customer.html?name=${encodeURIComponent(c.name)}`;
+      });
+      const del = document.createElement('button'); del.className='pill'; del.textContent = '削除';
+      del.addEventListener('click', () => { data.customers.splice(idx,1); if (data.selected===idx) data.selected=null; save(data); render();});
+      actions.appendChild(memo); actions.appendChild(sel); actions.appendChild(del);
+      row.appendChild(left); row.appendChild(actions);
+      list.appendChild(row);
+    });
+    $('quotaNote').textContent = `残り ${data.quota} 回`;
+  }
+  render();
+
+  // Add customer
+  $('addBtn').addEventListener('click', () => {
+    const name = $('newName').value.trim();
+    if (!name) return;
+    const data = load();
+    if (data.customers.length >= 5) { alert('無料版は5名までです'); return; }
+    data.customers.push({name, memo:''});
+    $('newName').value='';
+    save(data); render();
+  });
+
+  // Insert name
+  $('insertName').addEventListener('click', () => {
+    const data = load();
+    if (data.selected==null) { alert('顧客を選択してください'); return; }
+    const name = data.customers[data.selected].name;
+    const box = $('msgBox');
+    const start = box.selectionStart || 0;
+    const end = box.selectionEnd || 0;
+    box.value = box.value.slice(0,start) + name + box.value.slice(end);
+  });
+
+  // Share (dummy consume quota)
+  $('shareBtn').addEventListener('click', () => {
+    const data = load();
+    if (data.quota<=0){ alert('本日の共有回数がありません'); return; }
+    data.quota -= 1; save(data); render();
+    alert('共有しました（ダミー）');
+  });
+
+  // Backup (Base64 string only)
+  function toB64(jsonStr) { return BK_PREFIX + btoa(unescape(encodeURIComponent(jsonStr))); }
+  function fromB64(b64) {
+    if (!b64.startsWith(BK_PREFIX)) throw new Error('フォーマットが違います');
+    const raw = b64.replace(BK_PREFIX,'');
+    return decodeURIComponent(escape(atob(raw)));
+  }
+  $('makeStr').addEventListener('click', () => {
+    const data = load();
+    const payload = {v:1, ts: Date.now(), data};
+    $('backupArea').value = toB64(JSON.stringify(payload));
+  });
+  $('copyStr').addEventListener('click', async () => {
+    const v = $('backupArea').value.trim();
+    if (!v){ alert('文字列がありません'); return; }
+    try{ await navigator.clipboard.writeText(v); alert('コピーしました'); }catch{ alert('コピーに失敗'); }
+  });
+  $('restoreStr').addEventListener('click', () => {
+    const v = $('backupArea').value.trim();
+    if (!v){ alert('文字列を貼り付けてください'); return; }
+    try{
+      const obj = JSON.parse(fromB64(v));
+      if (obj && obj.data) { save(obj.data); render(); alert('復元しました'); }
+      else throw new Error('不正');
+    }catch(e){ alert('復元に失敗しました'); }
+  });
 })();

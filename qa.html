@@ -1,65 +1,28 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Q&amp;A - himegoto（β）</title><link rel="stylesheet" href="/style.css"></head>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Q&A</title>
+<link rel="stylesheet" href="style.css">
+</head>
 <body>
-<header class="header"><button class="hamburger" id="menuBtn">≡</button><div class="brand"><img src="/logo_himegoto.png" class="logo" alt="himegoto"></div><div class="spacer"></div><div class="version">ver.1.30β</div></header>
-<aside class="drawer" id="drawer" aria-hidden="true"><div class="drawer-header"><strong>メニュー</strong><button id="drawerClose" class="close-btn" aria-label="閉じる">✕</button></div><nav><ul class="nav">
-<li><a href="/index.html">ホーム</a></li>
-<li><a href="/help.html">アプリ用途</a></li>
-<li><a href="/help.html#howto">使い方</a></li>
-<li><a href="/qa.html">Q&amp;A</a></li>
-<li><a href="/register.html">登録と紹介</a></li>
-<li><a href="/privacy.html">プライバシーポリシー</a></li>
-<li><a href="/terms.html">規約</a></li>
-<li><a href="/terms.html#tokushoho">特定商取引法（準備中）及び運営者情報</a></li>
-<li><a href="/feedback.html">ご意見・ご要望</a></li>
-</ul></nav></aside><div class="scrim" id="scrim"></div>
-
+<header class="pink"><button class="btn" onclick="history.back()">←</button><div class="center">himegoto</div></header>
 <main class="container">
-  <h1>Q&amp;A</h1>
-
-  
-    
-
-<section class="card">
-  <h2>バックアップはむずかしい？</h2>
-  <p>むずかしくありません。1行の文字をコピーしてLINEに貼るだけ。復元は貼り付けてボタンを押すだけです。</p>
-</section>
+  <section class="card">
+    <h2>バックアップはむずかしい？</h2>
+    <p>むずかしくありません。1行の文字をコピーしてLINEに貼るだけ。復元は貼り付けてボタンを押すだけです。</p>
+  </section>
+  <section class="card">
+    <h2>よくある質問（バックアップ／復元）</h2>
+    <p><strong>Q.</strong> どこにデータが保存されていますか？<br>
+    <strong>A.</strong> 顧客名やメモ、送信回数などはこのスマホの中に保存されます。サーバーへ自動送信はしません。バックアップをするときだけ、あなた自身で文字列をコピーして保存します。</p>
+    <p><strong>Q.</strong> 文字列を紛失したら？<br>
+    <strong>A.</strong> 「ホーム→文字列を作る」でいつでも作り直せます。最新状態で作り直して LINE に貼り直してください。</p>
+    <p><strong>Q.</strong> どのタイミングで復元しますか？<br>
+    <strong>A.</strong> 機種変更・誤って消してしまった時など、必要なときだけで構いません。文字列を貼り付けて「文字列から復元」を押します。</p>
+    <p><strong>Q.</strong> 宣伝の通知は来ますか？<br>
+    <strong>A.</strong> 来ません。将来広告を導入する場合も、迷惑な通知は行いません。</p>
+  </section>
 </main>
-
-<script>
-const d=document.getElementById('drawer'),s=document.getElementById('scrim');
-document.getElementById('menuBtn').addEventListener('click',()=>{d.classList.add('open');s.classList.add('show');});
-s.addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
-d.addEventListener('click',e=>{if(e.target.matches('a')){d.classList.remove('open');s.classList.remove('show');}});
-</script>
 </body>
 </html>
-<section class="card" id="qa-hime-backup">
-  <h2>よくある質問（バックアップ／復元 まとめ）</h2>
-  <p>Q. バックアップって難しい？</p>
-  <p>A. 難しくありません。1行の長い文字をコピーして、LINEのキープメモに貼っておくだけです。機種変更や端末故障のときも、その文字を貼り付けて「文字列から復元」を押すと元に戻せます。</p>
-  <p>Q. どこにデータが保存されていますか？</p>
-  <p>A. 顧客名やメモ、送信回数などはこのスマホの中に保存されます。サーバーへ自動送信はしません。バックアップするときだけ、あなた自身が文字をコピーして保存します。</p>
-  <p>Q. バックアップ文字列はどんな見た目ですか？</p>
-  <p>A. 「HIME1.」で始まる長い文字です。途中に記号や英数字が続きます。意味の分からない見た目でも問題ありません。コピーして保存しておけばOKです。</p>
-  <p>Q. LINEのキープメモ以外でも保存できますか？</p>
-  <p>A. はい、メールの下書きやクラウドのテキスト、パスワード管理アプリのメモ欄など、文字を安全に保管できる場所ならどこでも構いません。おすすめは普段から使っているLINEのキープメモです。</p>
-  <p>Q. 復元がうまくいきません。</p>
-  <p>A. 文字列の先頭に「HIME1.」があるか確認してください。コピー時に余分な空白が混じっているとエラーになります。全選択してコピー／貼り付けをやり直してから、「文字列から復元」を押してください。</p>
-  <p>Q. バックアップはどのくらいの頻度でやればいいですか？</p>
-  <p>A. 目安として、顧客を10人追加した、テンプレを編集した、重要なメモを入力した──など「変更をまとめて行った直後」に作成してください。週1回のルーティンにするのもおすすめです。</p>
-  <p>Q. 他の人にバックアップ文字列を見られると困りますか？</p>
-  <p>A. 見られないようにしてください。文字列にはあなたの顧客名や送信状態などの情報が含まれます。LINEのキープメモは自分だけが見られる状態で保存しましょう。</p>
-  <p>Q. 復元した直後にアプリが再起動します。</p>
-  <p>A. 正常な動作です。復元した内容をアプリ全体に反映するため、自動で再起動します。</p>
-  <p>Q. 共有ボタンを押すと回数が減るのはなぜ？</p>
-  <p>A. 送信上限の管理のためです。アプリ内の共有からメッセージを送ると、今日の残り回数が1つ減ります。残り回数はホーム画面のバッジで確認できます。</p>
-  <p>Q. {name} がうまく置き換わりません。</p>
-  <p>A. 顧客リストで送る相手を選んでからメッセージ欄に {name} を入れてください。共有時に {name} が選択中の顧客名へ置き換わります。ボタンで {name} を挿入することも可能です。</p>
-  <p>Q. ベータ版の通知が出ます。</p>
-  <p>A. 1日に1回だけ表示されます。内部の改善により、画面や動作がまれに変わることがあります。気づいた点があれば「ご意見・ご要望」から知らせてください。</p>
-  <p>Q. インストールボタンが表示されないことがあります。</p>
-  <p>A. すでにホーム画面に追加済みのときは表示を隠しています。ブラウザから利用している場合は表示されます。</p>
-</section>
