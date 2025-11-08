@@ -1,1 +1,0 @@
-build013 ver 1.24 — drop all files into your himegoto/ directory.
