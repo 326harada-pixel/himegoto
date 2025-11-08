@@ -1,56 +1,105 @@
 
-/* app-index.js — hardened minimal patch (追加/最小限置換のみ) */
+/* app-index.js — ultra-defensive minimal patch (UI/文章は不変更)
+ * 目的:
+ *  - 追加 / {name}挿入 / 共有 / バックアップ / 復元 / インストール を確実化
+ *  - ラベル差異・DOM差異に強いマッチ
+ *  - バックアップは "バックアップ系のテキストエリア" のみに限定（メッセージ欄へは絶対に書かない）
+ */
+
 (() => {
   'use strict';
 
-  const $ = (sel, root=document) => root.querySelector(sel);
+  const $  = (sel, root=document) => root.querySelector(sel);
   const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-  // === de-dupe guard (multi-fire protection) ===
-  let lastAct = { key:'', t:0 };
-  const onceGuard = (key, span=300) => {
+  // ---- guard (多重発火・連打対策) ----
+  const last = new Map();
+  const once = (key, ms=300) => {
     const now = Date.now();
-    if (lastAct.key === key && (now - lastAct.t) < span) return false;
-    lastAct = { key, t: now };
+    const t = last.get(key)||0;
+    if (now - t < ms) return false;
+    last.set(key, now);
     return true;
   };
 
-  // === card/section detection ===
+  // ---- 汎用クリック対象抽出（button以外の疑似ボタンにも対応） ----
+  const closestBtn = (el) => el.closest('button, a, [role="button"], .btn, .button, .tap, [data-action]');
+
+  // ---- 「カード/セクション」境界（誤作用抑止） ----
   const findCard = (el) => {
     let n = el;
     while (n && n !== document) {
-      if (n.classList && (n.classList.contains('card') || n.classList.contains('section') || n.classList.contains('box'))) return n;
+      if (n.classList && (n.classList.contains('card') || n.classList.contains('section') || n.classList.contains('box') || n.classList.contains('panel'))) return n;
       n = n.parentElement;
     }
     return null;
   };
 
-  // === message textarea (exclude backup areas) ===
+  // ---- メッセージ欄の特定（バックアップ欄は除外） ----
   const getMessageArea = () => {
-    const first =
-      $('#messageInput') ||
-      $('textarea#message') ||
-      $('textarea[name="message"]') ||
-      $('textarea.message') ||
-      $('textarea[data-role="message"]');
-    if (first) return first;
+    const explicit = $('#messageInput') || $('textarea#message') || $('textarea[name="message"]') || $('textarea.message') || $('textarea[data-role="message"]');
+    if (explicit) return explicit;
+    // 推定: "メッセージ" らしさ & "バックアップ" ではない
     const areas = $$('textarea');
     for (const ta of areas) {
       const id  = (ta.id || '').toLowerCase();
       const nm  = (ta.name || '').toLowerCase();
       const ph  = (ta.getAttribute('placeholder') || '').toLowerCase();
-      if (id.includes('backup') || nm.includes('backup') || ph.includes('バックアップ') || ph.includes('backup')) continue;
-      if (id.includes('message') || nm.includes('message') || ph.includes('メッセージ')) return ta;
+      const txt = (ta.previousElementSibling && ta.previousElementSibling.textContent || '').toLowerCase();
+      const notBackup = !(id.includes('backup') || nm.includes('backup') || ph.includes('backup') || ph.includes('バックアップ'));
+      const looksMsg  = id.includes('message') || nm.includes('message') || ph.includes('message') || ph.includes('メッセージ') || txt.includes('メッセージ');
+      if (notBackup && looksMsg) return ta;
     }
+    // 最後の手: "backup" を含まない最初の textarea
     for (const ta of areas) {
       const id  = (ta.id || '').toLowerCase();
       const nm  = (ta.name || '').toLowerCase();
-      if (!id.includes('backup') && !nm.includes('backup')) return ta;
+      const ph  = (ta.getAttribute('placeholder') || '').toLowerCase();
+      if (!(id.includes('backup') || nm.includes('backup') || ph.includes('backup') || ph.includes('バックアップ'))) return ta;
     }
     return null;
   };
 
-  // === backup (HIME1. + Base64URL) ===
+  // ---- バックアップ用テキストエリアの選定（スコアリング） ----
+  const rankBackupTextarea = (originBtn) => {
+    const areas = $$('textarea');
+    if (!areas.length) return null;
+    const msg = getMessageArea();
+
+    const scoreOf = (ta) => {
+      let s = 0;
+      const id  = (ta.id || '').toLowerCase();
+      const nm  = (ta.name || '').toLowerCase();
+      const ph  = (ta.getAttribute('placeholder') || '').toLowerCase();
+      const lab = (ta.previousElementSibling && ta.previousElementSibling.textContent || '').toLowerCase();
+      const parentText = (ta.parentElement && ta.parentElement.textContent || '').toLowerCase();
+
+      // 明示的に backup 系なら強スコア
+      if (id.includes('backup') || nm.includes('backup') || ph.includes('backup') || ph.includes('バックアップ')) s += 5;
+      if (lab.includes('バックアップ') || parentText.includes('バックアップ')) s += 3;
+
+      // origin の属するカードにあるなら加点
+      const card = findCard(originBtn);
+      if (card && card.contains(ta)) s += 2;
+
+      // メッセージ欄は強い減点（誤爆防止）
+      if (msg && ta === msg) s -= 10;
+
+      // 見た目が大きめなら僅かに加点（長文系）
+      const rows = parseInt(ta.getAttribute('rows')||'0',10);
+      if (rows >= 6) s += 1;
+      return s;
+    };
+
+    let best = null, bestScore = -1e9;
+    for (const ta of areas) {
+      const sc = scoreOf(ta);
+      if (sc > bestScore) { bestScore = sc; best = ta; }
+    }
+    return bestScore > -5 ? best : null; // メッセージ欄しか無い等の誤選択を避ける
+  };
+
+  // ---- Base64URL + HIME1. ----
   const BK_PREFIX = 'HIME1.';
   const b64url = {
     enc(str){
@@ -72,15 +121,14 @@
       }
     }
   };
-
-  const collectAllLS = () => {
+  const collectAll = () => {
     const data = {};
     try {
       for (let i=0;i<localStorage.length;i++){ const k = localStorage.key(i); data[k]=localStorage.getItem(k); }
     } catch {}
     return BK_PREFIX + b64url.enc(JSON.stringify({ts:Date.now(), data}));
   };
-  const restoreAllLS = (raw) => {
+  const restoreAll = (raw) => {
     try {
       if (!raw || !raw.startsWith(BK_PREFIX)) return false;
       const json = b64url.dec(raw.slice(BK_PREFIX.length));
@@ -91,15 +139,9 @@
     } catch { return false; }
   };
 
-  const nearestTextarea = (btn) => {
-    const card = findCard(btn);
-    if (card) { const ta = card.querySelector('textarea'); if (ta) return ta; }
-    return $('#backupText') || $('#backupArea') || $('textarea[name="backup"]') || $('textarea');
-  };
-
-  // === {name} literal insert at caret ===
+  // ---- {name} literal をキャレット位置に挿入（置換しない） ----
   const insertLiteralNameTag = () => {
-    if (!onceGuard('insert_name')) return;
+    if (!once('insert_name', 250)) return;
     try {
       const ta = getMessageArea();
       if (!ta) return;
@@ -114,151 +156,128 @@
     } catch {}
   };
 
-  // === add customer (input detection expanded) ===
-  const readCustomerNameNear = (btn) => {
-    const card = findCard(btn) || document;
-    const cands = [
-      'input#customerName','input#customer','input#name',
-      'input[name="customerName"]','input[name="customer"]','input[name="name"]',
-      'input.customer-name','input.customer','input.hime-customer',
-      'input[type="text"]'
-    ];
-    for (const sel of cands) {
-      const el = card.querySelector(sel);
-      if (el && el.value && el.value.trim()) return el;
-    }
-    return null;
-  };
-
+  // ---- 顧客追加（入力欄の探索を広げる） ----
   const addCustomer = (btn) => {
-    if (!onceGuard('add_customer')) return;
+    if (!once('add_customer', 300)) return;
     try {
-      const input = readCustomerNameNear(btn);
+      const card = findCard(btn) || document;
+      const cands = [
+        '#customerName','#customer','#name','[name="customerName"]','[name="customer"]','[name="name"]',
+        '.customer-name','.customer','.hime-customer',
+        'input[type="text"]'
+      ];
+      let input = null;
+      for (const sel of cands) { const el = card.querySelector(sel); if (el && el.value && el.value.trim()) { input = el; break; } }
       const name = input ? input.value.trim() : '';
       if (!name) return;
-      // generic keys (既存互換)
-      const KEYS = ['hg_customers_v1','hime_customers','customers'];
-      let list = null, keyUsed = null;
-      for (const k of KEYS) {
-        try {
-          const v = localStorage.getItem(k);
-          if (v) { list = JSON.parse(v); keyUsed = k; break; }
-        } catch {}
+
+      const keys = ['hg_customers_v1','hime_customers','customers'];
+      let list=null, useKey=keys[0];
+      for (const k of keys) {
+        try { const v = localStorage.getItem(k); if (v) { list=JSON.parse(v); useKey=k; break; } } catch {}
       }
-      if (!Array.isArray(list)) { list = []; keyUsed = keyUsed || KEYS[0]; }
+      if (!Array.isArray(list)) list = [];
       if (!list.includes(name)) list.push(name);
-      try { localStorage.setItem(keyUsed, JSON.stringify(list)); } catch {}
-      // also mark selected (互換キー考慮)
-      const SEL_KEYS = ['hg_selected_v1','hime_selected','selected'];
-      for (const k of SEL_KEYS) { try { localStorage.setItem(k, JSON.stringify(name)); } catch {} }
+      try { localStorage.setItem(useKey, JSON.stringify(list)); } catch {}
+      const selKeys = ['hg_selected_v1','hime_selected','selected'];
+      for (const k of selKeys) { try { localStorage.setItem(k, JSON.stringify(name)); } catch {} }
       try { window.hime_render && window.hime_render(); } catch {}
-      try { input.value=''; } catch {}
+      if (input) input.value='';
     } catch {}
   };
 
-  // === install prompt ===
-  let deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt',(e)=>{
-    try{
-      e.preventDefault();
-      deferredPrompt = e;
-      const btn = $('#installBtn') || $('button.install') || $('[data-action="install"]');
-      if (btn) btn.style.display='';
-    }catch{}
-  });
-  window.addEventListener('appinstalled',()=>{
-    try{
-      const btn = $('#installBtn') || $('button.install') || $('[data-action="install"]');
-      if (btn) btn.style.display='none';
-      deferredPrompt=null;
-    }catch{}
-  });
-  const triggerInstall = async()=>{
-    if (!onceGuard('install', 800)) return;
-    try{
-      if(!deferredPrompt) return;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt=null;
-    }catch{}
-  };
-
-  // === share (system share sheet if available) ===
+  // ---- 共有（シェアシート / クリップボード） ----
   const doShare = () => {
-    if (!onceGuard('share', 800)) return;
+    if (!once('share', 600)) return;
     try {
       const ta = getMessageArea();
       const text = (ta && ta.value) ? ta.value : '';
-      if (navigator.share && text) {
+      if (!text) return;
+      if (navigator.share) {
         navigator.share({ text }).catch(()=>{});
-      } else if (text) {
-        // fallback: クリップボード（UI変更不可のため最低限）
-        if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(()=>{});
-        else { try { ta.select(); document.execCommand('copy'); } catch {} }
+      } else if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).catch(()=>{});
+      } else {
+        try { ta.select(); document.execCommand('copy'); } catch {}
       }
     } catch {}
   };
 
-  // === click delegation (minimal) ===
+  // ---- インストール ----
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt',(e)=>{
+    try{ e.preventDefault(); deferredPrompt = e;
+      const b = $('#installBtn') || $('button.install') || $('[data-action="install"]');
+      if (b) b.style.display='';
+    }catch{}
+  });
+  window.addEventListener('appinstalled',()=>{
+    try{ const b = $('#installBtn') || $('button.install') || $('[data-action="install"]');
+      if (b) b.style.display='none'; deferredPrompt=null;
+    }catch{}
+  });
+  const triggerInstall = async()=>{
+    if (!once('install', 800)) return;
+    try{ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; }catch{}
+  };
+
+  // ---- クリック委譲（広めのセレクタ対応 + ラベル多言語対応） ----
   document.addEventListener('click', (ev)=>{
-    const t = ev.target.closest('button, a');
+    const t = closestBtn(ev.target);
     if (!t) return;
     const label = (t.textContent||'').trim();
 
     try {
-      // 顧客追加
-      if (t.matches('#addBtn,[data-action="add"]') || label === '追加') {
+      // 顧客追加（「追加」「追加する」「＋追加」 等も拾う）
+      if (t.matches('#addBtn,[data-action="add"]') || /追加/.test(label)) {
+        ev.preventDefault(); addCustomer(t); return;
+      }
+
+      // {name} 挿入（「{name}を挿入」「差込」「差し込み」等）
+      if (t.matches('#insertNameBtn,[data-action="insert-name"]') || /\{name\}|差し?込/.test(label)) {
+        ev.preventDefault(); insertLiteralNameTag(); return;
+      }
+
+      // バックアップ作成
+      if (t.matches('#makeBackupBtn,[data-action="make-backup"]') || /(文字列を作る|バックアップを作る|作成)/.test(label)) {
         ev.preventDefault();
-        addCustomer(t);
+        const ta = rankBackupTextarea(t);
+        if (ta) { const s = collectAll(); ta.value = s; try{ ta.dispatchEvent(new Event('input',{bubbles:true})); }catch{} }
         return;
       }
-      // {name} をそのまま挿入
-      if (t.matches('#insertNameBtn,[data-action="insert-name"]') || label.includes('{name}')) {
-        ev.preventDefault();
-        insertLiteralNameTag();
-        return;
-      }
-      // バックアップ作る
-      if (t.matches('#makeBackupBtn,[data-action="make-backup"]') || label.includes('文字列を作る') || label.includes('バックアップを作る')) {
-        ev.preventDefault();
-        const ta = nearestTextarea(t);
-        const s = collectAllLS();
-        if (ta) { ta.value = s; try{ ta.dispatchEvent(new Event('input',{bubbles:true})); }catch{} }
-        return;
-      }
+
       // コピー
-      if (t.matches('#copyBackupBtn,[data-action="copy-backup"]') || label === 'コピー') {
+      if (t.matches('#copyBackupBtn,[data-action="copy-backup"]') || /コピー/.test(label)) {
         ev.preventDefault();
-        const ta = nearestTextarea(t);
+        const ta = rankBackupTextarea(t);
         if (!ta || !ta.value) return;
         if (navigator.clipboard?.writeText) navigator.clipboard.writeText(ta.value).catch(()=>{});
         else { try{ ta.select(); document.execCommand('copy'); }catch{} }
         return;
       }
+
       // 復元
-      if (t.matches('#restoreFromTextBtn,[data-action="restore-text"]') || label.includes('文字列から復元') || label.includes('復元する')) {
+      if (t.matches('#restoreFromTextBtn,[data-action="restore-text"]') || /(文字列から復元|復元する|復元)/.test(label)) {
         ev.preventDefault();
-        const ta = nearestTextarea(t);
+        const ta = rankBackupTextarea(t);
         if (!ta || !ta.value) return;
-        restoreAllLS(ta.value.trim());
+        restoreAll(ta.value.trim());
         return;
       }
+
+      // 共有
+      if (t.matches('#shareBtn,[data-action="share"]') || /共有|シェア/.test(label)) {
+        ev.preventDefault(); doShare(); return;
+      }
+
       // インストール
-      if (t.matches('#installBtn,[data-action="install"]') || label.includes('インストール')) {
-        ev.preventDefault();
-        triggerInstall();
-        return;
-      }
-      // 共有（ボタン名が「共有」想定）
-      if (t.matches('#shareBtn,[data-action="share"]') || label === '共有') {
-        ev.preventDefault();
-        doShare();
-        return;
+      if (t.matches('#installBtn,[data-action="install"]') || /インストール/.test(label)) {
+        ev.preventDefault(); triggerInstall(); return;
       }
     } catch {}
   }, {passive:false});
 
-  // 初期: インストールボタンは非表示（発火で表示）
+  // 初期はインストール非表示（イベントで表示）
   try { const b = $('#installBtn') || $('button.install') || $('[data-action="install"]'); if (b) b.style.display='none'; } catch {}
 
 })();
