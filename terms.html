@@ -1,30 +1,103 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>利用規約</title><link rel="stylesheet" href="style.css"></head>
-<body>
-<header class="pink"><button class="btn" onclick="history.back()">←</button><div class="center">himegoto</div></header>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>利用規約</title>
+<link rel="stylesheet" href="fix.css">
+</head>
+<body data-drawer="right">
+<header class="topbar">
+  <button id="menuBtn" aria-label="メニュー" class="icon-btn">☰</button>
+  <div class="logo-wrap">
+    <img src="img/logo.png" alt="" class="logo">
+    <span class="logo-text" aria-hidden="true">himegoto</span>
+  </div>
+  <button id="installBtn" class="pill small">インストール</button>
+</header>
+
+<nav id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div class="drawer-title">メニュー</div>
+    <button id="menuCloseBtn" class="icon-btn" aria-label="閉じる">✕</button>
+  </div>
+  <ul class="drawer-list">
+    <li><a href="index.html">ホーム</a></li>
+    <li><a href="customer.html">顧客メモ</a></li>
+    <li><a href="help.html">使い方</a></li>
+    <li><a href="qa.html">Q&amp;A</a></li>
+    <li><a href="privacy.html">プライバシーポリシー</a></li>
+    <li><a href="terms.html">利用規約</a></li>
+  </ul>
+  <div class="verbox">
+    <div>Version</div>
+    <ol>
+      <li>2024-07 構想開始</li>
+      <li>2024-10 β原型</li>
+      <li>2024-11-07 仮動作版</li>
+      <li>2024-11-09 修正パック統合</li>
+    </ol>
+  </div>
+</nav>
+<div id="drawerOverlay" class="overlay" hidden></div>
+
 <main class="container">
-<section class="card"><h2>1. 提供内容</h2>
-<ul>
-<li>メッセージ作成・顧客名差し込み・共有機能</li>
-<li>無料版：顧客5名／1日5回共有</li>
-</ul></section>
-<section class="card"><h2>2. 利用者の責任</h2>
-<ul>
-<li>入力内容・送信先の管理は利用者の責任で行うこと</li>
-<li>端末・ブラウザ等の環境整備</li>
-</ul></section>
-<section class="card"><h2>3. 禁止事項</h2>
-<ul>
-<li>法令・公序良俗・各プラットフォーム規約に反する行為</li>
-<li>第三者の権利侵害（著作権・肖像権・プライバシー等）</li>
-<li>不正アクセス、リバースエンジニアリング、無断再配布</li>
-</ul></section>
-<section class="card"><h2>4. 免責</h2>
-<p>本サービスの提供・変更・中断等により生じた損害について、運営は責任を負いません。</p></section>
-<section class="card"><h2>5. 課金・広告（将来導入）</h2>
-<p>有料機能や広告視聴による解除等を提供する場合があります。各条件は別途画面で表示します。</p></section>
-<section class="card"><h2>6. 準拠法・裁判管轄</h2>
-<p>日本法に準拠し、運営者所在地を管轄する裁判所を第一審の専属的合意管轄とします。</p></section>
-</main></body></html>
+
+<section class="card">
+  <h2>1. 提供内容</h2>
+  <ul>
+    <li>メッセージ作成・顧客名差し込み・共有機能</li>
+    <li>無料版：顧客5名／1日5回共有、毎日0:00（日本時間）に自動リセット</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>2. 利用者の責任</h2>
+  <ul>
+    <li>入力内容・送信先の管理は利用者の責任で行うこと</li>
+    <li>端末・ブラウザ等の環境整備</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>3. 禁止事項</h2>
+  <ul>
+    <li>法令・公序良俗・各プラットフォーム規約に反する行為</li>
+    <li>第三者の権利侵害（著作権・肖像権・プライバシー等）</li>
+    <li>不正アクセス、リバースエンジニアリング、無断再配布</li>
+    <li>大量の迷惑メッセージ送信やスパム的利用</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>4. 免責</h2>
+  <p>細心の注意を払いますが、障害・不具合・中断等により生じた損害について、運営は責任を負いません。必ずバックアップの文字列を保管してください。</p>
+</section>
+
+<section class="card">
+  <h2>5. 課金・広告（将来導入）</h2>
+  <p>有料機能や広告視聴による解除等を提供する場合があります。各条件は別途画面で表示します。</p>
+</section>
+
+<section class="card">
+  <h2>6. 準拠法・裁判管轄</h2>
+  <p>日本法に準拠し、運営者所在地を管轄する裁判所を第一審の専属的合意管轄とします。</p>
+</section>
+
+<section class="card">
+  <h2>特定商取引法に基づく表記（準備中）</h2>
+  <ul>
+    <li>サービス名：himegoto（β）</li>
+    <li>運営者：原田 充</li>
+    <li>所在地：滋賀県大津市今堅田2-25-84</li>
+    <li>連絡先：<a href="https://line.me/R/ti/p/%40himegoto">公式LINE</a></li>
+    <li>販売価格：アプリ内で表示（将来導入）</li>
+    <li>支払方法：各プラットフォームの定める方法（導入時に明示）</li>
+    <li>提供時期：即時</li>
+    <li>返品・キャンセル：デジタル提供のため不可。個別に定める条件がある場合は優先。</li>
+  </ul>
+</section>
+
+</main>
+<script src="app.js"></script>
+</body></html>
