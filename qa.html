@@ -1,72 +1,28 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Q&A</title>
-<link rel="stylesheet" href="fix.css">
+<link rel="stylesheet" href="style.css">
 </head>
-<body data-drawer="right">
-<header class="topbar">
-  <button id="menuBtn" aria-label="メニュー" class="icon-btn">☰</button>
-  <div class="logo-wrap">
-    <img src="img/logo.png" alt="" class="logo">
-    <span class="logo-text" aria-hidden="true">himegoto</span>
-  </div>
-  <button id="installBtn" class="pill small">インストール</button>
-</header>
-
-<nav id="drawer" class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <div class="drawer-title">メニュー</div>
-    <button id="menuCloseBtn" class="icon-btn" aria-label="閉じる">✕</button>
-  </div>
-  <ul class="drawer-list">
-    <li><a href="index.html">ホーム</a></li>
-    <li><a href="customer.html">顧客メモ</a></li>
-    <li><a href="help.html">使い方</a></li>
-    <li><a href="qa.html">Q&amp;A</a></li>
-    <li><a href="privacy.html">プライバシーポリシー</a></li>
-    <li><a href="terms.html">利用規約</a></li>
-  </ul>
-  <div class="verbox">
-    <div>Version</div>
-    <ol>
-      <li>2024-07 構想開始</li>
-      <li>2024-10 β原型</li>
-      <li>2024-11-07 仮動作版</li>
-      <li>2024-11-09 修正パック統合</li>
-    </ol>
-  </div>
-</nav>
-<div id="drawerOverlay" class="overlay" hidden></div>
-
+<body>
+<header class="pink"><button class="btn" onclick="history.back()">←</button><div class="center">himegoto</div></header>
 <main class="container">
-
-<section class="card">
-  <h2>よくある質問</h2>
-  <h3>顧客の追加・選択・削除</h3>
-  <p>顧客名を入力して「追加」。各行の「選択」で対象を切り替え、「削除」で行を消します。</p>
-
-  <h3>{name} 差し込みは？</h3>
-  <p>本文中に <code>{name}</code> を入れると、選択中の顧客名に置き換わります。ボタンでも挿入できます。</p>
-
-  <h3>共有のやり方</h3>
-  <p>「共有」を押して送信先アプリを選びます。LINE を選ぶとトーク画面に本文が入ります。</p>
-
-  <h3>バックアップと復元</h3>
-  <p>ホーム下部の「文字列を作る→コピー」を押して保存。戻すときは貼り付けて「文字列から復元」。</p>
-
-  <h3>無料版の上限</h3>
-  <p>顧客5名／1日5回の共有回数。翌日0:00（日本時間）にリセットされます。</p>
-
-  <h3>インストールボタンが出ない</h3>
-  <p>すでにインストール済み、またはブラウザが非対応の可能性があります。対応ブラウザでお試しください。</p>
-
-  <h3>画面が急におかしい</h3>
-  <p>ベータ版のため内部更新があります。再読み込みで直る場合があります。改善は順次行います。</p>
-</section>
-
+  <section class="card">
+    <h2>バックアップはむずかしい？</h2>
+    <p>むずかしくありません。1行の文字をコピーしてLINEに貼るだけ。復元は貼り付けてボタンを押すだけです。</p>
+  </section>
+  <section class="card">
+    <h2>よくある質問（バックアップ／復元）</h2>
+    <p><strong>Q.</strong> どこにデータが保存されていますか？<br>
+    <strong>A.</strong> 顧客名やメモ、送信回数などはこのスマホの中に保存されます。サーバーへ自動送信はしません。バックアップをするときだけ、あなた自身で文字列をコピーして保存します。</p>
+    <p><strong>Q.</strong> 文字列を紛失したら？<br>
+    <strong>A.</strong> 「ホーム→文字列を作る」でいつでも作り直せます。最新状態で作り直して LINE に貼り直してください。</p>
+    <p><strong>Q.</strong> どのタイミングで復元しますか？<br>
+    <strong>A.</strong> 機種変更・誤って消してしまった時など、必要なときだけで構いません。文字列を貼り付けて「文字列から復元」を押します。</p>
+    <p><strong>Q.</strong> 宣伝の通知は来ますか？<br>
+    <strong>A.</strong> 来ません。将来広告を導入する場合も、迷惑な通知は行いません。</p>
+  </section>
 </main>
-<script src="app.js"></script>
-</body></html>
+</body>
+</html>
