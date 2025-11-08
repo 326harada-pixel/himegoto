@@ -1,4 +1,4 @@
-// app-index.js（{name}はそのまま挿入／共有時のみ選択名で置換）
+// app-index.js（{name}はそのまま挿入／共有時のみ選択名で置換 + 無料版 制限 復活）
 (function () {
   const $ = (s) => document.querySelector(s);
   const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
@@ -49,11 +49,15 @@
   }
   render();
 
-  // 顧客の追加
+  // 顧客の追加（無料版: 登録は5名まで）
   on(addB, 'click', () => {
     const v = (nameI && nameI.value || '').trim();
     if (!v) return;
     const st = load();
+    if ((st.list || []).length >= 5) {
+      alert('無料版では顧客の登録は5名までです。');
+      return;
+    }
     st.list.push(v);
     st.sel = st.list.length - 1;
     save(st.list, st.sel);
@@ -104,8 +108,29 @@
   }
 
   // 共有：この時だけ選択中の顧客名で {name} を置換
+  // 無料版: 1日5回まで（ボタンタップ時にカウント）
   on(share, 'click', async () => {
     if (!msg) return;
+
+    // 送信回数の制限（1日5回）
+    const limitKey = 'hime_send_cnt_v1';
+    const today = new Date().toDateString();
+    let data;
+    try {
+      data = JSON.parse(localStorage.getItem(limitKey) || '{}') || {};
+    } catch { data = {}; }
+    if (data.date !== today) {
+      data.date = today;
+      data.count = 0;
+    }
+    if ((data.count || 0) >= 5) {
+      alert('無料版では1日の送信は5回までです。');
+      return;
+    }
+    // 押下で減算（= カウント先行加算）
+    data.count = (data.count || 0) + 1;
+    localStorage.setItem(limitKey, JSON.stringify(data));
+
     const st = load();
     const selName = (st.sel != null && st.list[st.sel]) ? st.list[st.sel] : null;
     const out = selName ? (msg.value || '').replaceAll('{name}', selName) : (msg.value || '');
@@ -116,7 +141,7 @@
         await navigator.clipboard.writeText(out);
         alert('共有に非対応のためテキストをコピーしました。');
       }
-    } catch { /* noop */ }
+    } catch { /* noop（キャンセル時もカウントは維持）*/ }
   });
 
   // —— バックアップ（文字列）——
