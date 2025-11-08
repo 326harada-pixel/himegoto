@@ -140,66 +140,64 @@
       const memos = getMemos(); memos[sel] = memoArea.value||''; setMemos(memos);
     });
     
-/* base64-backup-only */
+/* drawer-close-support */
+(function(){
+  try{
+    const drawer=document.getElementById('drawer');
+    const scrim=document.getElementById('scrim');
+    const closeBtns=drawer?drawer.querySelectorAll('.close-btn,#drawerClose'):[];
+    const close=()=>{ if(drawer){drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');} if(scrim){scrim.classList.remove('show');scrim.hidden=true;} };
+    closeBtns&&closeBtns.forEach(b=>b.addEventListener('click', close));
+  }catch(e){}
+})();
+
+/* install-state-hide */
+window.addEventListener('appinstalled', ()=>{
+  const b=document.getElementById('install-btn')||document.getElementById('install-trigger');
+  if(b) b.style.display='none';
+});
+(function(){
+  try{
+    const isPWA=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+    if(isPWA){ const b=document.getElementById('install-btn')||document.getElementById('install-trigger'); if(b) b.style.display='none'; }
+  }catch(e){}
+})();
+
+/* base64-backup-unified */
 (function(){
   const makeBtn=document.getElementById('backup-make');
   const copyBtn=document.getElementById('backup-copy');
   const textArea=document.getElementById('backup-text');
   const restoreBtn=document.getElementById('backup-restore-text');
-
   function exportState(){
-    const obj={};
-    Object.keys(localStorage).forEach(k=>obj[k]=localStorage.getItem(k));
+    const obj={}; Object.keys(localStorage).forEach(k=>obj[k]=localStorage.getItem(k));
     return 'HIME1.'+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
   }
   function importState(line){
-    if(!line||!line.startsWith('HIME1.')){ alert('文字列が正しくありません'); return; }
+    if(!line||!line.startsWith('HIME1.')){ alert('文字列形式が違います。'); return; }
     try{
       const json=decodeURIComponent(escape(atob(line.slice(6))));
-      const obj=JSON.parse(json);
-      Object.keys(obj).forEach(k=>localStorage.setItem(k,obj[k]));
-      alert('復元しました。アプリを再起動します。');
-      location.reload();
-    }catch(e){ alert('復元に失敗しました'); }
+      const obj=JSON.parse(json); Object.keys(obj).forEach(k=>localStorage.setItem(k,obj[k]));
+      alert('復元しました。アプリを再起動します。'); location.reload();
+    }catch(e){ alert('復元に失敗しました。文字列を確認してください。'); }
   }
-  makeBtn && makeBtn.addEventListener('click', ()=>{ if(textArea) textArea.value = exportState(); });
-  copyBtn && copyBtn.addEventListener('click', async()=>{
-    const v = textArea && textArea.value ? textArea.value : exportState();
-    try{ await navigator.clipboard.writeText(v); alert('コピーしました。LINEに貼って保存してください。'); }
-    catch(e){ alert('コピーに失敗しました。手動で選択してコピーしてください。'); }
+  makeBtn&&makeBtn.addEventListener('click', ()=>{ if(textArea) textArea.value=exportState(); });
+  copyBtn&&copyBtn.addEventListener('click', async()=>{
+    try{ await navigator.clipboard.writeText(textArea&&textArea.value?textArea.value:exportState()); alert('コピーしました。LINEのキープメモに貼って保存してください。'); }
+    catch{ alert('コピーに失敗。手動で選択→コピーしてください。'); }
   });
-  restoreBtn && restoreBtn.addEventListener('click', ()=> importState(textArea?textArea.value:''));
+  restoreBtn&&restoreBtn.addEventListener('click', ()=> importState(textArea?textArea.value:''));
 })();
 
-/* drawer-x */
-(function(){
-  const drawer=document.getElementById('drawer');
-  const scrim=document.getElementById('scrim');
-  const closeBtns=drawer?drawer.querySelectorAll('.close-btn,#drawerClose'):[];
-  const close=()=>{ if(drawer){drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');} if(scrim){scrim.classList.remove('show');scrim.hidden=true;} };
-  closeBtns.forEach(b=>b.addEventListener('click', close));
-})();
-
-/* beta-daily */
+/* daily-beta-popup */
 (function(){
   try{
-    const k='hime_notice_daily_v1';
-    const d=(new Date()).toISOString().slice(0,10);
-    if(localStorage.getItem(k)!==d){
-      localStorage.setItem(k,d);
-      alert('【お知らせ】\n現在ベータ版のため、内部を不定期で更新しています。\n急に使えなくなったり画面がおかしくなることがありますが、すぐ直していきます。ご了承ください。');
+    const key='hime_daily_notice_v1';
+    const today=(new Date()).toISOString().slice(0,10);
+    const last=localStorage.getItem(key);
+    if(last!==today){
+      localStorage.setItem(key,today);
+      alert('【お知らせ】\n現在ベータ版のため、内部を不定期で更新しています。\n急に使えなくなったり画面が乱れる場合がありますが、都度改善しております。ご了承ください。');
     }
-  }catch(e){}
-})();
-
-/* install-state-hide */
-window.addEventListener('appinstalled', function(){
-  var b=document.getElementById('install-btn')||document.getElementById('install-trigger');
-  if(b) b.style.display='none';
-});
-(function(){
-  try{
-    var isPWA=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
-    if(isPWA){ var b=document.getElementById('install-btn')||document.getElementById('install-trigger'); if(b) b.style.display='none'; }
   }catch(e){}
 })();
