@@ -1,4 +1,4 @@
-// app-index.js（完全修正版）
+// app-index.js（完全修正版 — メッセージ自動保存を最小追記）
 // 仕様：{name}はそのまま挿入／共有時のみ選択名に置換
 // 無料版：顧客5名まで／送信1日5回（共有ボタン「タップ時」に即減算）
 // 残数表示：見出し右「残◯人」「残◯回」／説明文は下段
@@ -144,7 +144,15 @@
     rem.textContent = Math.max(0, limit - (msg.value || '').length);
   }
   if (msg) {
-    on(msg, 'input', updateRemain);
+    // --- ここから最小追記（メッセージ自動保存と復元） ---
+    // 読み込み時に復元（既存の localStorage キー名に合わせる）
+    msg.value = localStorage.getItem('hime_msg') || '';
+    // 入力ごとに保存し、文字数カウンタも更新
+    on(msg, 'input', () => {
+      localStorage.setItem('hime_msg', msg.value);
+      updateRemain();
+    });
+    // --- ここまで最小追記 ---
     updateRemain();
   }
 
