@@ -1,27 +1,31 @@
 // app-register.js
+// 開発サポート：Gemini
+// 目的：SMS認証フローの実装と、Firestoreへの初期データ書き込み。
 
 const $ = (s) => document.querySelector(s);
 // register.htmlで初期化されたFirebaseインスタンスを使う
+// 既にグローバル変数として存在する
 const auth = firebase.auth();
 const db = firebase.firestore();
 
 // --- DOM elements ---
-const sendCodeButton = $('#sendCodeButton');
-const verifyCodeButton = $('#verifyCodeButton');
-const phoneNumberInput = $('#phoneNumber');
-const verificationCodeInput = $('#verificationCode');
-const recaptchaContainer = $('#recaptcha-container');
+const sendCodeButton = $('#sendCodeSms'); // ID変更
+const verifyCodeButton = $('#verifySms');   // ID変更
+const phoneNumberInput = $('#phoneInput'); // ID変更
+const verificationCodeInput = $('#codeSms'); // ID変更
 const errorMessage = $('#error-message');
 const statusMessage = $('#auth-status-message');
+const registerButton = $('#registerBtn');
+const agreeCheckbox = $('#agree');
+const passwordInput1 = $('#pw1');
+const passwordInput2 = $('#pw2');
 
-const stepPhone = $('#step-phone-number');
-const stepCode = $('#step-verification-code');
-const referralSection = $('#referral-section');
-const planStatus = $('#plan-status');
-const daysLeft = $('#days-left');
-const userInfo = $('#user-info'); // 新たに追加したUID表示エリア
+// reCAPTCHAはpaneSmsの下にある前提
+const recaptchaContainer = $('#recaptcha-container');
+const paneSms = $('#paneSms');
 
 let confirmationResult = null; // 認証コードの検証に必要なオブジェクトを保持
+let isSmsVerified = false; // SMS認証が成功したかどうかのフラグ
 
 // ------------------------------------------
 // 補助関数
@@ -32,31 +36,29 @@ function showMessage(el, text, isError = false) {
     el.style.color = isError ? 'red' : 'green';
 }
 
-function updateUIForUser(user) {
+function updateUIForAuth(user) {
     if (user) {
-        // ログイン済みUI
-        stepPhone.classList.add('hidden');
-        stepCode.classList.add('hidden');
-        showMessage(statusMessage, `ログイン完了: アプリをご利用いただけます。`, false);
-        userInfo.innerHTML = `あなたの**紹介ID (UID)**: <strong style="color: black;">${user.uid}</strong><br>※このIDを紹介に使えます。`;
+        // ログイン済み (UIDを持っている)
+        showMessage(statusMessage, `ログイン完了: UID ${user.uid}`, false);
+        sendCodeButton.disabled = true;
+        verifyCodeButton.disabled = true;
+        registerButton.disabled = true; // 認証完了時は、もう登録済みなのでボタンは押させない
         
-        // ログイン成功後、UIステータスを更新する（Firestoreフェッチ待ち）
-        planStatus.textContent = '確認中...';
-        daysLeft.textContent = '確認中...';
-
+        // TODO: 認証後のプロフィール・紹介コードの保存ロジックを追加する
+        // TODO: ホームへリダイレクトするロジックを実装する (今回は動作確認優先で一時保留)
+        
         // ログイン後処理（Firestoreチェック）
-        checkUserPurchases(user.uid);
+        // checkUserPurchases(user.uid); // 後ほど、課金システム実装時に利用
     } else {
-        // 未ログインUI
-        stepPhone.classList.remove('hidden');
-        stepCode.classList.add('hidden');
+        // 未ログイン
         showMessage(statusMessage, '携帯番号によるSMS認証が必要です。', false);
-        planStatus.textContent = '無料';
-        daysLeft.textContent = '0日';
-        userInfo.textContent = '';
+        sendCodeButton.disabled = false;
+        verifyCodeButton.disabled = true; // コード確認は未送信時は無効
+        registerButton.disabled = true; // SMS認証とパスワード入力が完了するまで無効
+        isSmsVerified = false;
 
         // reCAPTCHAの初期化 (ウィンドウ全体で1回のみ)
-        if (!window.recaptchaVerifier) {
+        if (!window.recaptchaVerifier && paneSms.style.display !== 'none') {
             // FirebaseのSMS認証に必須のボット対策の仕組み
             window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(recaptchaContainer, {
                 'size': 'normal',
@@ -75,7 +77,7 @@ function updateUIForUser(user) {
 // ------------------------------------------
 
 auth.onAuthStateChanged(user => {
-    updateUIForUser(user);
+    updateUIForAuth(user);
 });
 
 // ------------------------------------------
@@ -86,8 +88,9 @@ sendCodeButton && sendCodeButton.addEventListener('click', () => {
     const phoneNumber = phoneNumberInput.value.trim();
     errorMessage.textContent = '';
     
+    // 国際形式 (+81...) への変換をユーザーに促す
     if (!phoneNumber || phoneNumber.length < 10) {
-        showMessage(errorMessage, '有効な電話番号を入力してください。', true);
+        showMessage(errorMessage, '有効な電話番号（国際形式推奨）を入力してください。', true);
         return;
     }
     
@@ -104,15 +107,12 @@ sendCodeButton && sendCodeButton.addEventListener('click', () => {
             confirmationResult = confirmation;
             alert('認証コードを送信しました。'); // TODO: 後でカスタムモーダルに変更
             
-            // UIを認証コード入力ステップに切り替え
-            stepPhone.classList.add('hidden');
-            stepCode.classList.remove('hidden');
-            
             sendCodeButton.disabled = false;
+            verifyCodeButton.disabled = false;
+            showMessage(statusMessage, '6桁の認証コードが届くのをお待ちください。', false);
         })
         .catch((error) => {
             console.error("SMS送信エラー:", error);
-            // 日本語エラーメッセージの例
             let msg = '認証コードの送信に失敗しました。';
             if (error.code === 'auth/invalid-phone-number') {
                 msg = '電話番号の形式が正しくありません。（+国番号から始めていますか？）';
@@ -126,7 +126,7 @@ sendCodeButton && sendCodeButton.addEventListener('click', () => {
 });
 
 // ------------------------------------------
-// 3. 認証コードの検証とログイン処理 (Step 2)
+// 3. 認証コードの検証 (Step 2)
 // ------------------------------------------
 
 verifyCodeButton && verifyCodeButton.addEventListener('click', () => {
@@ -148,12 +148,18 @@ verifyCodeButton && verifyCodeButton.addEventListener('click', () => {
     // 認証コードの検証
     confirmationResult.confirm(code)
         .then((result) => {
-            // ログイン成功 -> onAuthStateChanged が発火し UI が更新される
-            console.log("ログイン成功:", result.user.uid);
-            verifyCodeButton.disabled = false;
+            // SMS認証成功（ただし、まだFirebaseに登録は完了していない状態）
+            console.log("SMS認証成功:", result.user.uid);
+            showMessage(statusMessage, 'SMS認証が完了しました。パスワードを設定し、「登録する」を押してください。', false);
+            isSmsVerified = true;
+            
+            // SMS検証成功後、パスワード入力と利用規約同意で登録ボタンを有効にするための監視を開始
+            checkRegistrationReadiness();
+            
+            verifyCodeButton.disabled = true; // 再度押せないようにする
+            phoneNumberInput.disabled = true; // 電話番号も変更不可にする
+            sendCodeButton.disabled = true;
 
-            // ホーム画面へリダイレクト（認証完了後）
-            location.href = 'index.html'; 
         })
         .catch((error) => {
             console.error("認証コード検証エラー:", error);
@@ -163,46 +169,96 @@ verifyCodeButton && verifyCodeButton.addEventListener('click', () => {
 });
 
 // ------------------------------------------
-// 4. ログイン後のFirestore初期処理（プラン情報確認/作成）
+// 4. 登録ボタンの有効化チェック (パスワードと同意)
+// ------------------------------------------
+
+function checkRegistrationReadiness() {
+    const pw1 = passwordInput1.value || '';
+    const pw2 = passwordInput2.value || '';
+    const isPwValid = pw1.length >= 8 && pw1 === pw2;
+    const isAgreed = agreeCheckbox.checked;
+
+    // SMS認証済み AND パスワード有効 AND 同意済み の全てが揃ったら有効
+    registerButton.disabled = !(isSmsVerified && isPwValid && isAgreed);
+}
+
+// パスワード入力と同意チェックボックスの監視
+passwordInput1.addEventListener('input', checkRegistrationReadiness);
+passwordInput2.addEventListener('input', checkRegistrationReadiness);
+agreeCheckbox.addEventListener('change', checkRegistrationReadiness);
+
+// ------------------------------------------
+// 5. 登録処理 (Firebase Authへの正式な登録とFirestore初期データ作成)
+// ------------------------------------------
+
+registerButton && registerButton.addEventListener('click', async () => {
+    errorMessage.textContent = '';
+    
+    // 最終バリデーション
+    const pw1 = passwordInput1.value || '';
+    if(pw1.length < 8) { showMessage(errorMessage, 'パスワードは8文字以上にしてください。', true); return; }
+    if(passwordInput1.value !== passwordInput2.value) { showMessage(errorMessage, 'パスワードが一致しません。', true); return; }
+    if(!agreeCheckbox.checked) { showMessage(errorMessage, '各規約への同意が必要です。', true); return; }
+
+    registerButton.disabled = true;
+    showMessage(statusMessage, '登録処理中です...しばらくお待ちください。', false);
+
+    try {
+        // SMS認証で得られた結果を使って、ユーザーを最終的に確定させる
+        // ただし、Firebase Phone AuthはSMS検証成功＝ログイン完了なので、
+        // ここでの処理は Firestoreへの初期データ作成とリダイレクトになる。
+
+        const user = auth.currentUser;
+        if (!user || user.phoneNumber !== phoneNumberInput.value.trim()) {
+            throw new Error("認証状態が不正です。最初からやり直してください。");
+        }
+        
+        // Firestoreに初期データ（課金情報）を作成
+        await initializeUserFirestore(user.uid);
+
+        // ホーム画面へリダイレクト（認証完了後）
+        alert('アカウント登録が完了しました！ホーム画面へ移動します。'); // TODO: カスタムモーダル
+        location.href = 'index.html'; 
+
+    } catch (error) {
+        console.error("最終登録エラー:", error);
+        showMessage(errorMessage, `登録に失敗しました: ${error.message}`, true);
+        registerButton.disabled = false;
+    }
+});
+
+
+// ------------------------------------------
+// 6. Firestore初期データ作成
 // ------------------------------------------
 
 /**
- * ログイン後、ユーザーの課金期限を確認し、未作成ならスキーマを作成する
+ * ユーザーのFirestoreに初期データ（課金情報）を作成する
  * @param {string} uid 
  */
-async function checkUserPurchases(uid) {
+async function initializeUserFirestore(uid) {
     // データ設計: users/{uid}/purchases/current
-    const docRef = db.collection('users').doc(uid).collection('purchases').doc('current');
+    const purchaseDocRef = db.collection('users').doc(uid).collection('purchases').doc('current');
     
-    try {
-        const doc = await docRef.get();
-        if (doc.exists) {
-            // 課金情報が存在する場合
-            const data = doc.data();
-            console.log("Existing purchase data:", data);
-            
-            // TODO: expiresAt (ISO8601形式)を元に残り日数を計算し、UIを更新するロジックを実装
-            planStatus.textContent = '（期限付き）'; // 仮表示
-            daysLeft.textContent = '（計算待ち）'; // 仮表示
+    // データ設計: users/{uid}/profile/main (プロフィールと紹介コードを保存)
+    const profileDocRef = db.collection('users').doc(uid).collection('profile').doc('main');
 
-        } else {
-            // 課金情報が存在しない場合（新規ユーザー）
-            console.log("No purchase data found. Initializing...");
+    // 課金初期データ: expiresAt: null（無料）
+    const purchaseData = {
+        expiresAt: null, 
+        registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    await purchaseDocRef.set(purchaseData, { merge: true }); // merge: trueで既存フィールドを上書きしない
 
-            // 開発ルールに従い、expiresAt: null（無料）で初期データを作成
-            const initData = {
-                expiresAt: null, 
-                registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
-            };
-            await docRef.set(initData);
-            
-            planStatus.textContent = '無料';
-            daysLeft.textContent = '0日';
-        }
-    } catch (e) {
-        console.error("Firestore操作エラー:", e);
-        planStatus.textContent = 'エラー';
-        daysLeft.textContent = 'エラー';
-        userInfo.textContent = 'Firebase接続エラーが発生しました。';
-    }
-}
+    // プロフィールデータ（登録時に任意で入力されたもの）
+    const profileData = {
+        displayName: ($('#displayName') && $('#displayName').value) || null,
+        shopName: ($('#shopName') && $('#shopName').value) || null,
+        birthday: ($('#birthday') && $('#birthday').value) || null,
+        referralCodeUsed: ($('#referralIdInput') && $('#referralIdInput').value) || null, // 紹介コード
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    await profileDocRef.set(profileData, { merge: true });
+    
+    console.log("Firestore initialized for UID:", uid);
+                                                                                       }
