@@ -49,7 +49,7 @@
   <main class="container">
     <h1>登録と紹介</h1>
     
-    <!-- ここにSMS認証UIを組み込む -->
+    <!-- SMS認証UIセクション -->
     <section class="card" id="auth-section">
       <h2>本人確認（SMS）</h2>
       <p id="auth-status-message">現在のステータスをここに表示します。</p>
@@ -59,7 +59,7 @@
         <p class="small muted">不正利用防止のため、携帯番号によるSMS認証を行います。<br>国際フォーマット（例: +819012345678）で入力してください。</p>
         <input type="tel" id="phoneNumber" inputmode="tel" placeholder="電話番号（例: +8190...）">
         <button class="primary" id="sendCodeButton">認証コードを送信</button>
-        <!-- reCAPTCHAコンテナ -->
+        <!-- reCAPTCHAコンテナ: ボット対策のため必要 -->
         <div id="recaptcha-container" style="justify-content: center; margin-top: 10px;"></div>
       </div>
 
@@ -91,35 +91,35 @@
     <section class="card">
       <h2>ステータス</h2>
       <p>現在のプラン：<strong id="plan-status">無料</strong> / 無制限の残り期間：<strong id="days-left">0日</strong></p>
-      <!-- 認証済みユーザーのIDをここに表示するためのスペース（デバッグと紹介用） -->
       <p class="small muted" id="user-info"></p>
     </section>
   </main>
 
   <script>
-    // 既存のドロワーロジック (drawerCloseの処理を追加・修正)
+    // **ドロワーロジックの修正**
     const d=document.getElementById('drawer'),
           s=document.getElementById('scrim'),
           menuBtn=document.getElementById('menuBtn'),
           drawerClose=document.getElementById('drawerClose');
+    
+    // ドロワーを開く関数
+    const openDrawer = () => {
+        d.classList.add('open');
+        s.classList.add('show');
+    };
 
+    // ドロワーを閉じる関数
     const closeDrawer = () => {
         d.classList.remove('open');
         s.classList.remove('show');
     };
 
-    menuBtn.addEventListener('click',()=>{
-        d.classList.add('open');
-        s.classList.add('show');
-    });
-    
-    // スクリム（背景）をクリック
+    // イベントリスナーの再設定 (元のコードと今回の修正を融合)
+    menuBtn.addEventListener('click', openDrawer);
     s.addEventListener('click', closeDrawer);
+    drawerClose.addEventListener('click', closeDrawer); // ✕ボタン
     
-    // 閉じるボタンをクリック
-    drawerClose.addEventListener('click', closeDrawer);
-    
-    // ドロワー内のリンクをクリック
+    // ドロワー内のリンクをクリックした場合
     d.addEventListener('click',e=>{if(e.target.matches('a')){closeDrawer();}});
 
     // **FIREBASE 設定値の組み込み**
