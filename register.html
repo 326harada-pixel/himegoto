@@ -2,66 +2,127 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>登録と紹介 - himegoto（β）</title>
-  <link rel="stylesheet" href="/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登録と紹介 - himegoto</title> <!-- タイトルを戻します -->
+  <link rel="stylesheet" href="fix.css">
+  
+  <!-- 
+    【重要】Firebase関連のスクリプトを先に読み込みます 
+  -->
+  
+  <!-- 1. Firebase SDKの読み込み -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <!-- 2. Firebaseの初期化（設定） -->
+  <script>
+    // あなたのFirebase設定値
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU",
+      authDomain: "himegoto-web.firebaseapp.com",
+      projectId: "himegoto-web",
+      storageBucket: "himegoto-web.firebasestorage.app",
+      messagingSenderId: "368382081243",
+      appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
+    };
+    
+    // Firebase の初期化
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+  </script>
+
+  <!-- 3. アプリのロジック（Firebase初期化の後） -->
+  <script defer src="app-register.js"></script>
+
+  <!-- 4. 既存のヘッダー/共通スクリプト -->
+  <script src="header-loader.js"></script>
+  <script src="common.js"></script>
+
 </head>
 <body>
-  <header class="header">
-    <button class="hamburger" id="menuBtn" aria-label="menu">≡</button>
-    <div class="brand">himegoto</div><div class="spacer"></div><div class="version">ver.1.27β</div>
-  </header>
-  <aside class="drawer" id="drawer" aria-hidden="true">
-    <div class="drawer-header"><strong>メニュー</strong><button id="drawerClose" class="close-btn" aria-label="閉じる">✕</button></div><nav><ul class="nav">
-<li><a href="/index.html">ホーム</a></li>
-<li><a href="/help.html">アプリ用途</a></li>
-<li><a href="/help.html#howto">使い方</a></li>
-<li><a href="/qa.html">Q&amp;A</a></li>
-<li><a href="/register.html">登録と紹介</a></li>
-<li><a href="/privacy.html">プライバシーポリシー</a></li>
-<li><a href="/terms.html">規約</a></li>
-<li><a href="/terms.html#tokushoho">特定商取引法（準備中）及び運営者情報</a></li>
-<li><a href="/feedback.html">ご意見・ご要望</a></li>
-</ul></nav>
-  </aside>
-  <div class="scrim" id="scrim"></div>
-
   <main class="container">
-    <h1>登録と紹介</h1>
 
-    <section class="card">
-      <h2>本人確認（SMS）<small class="pill ghost">準備中</small></h2>
-      <p>不正利用防止のため、携帯番号によるSMS認証を予定しています。認証完了後、あなた専用の<strong>紹介ID</strong>が発行されます。</p>
-      <div class="row">
-        <input type="tel" inputmode="tel" placeholder="電話番号（SMS認証・準備中）" disabled>
-        <button disabled>認証する</button>
+    <!-- 
+      セクション1: 未認証のユーザーに表示 (デフォルトで表示)
+    -->
+    <section class="card" id="registration-section">
+      <h2>アカウント登録</h2>
+
+      <!-- 方式切替 -->
+      <div class="row" role="tablist" aria-label="登録方式">
+        <button class="btn primary" id="tabSms" aria-selected="true">SMS</button>
+        <button class="btn" id="tabMail" aria-selected="false">メール</button>
+      </div>
+
+      <!-- SMS方式 -->
+      <div id="paneSms">
+        <p class="small muted">携帯番号によるSMS認証が必要です。</p>
+        <div class="row">
+          <input type="tel" id="phoneInput" placeholder="電話番号（例：09012345678）">
+          <button class="btn" id="sendCodeSms">コード送信</button>
+        </div>
+        <div class="row">
+          <input type="text" id="codeSms" placeholder="SMSで届いた6桁コード">
+        </div>
+        
+        <!-- 紹介コード入力欄 -->
+        <div class="row">
+          <input type="text" id="refCode" placeholder="紹介コード（任意）">
+        </div>
+
+        <!-- 「確認」ボタンを登録トリガーとする -->
+        <div class="row">
+          <button class="btn primary" id="verifySms">認証して登録する</button>
+        </div>
+        
+        <p id="smsMessage" class="small muted" style="margin-top: 10px;"></p>
+      </div>
+
+      <!-- メール方式 (UIのみ維持) -->
+      <div id="paneMail" style="display:none">
+        <div class="row">
+          <input type="email" id="mailInput" placeholder="メールアドレス">
+          <button class="btn" id="sendCodeMail">コード送信</button>
+        </div>
+        <div class="row">
+          <input type="text" id="codeMail" placeholder="メールで届いた6桁コード">
+          <button class="btn primary" id="verifyMail">確認</button>
+        </div>
       </div>
     </section>
 
-    <section class="card">
-      <h2>紹介IDの入力</h2>
-      <p>紹介者のIDを入力して登録すると、<strong>あなたと紹介者の双方に「3日間 無制限」</strong>が付与されます（仕様は今後調整）。</p>
+    <!-- 
+      セクション2: 認証済みのユーザーに表示 (デフォルトで非表示)
+    -->
+    <section class="card" id="my-referral-section" style="display:none;">
+      <h2>あなたの紹介ID</h2>
+      <p class="small muted">このIDをお友達に伝えて登録してもらうと、特典が付与されます。</p>
       <div class="row">
-        <input type="text" placeholder="紹介者IDを入力">
-        <button class="primary">登録（ダミー）</button>
+        <input type="text" id="myRefId" readonly style="background:#eee; text-align: center; font-weight: bold; letter-spacing: 2px;">
       </div>
-      <ul class="small">
-        <li>複数人を紹介すると、その日数が加算されます。</li>
-        <li>悪用防止のため、同一端末・同一番号での多重登録は無効化されます。</li>
+      <div class="row">
+        <button class="btn" id="copyRefId">IDをコピー</button>
+        <button class="btn primary" id="shareRefLink">紹介リンクを送る</button>
+      </div>
+      <p id="refMessage" class="small muted" style="margin-top: 10px;"></p>
+    </section>
+
+
+    <!-- 注意事項 (共通で表示) -->
+    <section class="card">
+      <h2>注意事項</h2>
+      <ul class="list">
+        <li>無料版は顧客の登録数5名／1日の送信5回までです（日本時間0:00リセット）。</li>
+        <li>バックアップはホームの「文字列を作る」で行えます。端末変更前に必ず保存してください。</li>
+        <li>お問い合わせは公式LINEから受け付けています（実URL）。</li>
       </ul>
     </section>
 
-    <section class="card">
-      <h2>ステータス</h2>
-      <p>現在のプラン：<strong>無料</strong> / 無制限の残り期間：<strong>0日</strong>（ダミー表示）</p>
-    </section>
   </main>
+  
+  <div id="recaptcha-container" style="position: absolute; bottom: 0; left: 0; z-index: -1;"></div>
 
-  <script>
-    const d=document.getElementById('drawer'),s=document.getElementById('scrim');
-    document.getElementById('menuBtn').addEventListener('click',()=>{d.classList.add('open');s.classList.add('show');});
-    s.addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
-    d.addEventListener('click',e=>{if(e.target.matches('a')){d.classList.remove('open');s.classList.remove('show');}});
-  </script>
 </body>
 </html>
