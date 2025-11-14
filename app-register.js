@@ -15,7 +15,7 @@
   // 登録フォーム
   const smsMsg = $('#smsMessage');
   const phoneInput = $('#phoneInput');
-  const sendCodeSms = $('#sendCodeSms'); // ★reCAPTCHAを紐付けるボタン
+  const sendCodeSms = $('#sendCodeSms'); 
   const codeSms = $('#codeSms');
   const refCodeInput = $('#refCode'); // 紹介コード入力欄
   const verifySms = $('#verifySms');
@@ -43,8 +43,6 @@
       regSection.style.display = 'block'; // 登録フォームを表示
       refSection.style.display = 'none'; // 紹介ID欄を隠す
       checkUrlForReferral(); // URLに紹介コードがないかチェック
-      // 未認証時にreCAPTCHAをセットアップ
-      setupRecaptcha();
     }
   });
 
@@ -82,77 +80,64 @@
   }
 
   // 2d. reCAPTCHAのセットアップ（★最重要修正箇所★）
-  function setupRecaptcha() {
-    // 既に初期化済みの場合は何もしない
+  // reCAPTCHAの準備が完了するのを「待つ」ための関数
+  async function ensureRecaptchaVerifier() {
+    // 既に初期化済みの場合は、それを返す
     if (window.recaptchaVerifier) {
-      // 古いものをリセット（必要な場合）
-      window.recaptchaVerifier.clear();
+      return window.recaptchaVerifier;
     }
     
-    // 「コード送信」ボタンのDOM要素（sendCodeSms）に直接紐付ける
+    // なければ、新しく作成し、ボタンに紐付ける
     window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(sendCodeSms, {
-      'size': 'invisible', // 非表示
-      'callback': (response) => {
-        // reCAPTCHA認証が成功したとき
-        console.log("reCAPTCHA verified, sending SMS...");
-        // このコールバックからSMS送信を実行
-        sendSmsInternal();
+      'size': 'invisible',
+      'callback': (response) => { 
+        // このコールバックは、signInWithPhoneNumberが成功したときに呼ばれる
+        console.log("reCAPTCHA check successful."); 
       },
       'expired-callback': () => {
-        // 期限切れの場合
-        showMessage('reCAPTCHAの有効期限が切れました。もう一度お試しください。', true);
+        showMessage('認証（reCAPTCHA）の有効期限が切れました。もう一度お試しください。', true);
         sendCodeSms.disabled = false;
+        window.recaptchaVerifier = null; // 期限切れなのでリセット
       }
     }, auth);
 
-    // reCAPTCHAウィジェットを描画
-    window.recaptchaVerifier.render();
+    try {
+      // reCAPTCHAをレンダリングし、完了するまで「待つ」
+      await window.recaptchaVerifier.render();
+      console.log("reCAPTCHA rendered and ready.");
+      return window.recaptchaVerifier;
+    } catch (error) {
+      console.error("reCAPTCHA render error:", error);
+      showMessage('reCAPTCHAの準備に失敗しました。ページを再読み込みしてください。', true);
+      window.recaptchaVerifier = null; // 失敗したのでリセット
+      throw error; // エラーを投げて処理を中断
+    }
   }
 
   // 2e. 認証コード送信
-  // ユーザーが「コード送信」ボタンを押したときの処理
-  on(sendCodeSms, 'click', () => {
-    // reCAPTCHAがセットアップされていることを確認
-    if (!window.recaptchaVerifier) {
-        showMessage('reCAPTCHAの準備ができていません。ページを再読み込みしてください。', true);
-        return;
-    }
+  // ボタンクリック時の処理を 'async' (非同期) に変更
+  on(sendCodeSms, 'click', async () => {
     
-    // reCAPTCHAの認証（'size': 'invisible' のため自動実行される）
-    // 成功すると、setupRecaptchaで設定した 'callback' が呼ばれる
-    
-    // ※注意: invisible reCAPTCHAは通常、signInWithPhoneNumberのappVerifierとして渡されると
-    // 自動で実行されますが、明示的にボタンに紐付けたため、ロジックを分割します。
-    // しかし、Firebase v9以前のcompatライブラリでは、
-    // signInWithPhoneNumberがreCAPTCHAの実行も兼ねるのが標準です。
-    // setupRecaptchaのロジックを元に戻し、signInWithPhoneNumberに任せます。
-
-    // --- ロジックを元に戻します（これが一番堅牢でした） ---
-    sendSmsInternal();
-  });
-
-  // reCAPTCHAのセットアップを(2d)から(2e)の内部に移動します
-  function sendSmsInternal() {
-    // reCAPTCHAが未設定の場合のみ、ボタンに紐付けて設定
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(sendCodeSms, {
-        'size': 'invisible',
-        'callback': (response) => { 
-            console.log("reCAPTCHA verified."); 
-            // 実際にはsignInWithPhoneNumberがreCAPTCHAをトリガーする
-        }
-      }, auth);
-    }
-    
-    const appVerifier = window.recaptchaVerifier;
     const phoneNumber = toInternationalFormat(phoneInput.value.trim());
-
     if (!phoneNumber) {
       showMessage('電話番号を入力してください。', true);
       return;
     }
-
+    
     sendCodeSms.disabled = true;
+    showMessage('認証コードを送信中... (reCAPTCHA準備中)', false);
+
+    let appVerifier;
+    try {
+      // ★修正点: reCAPTCHAの準備が完了するまで「待つ」
+      appVerifier = await ensureRecaptchaVerifier();
+    } catch (error) {
+      // 準備に失敗したら処理を中断
+      sendCodeSms.disabled = false;
+      return;
+    }
+
+    // reCAPTCHAの準備ができたので、SMS送信に進む
     showMessage('認証コードを送信中...', false);
 
     auth.signInWithPhoneNumber(phoneNumber, appVerifier)
@@ -171,13 +156,12 @@
         sendCodeSms.disabled = false;
         
         // reCAPTCHAをリセット（次の試行のため）
-        if (window.recaptchaVerifier) {
-          window.recaptchaVerifier.render().then((widgetId) => {
-            grecaptcha.reset(widgetId);
-          });
+        window.recaptchaVerifier = null;
+        if (window.grecaptcha && window.recaptchaWidgetId) {
+            grecaptcha.reset(window.recaptchaWidgetId);
         }
       });
-  }
+  });
 
 
   // 2f. 認証コード確認 と 登録処理
