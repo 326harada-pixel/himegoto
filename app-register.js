@@ -2,32 +2,27 @@
   const $ = (s)=>document.querySelector(s);
   const on = (el,ev,fn)=>el&&el.addEventListener(ev,fn);
 
-  // --- グローバル変数（Firebase初期化はHTML側で完了済み） ---
+  // --- グローバル変数 ---
   const auth = firebase.auth();
   const db = firebase.firestore();
-  // 紹介リンクのベースURL（重要：デプロイ先のドメインに合わせてください）
-  const APP_URL = "https://himegoto.jp/register.html"; // 仮のドメイン
+  const APP_URL = "https://himegoto.jp/register.html"; 
 
   // --- DOM要素 ---
-  const regSection = $('#registration-section'); // 未認証時
-  const refSection = $('#my-referral-section'); // 認証済み時
-  
-  // 登録フォーム
+  const regSection = $('#registration-section'); 
+  const refSection = $('#my-referral-section'); 
   const smsMsg = $('#smsMessage');
   const phoneInput = $('#phoneInput');
   const sendCodeSms = $('#sendCodeSms'); 
   const codeSms = $('#codeSms');
-  const refCodeInput = $('#refCode'); // 紹介コード入力欄
+  const refCodeInput = $('#refCode'); 
   const verifySms = $('#verifySms');
-  
-  // 紹介ID表示
   const myRefId = $('#myRefId');
   const copyRefId = $('#copyRefId');
   const shareRefLink = $('#shareRefLink');
   const refMessage = $('#refMessage');
   
   // --- 状態変数 ---
-  let confirmationResult = null; // SMS認証の確認結果
+  let confirmationResult = null; 
 
   // ==========================================================
   // 1. 起動時の処理 (認証状態の監視)
@@ -35,14 +30,16 @@
   auth.onAuthStateChanged(user => {
     if (user) {
       // --- 認証済みの場合 ---
-      regSection.style.display = 'none'; // 登録フォームを隠す
-      refSection.style.display = 'block'; // 紹介ID欄を表示
+      regSection.style.display = 'none'; 
+      refSection.style.display = 'block'; 
       setupMyReferralSection(user.uid);
     } else {
       // --- 未認証の場合 ---
-      regSection.style.display = 'block'; // 登録フォームを表示
-      refSection.style.display = 'none'; // 紹介ID欄を隠す
-      checkUrlForReferral(); // URLに紹介コードがないかチェック
+      regSection.style.display = 'block'; 
+      refSection.style.display = 'none'; 
+      checkUrlForReferral();
+      // ★修正点: reCAPTCHAの準備を開始
+      setupRecaptcha();
     }
   });
 
@@ -54,7 +51,7 @@
   function checkUrlForReferral() {
     try {
       const params = new URLSearchParams(window.location.search);
-      const ref = params.get('ref'); // ?ref=XXXXXX
+      const ref = params.get('ref'); 
       if (ref && refCodeInput) {
         refCodeInput.value = ref;
         showMessage('紹介コードが入力されました。', false);
@@ -80,71 +77,64 @@
   }
 
   // 2d. reCAPTCHAのセットアップ（★最重要修正箇所★）
-  // reCAPTCHAの準備が完了するのを「待つ」ための関数
-  async function ensureRecaptchaVerifier() {
-    // 既に初期化済みの場合は、それを返す
-    if (window.recaptchaVerifier) {
-      return window.recaptchaVerifier;
-    }
+  function setupRecaptcha() {
+    // 既に初期化済みの場合は何もしない
+    if (window.recaptchaVerifier) return;
     
-    // なければ、新しく作成し、ボタンに紐付ける
-    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(sendCodeSms, {
-      'size': 'invisible',
-      'callback': (response) => { 
-        // このコールバックは、signInWithPhoneNumberが成功したときに呼ばれる
-        console.log("reCAPTCHA check successful."); 
+    // ★修正点: 'size': 'normal' に変更し、チェックボックスを表示
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      'size': 'normal', // 'invisible' から変更
+      'callback': (response) => {
+        // ★修正点: reCAPTCHAがチェックされたら、SMS送信を実行
+        console.log("reCAPTCHA verified, sending SMS...");
+        sendSmsInternal();
       },
       'expired-callback': () => {
-        showMessage('認証（reCAPTCHA）の有効期限が切れました。もう一度お試しください。', true);
-        sendCodeSms.disabled = false;
-        window.recaptchaVerifier = null; // 期限切れなのでリセット
+        showMessage('reCAPTCHAの有効期限が切れました。ページを再読み込みしてください。', true);
       }
     }, auth);
 
-    try {
-      // reCAPTCHAをレンダリングし、完了するまで「待つ」
-      await window.recaptchaVerifier.render();
-      console.log("reCAPTCHA rendered and ready.");
-      return window.recaptchaVerifier;
-    } catch (error) {
-      console.error("reCAPTCHA render error:", error);
-      showMessage('reCAPTCHAの準備に失敗しました。ページを再読み込みしてください。', true);
-      window.recaptchaVerifier = null; // 失敗したのでリセット
-      throw error; // エラーを投げて処理を中断
-    }
+    // reCAPTCHAウィジェットを描画
+    window.recaptchaVerifier.render();
   }
 
   // 2e. 認証コード送信
-  // ボタンクリック時の処理を 'async' (非同期) に変更
-  on(sendCodeSms, 'click', async () => {
-    
+  // ★修正点: 「コード送信」ボタンはreCAPTCHAのトリガーではなくなる
+  //    ボタンを押したときの処理は「reCAPTCHAを押してください」と促すだけにする
+  on(sendCodeSms, 'click', () => {
+      const phoneNumber = toInternationalFormat(phoneInput.value.trim());
+      if (!phoneNumber) {
+        showMessage('電話番号を入力してください。', true);
+        return;
+      }
+      
+      // reCAPTCHAがまだチェックされていない場合
+      if (!confirmationResult) {
+        showMessage('電話番号を入力後、「私はロボットではありません」のチェックボックスを押してください。', false);
+      }
+      
+      // このボタンはSMS送信を実行しなくなる
+      // reCAPTCHAの 'callback' が sendSmsInternal を実行する
+  });
+
+  // (reCAPTCHAのコールバックから呼ばれる内部関数)
+  function sendSmsInternal() {
+    const appVerifier = window.recaptchaVerifier;
     const phoneNumber = toInternationalFormat(phoneInput.value.trim());
+
     if (!phoneNumber) {
       showMessage('電話番号を入力してください。', true);
       return;
     }
-    
-    sendCodeSms.disabled = true;
-    showMessage('認証コードを送信中... (reCAPTCHA準備中)', false);
 
-    let appVerifier;
-    try {
-      // ★修正点: reCAPTCHAの準備が完了するまで「待つ」
-      appVerifier = await ensureRecaptchaVerifier();
-    } catch (error) {
-      // 準備に失敗したら処理を中断
-      sendCodeSms.disabled = false;
-      return;
-    }
-
-    // reCAPTCHAの準備ができたので、SMS送信に進む
+    sendCodeSms.disabled = true; // 送信中はボタンを無効化
     showMessage('認証コードを送信中...', false);
 
     auth.signInWithPhoneNumber(phoneNumber, appVerifier)
       .then((result) => {
         confirmationResult = result;
         showMessage('認証コードを送信しました。', false);
-        sendCodeSms.disabled = false;
+        sendCodeSms.disabled = false; // 完了したら有効化
       })
       .catch((error) => {
         console.error("SMS送信エラー:", error);
@@ -156,12 +146,11 @@
         sendCodeSms.disabled = false;
         
         // reCAPTCHAをリセット（次の試行のため）
-        window.recaptchaVerifier = null;
         if (window.grecaptcha && window.recaptchaWidgetId) {
             grecaptcha.reset(window.recaptchaWidgetId);
         }
       });
-  });
+  }
 
 
   // 2f. 認証コード確認 と 登録処理
@@ -172,7 +161,7 @@
       return;
     }
     if (!confirmationResult) {
-      showMessage('先に「コード送信」を押してください。', true);
+      showMessage('先に電話番号を入力し、reCAPTCHA認証を完了してください。', true);
       return;
     }
 
@@ -236,7 +225,6 @@
             url: shareUrl
           });
         } else {
-          // PC (クリップボードにコピー)
           await navigator.clipboard.writeText(shareUrl);
           if(refMessage) refMessage.textContent = '紹介リンクをコピーしました！';
           setTimeout(() => { if(refMessage) refMessage.textContent = ''; }, 3000);
