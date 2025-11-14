@@ -96,33 +96,7 @@
   </main>
 
   <script>
-    // **ドロワーロジックの修正**
-    const d=document.getElementById('drawer'),
-          s=document.getElementById('scrim'),
-          menuBtn=document.getElementById('menuBtn'),
-          drawerClose=document.getElementById('drawerClose');
-    
-    // ドロワーを開く関数
-    const openDrawer = () => {
-        d.classList.add('open');
-        s.classList.add('show');
-    };
-
-    // ドロワーを閉じる関数
-    const closeDrawer = () => {
-        d.classList.remove('open');
-        s.classList.remove('show');
-    };
-
-    // イベントリスナーの再設定 (元のコードと今回の修正を融合)
-    menuBtn.addEventListener('click', openDrawer);
-    s.addEventListener('click', closeDrawer);
-    drawerClose.addEventListener('click', closeDrawer); // ✕ボタン
-    
-    // ドロワー内のリンクをクリックした場合
-    d.addEventListener('click',e=>{if(e.target.matches('a')){closeDrawer();}});
-
-    // **FIREBASE 設定値の組み込み**
+    // ** Firebase 初期化コードの追記 **
     const firebaseConfig = {
         apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU", 
         authDomain: "himegoto-web.firebaseapp.com", 
@@ -136,6 +110,16 @@
     const app = firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth(app);
     const db = firebase.firestore(app); // Firestoreも初期化
+
+    // ** 既存のメニューロジックをそのまま維持・追記 **
+    const d=document.getElementById('drawer'),s=document.getElementById('scrim');
+    document.getElementById('menuBtn').addEventListener('click',()=>{d.classList.add('open');s.classList.add('show');});
+    s.addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
+    
+    // ✕ボタンの処理が元になかったため、追加します。
+    document.getElementById('drawerClose').addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
+    
+    d.addEventListener('click',e=>{if(e.target.matches('a')){d.classList.remove('open');s.classList.remove('show');}});
   </script>
 </body>
 </html>
