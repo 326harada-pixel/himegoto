@@ -2,159 +2,66 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>登録 - himegoto</title>
-  <link rel="stylesheet" href="fix.css">
-  <script src="header-loader.js"></script>
-  <script src="common.js"></script>
-  
-  <!-- 【追記】Firebase SDKの読み込み (Compat版) -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-  
-  <!-- 【追記】認証ロジックを記述するファイル -->
-  <script src="app-register.js"></script>
-
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>登録と紹介 - himegoto（β）</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <header class="header">
+    <button class="hamburger" id="menuBtn" aria-label="menu">≡</button>
+    <div class="brand">himegoto</div><div class="spacer"></div><div class="version">ver.1.27β</div>
+  </header>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-header"><strong>メニュー</strong><button id="drawerClose" class="close-btn" aria-label="閉じる">✕</button></div><nav><ul class="nav">
+<li><a href="/index.html">ホーム</a></li>
+<li><a href="/help.html">アプリ用途</a></li>
+<li><a href="/help.html#howto">使い方</a></li>
+<li><a href="/qa.html">Q&amp;A</a></li>
+<li><a href="/register.html">登録と紹介</a></li>
+<li><a href="/privacy.html">プライバシーポリシー</a></li>
+<li><a href="/terms.html">規約</a></li>
+<li><a href="/terms.html#tokushoho">特定商取引法（準備中）及び運営者情報</a></li>
+<li><a href="/feedback.html">ご意見・ご要望</a></li>
+</ul></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
   <main class="container">
+    <h1>登録と紹介</h1>
 
-    <!-- アカウント登録 -->
     <section class="card">
-      <h2>アカウント登録</h2>
-
-      <!-- 方式切替 -->
-      <div class="row" role="tablist" aria-label="登録方式">
-        <button class="btn primary" id="tabSms" aria-selected="true">SMS</button>
-        <button class="btn" id="tabMail" aria-selected="false">メール</button>
-      </div>
-
-      <!-- SMS方式 -->
-      <div id="paneSms">
-        <p class="muted small" id="auth-status-message" style="margin-bottom: 10px;">携帯番号によるSMS認証が必要です。</p>
-        <div class="row">
-          <input type="tel" id="phoneInput" placeholder="電話番号（例：+8190...）">
-          <button class="btn" id="sendCodeSms">コード送信</button>
-        </div>
-        <div class="row">
-          <input type="text" id="codeSms" placeholder="SMSで届いた6桁コード">
-          <button class="btn primary" id="verifySms">確認</button>
-        </div>
-        <!-- reCAPTCHAコンテナをこの方式の下に追加 -->
-        <div id="recaptcha-container" style="margin-top: 10px; display: flex; justify-content: center;"></div>
-      </div>
-
-      <!-- メール方式 -->
-      <div id="paneMail" style="display:none">
-        <div class="row">
-          <input type="email" id="mailInput" placeholder="メールアドレス">
-          <button class="btn" id="sendCodeMail" disabled>コード送信</button>
-        </div>
-        <div class="row">
-          <input type="text" id="codeMail" placeholder="メールで届いた6桁コード">
-          <button class="btn primary" id="verifyMail" disabled>確認</button>
-        </div>
-      </div>
-
-      <p id="error-message" style="color: red; margin-top: 10px;"></p>
-      
-      <!-- パスワード作成 (SMS認証後にユーザーを作成する際に利用) -->
+      <h2>本人確認（SMS）<small class="pill ghost">準備中</small></h2>
+      <p>不正利用防止のため、携帯番号によるSMS認証を予定しています。認証完了後、あなた専用の<strong>紹介ID</strong>が発行されます。</p>
       <div class="row">
-        <input type="password" id="pw1" placeholder="パスワード（8文字以上）">
-      </div>
-      <div class="row">
-        <input type="password" id="pw2" placeholder="パスワード（確認用）">
-      </div>
-
-      <!-- 同意 -->
-      <label class="row" style="gap:.5rem;align-items:center">
-        <input type="checkbox" id="agree">
-        <span>利用規約・プライバシーポリシー・特定商取引法の表記に同意します。</span>
-      </label>
-      <p class="muted" style="margin-top:.25rem">
-        <a href="terms.html">利用規約</a> ／
-        <a href="privacy.html">プライバシーポリシー</a> ／
-        <a href="tokusho.html">特定商取引法</a>
-      </p>
-
-      <div class="row">
-        <button class="btn primary" id="registerBtn" disabled>登録する</button>
+        <input type="tel" inputmode="tel" placeholder="電話番号（SMS認証・準備中）" disabled>
+        <button disabled>認証する</button>
       </div>
     </section>
 
-    <!-- プロフィール（任意） -->
     <section class="card">
-      <h2>プロフィール（任意）</h2>
-      <div class="row"><input type="text" id="displayName" placeholder="表示名（任意）"></div>
-      <div class="row"><input type="text" id="shopName" placeholder="店舗名（任意）"></div>
-      <div class="row"><input type="date" id="birthday" placeholder="誕生日（任意）"></div>
-      <!-- 紹介コードのフィールドIDを、後で使いやすいように変更 -->
-      <div class="row"><input type="text" id="referralIdInput" placeholder="紹介コード（任意）"></div> 
-      <div class="row"><button class="btn" id="saveProfile">保存（任意）</button></div>
-      <p class="muted">後からいつでも変更できます。未入力でも登録は可能です。</p>
-    </section>
-
-    <!-- 注意 -->
-    <section class="card">
-      <h2>注意事項</h2>
-      <ul class="list">
-        <li>無料版は顧客の登録数5名／1日の送信5回までです（日本時間0:00リセット）。</li>
-        <li>バックアップはホームの「文字列を作る」で行えます。端末変更前に必ず保存してください。</li>
-        <li>お問い合わせは公式LINEから受け付けています（実URL）。</li>
+      <h2>紹介IDの入力</h2>
+      <p>紹介者のIDを入力して登録すると、<strong>あなたと紹介者の双方に「3日間 無制限」</strong>が付与されます（仕様は今後調整）。</p>
+      <div class="row">
+        <input type="text" placeholder="紹介者IDを入力">
+        <button class="primary">登録（ダミー）</button>
+      </div>
+      <ul class="small">
+        <li>複数人を紹介すると、その日数が加算されます。</li>
+        <li>悪用防止のため、同一端末・同一番号での多重登録は無効化されます。</li>
       </ul>
     </section>
 
+    <section class="card">
+      <h2>ステータス</h2>
+      <p>現在のプラン：<strong>無料</strong> / 無制限の残り期間：<strong>0日</strong>（ダミー表示）</p>
+    </section>
   </main>
 
   <script>
-  // 【追記】FIREBASE 設定値の組み込み
-    const firebaseConfig = {
-        apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU", 
-        authDomain: "himegoto-web.firebaseapp.com", 
-        projectId: "himegoto-web", 
-        storageBucket: "himegoto-web.firebasestorage.app", 
-        messagingSenderId: "368382081243", 
-        appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
-    };
-    
-    // Firebase の初期化
-    const app = firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth(app);
-    const db = firebase.firestore(app); // Firestoreも初期化
-
-  // 【既存のロジック（そのまま維持）】
-  (function(){
-    const $ = (s)=>document.querySelector(s);
-    const on = (el,ev,fn)=>el&&el.addEventListener(ev,fn);
-
-    // タブ切替
-    const tabSms = $('#tabSms'), tabMail = $('#tabMail');
-    const paneSms = $('#paneSms'), paneMail = $('#paneMail');
-    function sel(tab){
-      const sms = (tab==='sms');
-      paneSms.style.display = sms ? '' : 'none';
-      paneMail.style.display = sms ? 'none' : '';
-      tabSms.classList.toggle('primary', sms);
-      tabMail.classList.toggle('primary', !sms);
-      tabSms.setAttribute('aria-selected', sms?'true':'false');
-      tabMail.setAttribute('aria-selected', !sms?'true':'false');
-    }
-    on(tabSms,'click',()=>sel('sms'));
-    on(tabMail,'click',()=>sel('mail'));
-    
-    // ダミー送信／確認
-    // これらの関数は、app-register.js で Firebase の本物の処理に上書きされます。
-    on($('#sendCodeMail'),'click',()=>alert('メールコードを送信しました（ダミー）'));
-    on($('#verifyMail'),'click',()=>alert('メールコードを確認しました（ダミー）'));
-    on($('#registerBtn'),'click',()=>{
-      // app-register.js で処理を上書きするため、ここでは何もしません。
-    });
-
-    // プロフィール保存は現状維持
-    on($('#saveProfile'),'click',()=>alert('プロフィールを保存しました（ローカル・ダミー）'));
-  })();
+    const d=document.getElementById('drawer'),s=document.getElementById('scrim');
+    document.getElementById('menuBtn').addEventListener('click',()=>{d.classList.add('open');s.classList.add('show');});
+    s.addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
+    d.addEventListener('click',e=>{if(e.target.matches('a')){d.classList.remove('open');s.classList.remove('show');}});
   </script>
 </body>
 </html>
-
