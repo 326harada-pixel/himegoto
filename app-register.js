@@ -1,288 +1,226 @@
-// app-register.js
-// 開発サポート：Gemini
-// 目的：SMS認証フローの実装と、Firestoreへの初期データ書き込み。
-// 【重要】090/080形式を+81形式に自動変換するロジックを追加
+(function(){
+  const $ = (s)=>document.querySelector(s);
+  const on = (el,ev,fn)=>el&&el.addEventListener(ev,fn);
 
-const $ = (s) => document.querySelector(s);
-// register.htmlで初期化されたFirebaseインスタンスを使う
-// 既にグローバル変数として存在する
-const auth = firebase.auth();
-const db = firebase.firestore();
+  // --- グローバル変数（Firebase初期化はHTML側で完了済み） ---
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  // 紹介リンクのベースURL（重要：デプロイ先のドメインに合わせてください）
+  const APP_URL = "https://himegoto.jp/register.html"; // 仮のドメイン
 
-// --- DOM elements ---
-const sendCodeButton = $('#sendCodeSms'); // ID変更
-const verifyCodeButton = $('#verifySms');   // ID変更
-const phoneNumberInput = $('#phoneInput'); // ID変更
-const verificationCodeInput = $('#codeSms'); // ID変更
-const errorMessage = $('#error-message');
-const statusMessage = $('#auth-status-message');
-const registerButton = $('#registerBtn');
-const agreeCheckbox = $('#agree');
-const passwordInput1 = $('#pw1');
-const passwordInput2 = $('#pw2');
+  // --- DOM要素 ---
+  const regSection = $('#registration-section'); // 未認証時
+  const refSection = $('#my-referral-section'); // 認証済み時
+  
+  // 登録フォーム
+  const tabSms = $('#tabSms'), tabMail = $('#tabMail');
+  const paneSms = $('#paneSms'), paneMail = $('#paneMail');
+  const smsMsg = $('#smsMessage');
+  const phoneInput = $('#phoneInput');
+  const sendCodeSms = $('#sendCodeSms');
+  const codeSms = $('#codeSms');
+  const refCodeInput = $('#refCode'); // 紹介コード入力欄
+  const verifySms = $('#verifySms');
+  const sendCodeMail = $('#sendCodeMail');
+  const verifyMail = $('#verifyMail');
+  
+  // 紹介ID表示
+  const myRefId = $('#myRefId');
+  const copyRefId = $('#copyRefId');
+  const shareRefLink = $('#shareRefLink');
+  const refMessage = $('#refMessage');
+  
+  // --- 状態変数 ---
+  let confirmationResult = null; // SMS認証の確認結果
 
-// reCAPTCHAはpaneSmsの下にある前提
-const recaptchaContainer = $('#recaptcha-container');
-const paneSms = $('#paneSms');
-
-let confirmationResult = null; // 認証コードの検証に必要なオブジェクトを保持
-let isSmsVerified = false; // SMS認証が成功したかどうかのフラグ
-
-// ------------------------------------------
-// 補助関数
-// ------------------------------------------
-
-function showMessage(el, text, isError = false) {
-    el.textContent = text;
-    el.style.color = isError ? 'red' : 'green';
-}
-
-function updateUIForAuth(user) {
+  // ==========================================================
+  // 1. 起動時の処理 (認証状態の監視)
+  // ==========================================================
+  auth.onAuthStateChanged(user => {
     if (user) {
-        // ログイン済み (UIDを持っている)
-        showMessage(statusMessage, `ログイン完了: UID ${user.uid}`, false);
-        sendCodeButton.disabled = true;
-        verifyCodeButton.disabled = true;
-        registerButton.disabled = true; // 認証完了時は、もう登録済みなのでボタンは押させない
-        
-        // TODO: ホームへリダイレクトするロジックを実装する
-        
+      // --- 認証済みの場合 ---
+      regSection.style.display = 'none'; // 登録フォームを隠す
+      refSection.style.display = 'block'; // 紹介ID欄を表示
+      setupMyReferralSection(user.uid);
     } else {
-        // 未ログイン
-        showMessage(statusMessage, '携帯番号によるSMS認証が必要です。', false);
-        sendCodeButton.disabled = false;
-        verifyCodeButton.disabled = true; // コード確認は未送信時は無効
-        registerButton.disabled = true; // SMS認証とパスワード入力が完了するまで無効
-        isSmsVerified = false;
-
-        // reCAPTCHAの初期化 (ウィンドウ全体で1回のみ)
-        if (!window.recaptchaVerifier && paneSms && paneSms.style.display !== 'none') {
-            // FirebaseのSMS認証に必須のボット対策の仕組み
-            window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(recaptchaContainer, {
-                'size': 'normal',
-                'callback': (response) => { console.log("reCAPTCHA solved."); },
-                'expired-callback': () => { console.log("reCAPTCHA expired. Please re-verify."); window.recaptchaVerifier.render(); }
-            }, auth);
-            // reCAPTCHAウィジェットの描画
-            window.recaptchaVerifier.render(); 
-        }
+      // --- 未認証の場合 ---
+      regSection.style.display = 'block'; // 登録フォームを表示
+      refSection.style.display = 'none'; // 紹介ID欄を隠す
+      checkUrlForReferral(); // URLに紹介コードがないかチェック
     }
-    errorMessage.textContent = ''; 
-}
+  });
 
-/**
- * 日本の電話番号 (090/080...) を国際形式 (+81...) に変換する
- * @param {string} rawNumber ユーザーが入力した生の番号
- * @returns {string} 国際形式の番号
- */
-function toInternationalFormat(rawNumber) {
-    // スペース、ハイフンなどを除去
-    const cleaned = rawNumber.replace(/[\s\-\(\)]/g, ''); 
-    
-    // 0から始まっており、+81が付いていない場合のみ変換
-    if (cleaned.startsWith('0') && cleaned.length >= 10 && !cleaned.startsWith('+81')) {
-        // 最初の0を削除し、+81を付与
-        return '+81' + cleaned.substring(1);
-    }
-    
-    // それ以外はそのまま返す（既に国際形式か、不正な形式）
-    return cleaned;
-}
+  // ==========================================================
+  // 2. 未認証時の処理
+  // ==========================================================
 
-
-// ------------------------------------------
-// 1. Firebase Auth State Change (認証状態の監視)
-// ------------------------------------------
-
-auth.onAuthStateChanged(user => {
-    updateUIForAuth(user);
-});
-
-// ------------------------------------------
-// 2. 認証コードの送信処理 (Step 1)
-// ------------------------------------------
-
-sendCodeButton && sendCodeButton.addEventListener('click', () => {
-    const rawNumber = phoneNumberInput.value.trim();
-    errorMessage.textContent = '';
-    
-    if (!rawNumber || rawNumber.length < 10) {
-        showMessage(errorMessage, '有効な電話番号を入力してください。', true);
-        return;
-    }
-    
-    if (!window.recaptchaVerifier) {
-        showMessage(errorMessage, 'reCAPTCHAが読み込まれていません。ページを再読み込みしてください。', true);
-        return;
-    }
-    
-    // 【重要】ここで電話番号を国際形式に変換
-    const phoneNumber = toInternationalFormat(rawNumber);
-    
-    // 最終チェック
-    if (!phoneNumber.startsWith('+') || phoneNumber.length < 12) {
-        showMessage(errorMessage, '電話番号の形式が正しくありません。（例: 090... または +8190...）', true);
-        return;
-    }
-
-    sendCodeButton.disabled = true;
-
-    // SMS認証コードの送信
-    auth.signInWithPhoneNumber(phoneNumber, window.recaptchaVerifier)
-        .then((confirmation) => {
-            confirmationResult = confirmation;
-            alert('認証コードを送信しました。'); // TODO: カスタムモーダルに変更
-            
-            sendCodeButton.disabled = false;
-            verifyCodeButton.disabled = false;
-            showMessage(statusMessage, '6桁の認証コードが届くのをお待ちください。', false);
-        })
-        .catch((error) => {
-            console.error("SMS送信エラー:", error);
-            let msg = '認証コードの送信に失敗しました。';
-            if (error.code === 'auth/invalid-phone-number') {
-                msg = '電話番号の形式が正しくありません。（090...または+8190...で入力しましたか？）';
-            } else if (error.code === 'auth/quota-exceeded') {
-                msg = '送信回数の上限を超えました。しばらく待ってからお試しください。';
-            }
-            showMessage(errorMessage, `${msg} (Code: ${error.code})`, true);
-            sendCodeButton.disabled = false;
-            window.recaptchaVerifier.render(); // reCAPTCHAをリセット
-        });
-});
-
-// ------------------------------------------
-// 3. 認証コードの検証 (Step 2)
-// ------------------------------------------
-
-verifyCodeButton && verifyCodeButton.addEventListener('click', () => {
-    const code = verificationCodeInput.value.trim();
-    errorMessage.textContent = '';
-    
-    if (!code || code.length !== 6) {
-        showMessage(errorMessage, '6桁の認証コードを入力してください。', true);
-        return;
-    }
-    
-    if (!confirmationResult) {
-        showMessage(errorMessage, '認証コードが送信されていません。最初からやり直してください。', true);
-        return;
-    }
-
-    verifyCodeButton.disabled = true;
-
-    // 認証コードの検証
-    confirmationResult.confirm(code)
-        .then((result) => {
-            // SMS認証成功（ログイン完了）
-            console.log("SMS認証成功:", result.user.uid);
-            showMessage(statusMessage, 'SMS認証が完了しました。パスワードを設定し、「登録する」を押してください。', false);
-            isSmsVerified = true;
-            
-            // SMS検証成功後、パスワード入力と利用規約同意で登録ボタンを有効にするための監視を開始
-            checkRegistrationReadiness();
-            
-            verifyCodeButton.disabled = true; // 再度押せないようにする
-            phoneNumberInput.disabled = true; // 電話番号も変更不可にする
-            sendCodeButton.disabled = true;
-
-        })
-        .catch((error) => {
-            console.error("認証コード検証エラー:", error);
-            showMessage(errorMessage, `認証コードが正しくありません。再度お試しください。 (Code: ${error.code})`, true);
-            verifyCodeButton.disabled = false;
-        });
-});
-
-// ------------------------------------------
-// 4. 登録ボタンの有効化チェック (パスワードと同意)
-// ------------------------------------------
-
-function checkRegistrationReadiness() {
-    const pw1 = passwordInput1.value || '';
-    const pw2 = passwordInput2.value || '';
-    const isPwValid = pw1.length >= 8 && pw1 === pw2;
-    const isAgreed = agreeCheckbox.checked;
-
-    // SMS認証済み AND パスワード有効 AND 同意済み の全てが揃ったら有効
-    registerButton.disabled = !(isSmsVerified && isPwValid && isAgreed);
-}
-
-// パスワード入力と同意チェックボックスの監視
-passwordInput1.addEventListener('input', checkRegistrationReadiness);
-passwordInput2.addEventListener('input', checkRegistrationReadiness);
-agreeCheckbox.addEventListener('change', checkRegistrationReadiness);
-
-// ------------------------------------------
-// 5. 登録処理 (Firebase Authへの正式な登録とFirestore初期データ作成)
-// ------------------------------------------
-
-registerButton && registerButton.addEventListener('click', async () => {
-    errorMessage.textContent = '';
-    
-    // 最終バリデーション
-    const pw1 = passwordInput1.value || '';
-    if(pw1.length < 8) { showMessage(errorMessage, 'パスワードは8文字以上にしてください。', true); return; }
-    if(passwordInput1.value !== passwordInput2.value) { showMessage(errorMessage, 'パスワードが一致しません。', true); return; }
-    if(!agreeCheckbox.checked) { showMessage(errorMessage, '各規約への同意が必要です。', true); return; }
-
-    registerButton.disabled = true;
-    showMessage(statusMessage, '登録処理中です...しばらくお待ちください。', false);
-
+  // 2a. URLをチェックし、紹介コードがあれば自動入力
+  function checkUrlForReferral() {
     try {
-        // ユーザーがログインしていることを確認
-        const user = auth.currentUser;
-        if (!user || user.phoneNumber !== toInternationalFormat(phoneNumberInput.value.trim())) {
-             // toInternationalFormat を使って電話番号を比較
-            throw new Error("認証状態が不正です。最初からやり直してください。");
-        }
-        
-        // Firestoreに初期データ（課金情報とプロフィール）を作成
-        await initializeUserFirestore(user.uid);
-
-        // ホーム画面へリダイレクト（認証完了後）
-        alert('アカウント登録が完了しました！ホーム画面へ移動します。'); // TODO: カスタムモーダル
-        location.href = 'index.html'; 
-
-    } catch (error) {
-        console.error("最終登録エラー:", error);
-        showMessage(errorMessage, `登録に失敗しました: ${error.message}`, true);
-        registerButton.disabled = false;
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref'); // ?ref=XXXXXX
+      if (ref && refCodeInput) {
+        refCodeInput.value = ref;
+        showMessage('紹介コードが入力されました。', false);
+      }
+    } catch (e) {
+      console.warn("URLSearchParams not supported or URL invalid", e);
     }
-});
+  }
 
+  // 2b. タブ切替
+  function sel(tab){
+    const sms = (tab==='sms');
+    paneSms.style.display = sms ? '' : 'none';
+    paneMail.style.display = sms ? 'none' : '';
+    tabSms.classList.toggle('primary', sms);
+    tabMail.classList.toggle('primary', !sms);
+    tabSms.setAttribute('aria-selected', sms?'true':'false');
+    tabMail.setAttribute('aria-selected', !sms?'true':'false');
+    showMessage('', false);
+  }
+  on(tabSms,'click',()=>sel('sms'));
+  on(tabMail,'click',()=>sel('mail'));
 
-// ------------------------------------------
-// 6. Firestore初期データ作成
-// ------------------------------------------
+  // 2c. 補助関数 (メッセージ表示)
+  function showMessage(text, isError) {
+    if (!smsMsg) return;
+    smsMsg.textContent = text;
+    smsMsg.style.color = isError ? '#D32F2F' : '#4CAF50';
+  }
 
-/**
- * ユーザーのFirestoreに初期データ（課金情報とプロフィール）を作成する
- * @param {string} uid 
- */
-async function initializeUserFirestore(uid) {
-    // データ設計: users/{uid}/purchases/current
-    const purchaseDocRef = db.collection('users').doc(uid).collection('purchases').doc('current');
+  // 2d. reCAPTCHAの初期化
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+    'size': 'invisible',
+    'callback': (response) => { console.log("reCAPTCHA verified."); }
+  }, auth);
+  
+  // 2e. 電話番号を国際形式(+81)に変換
+  function toInternationalFormat(phone) {
+    if (!phone) return '';
+    if (phone.startsWith('+')) return phone;
+    if (phone.startsWith('0')) return '+81' + phone.substring(1);
+    return '+81' + phone;
+  }
+
+  // 2f. 認証コード送信
+  on(sendCodeSms,'click',() => {
+    const phoneNumber = toInternationalFormat(phoneInput.value.trim());
+    const appVerifier = window.recaptchaVerifier;
+
+    if (!phoneNumber) {
+      showMessage('電話番号を入力してください。', true);
+      return;
+    }
+    sendCodeSms.disabled = true;
+    showMessage('認証コードを送信中...', false);
+
+    auth.signInWithPhoneNumber(phoneNumber, appVerifier)
+      .then((result) => {
+        confirmationResult = result;
+        showMessage('認証コードを送信しました。', false);
+        sendCodeSms.disabled = false;
+      })
+      .catch((error) => {
+        console.error("SMS送信エラー:", error);
+        showMessage('SMS送信に失敗しました。番号を確認してください。', true);
+        sendCodeSms.disabled = false;
+      });
+  });
+
+  // 2g. 認証コード確認 と 登録処理
+  on(verifySms,'click',() => {
+    const code = codeSms.value.trim();
+    if (!code) {
+      showMessage('認証コードを入力してください。', true);
+      return;
+    }
+    if (!confirmationResult) {
+      showMessage('先に「コード送信」を押してください。', true);
+      return;
+    }
+
+    verifySms.disabled = true;
+    showMessage('コードを照合し、登録中です...', false);
+
+    confirmationResult.confirm(code)
+      .then(async (result) => {
+        const user = result.user;
+        const uid = user.uid;
+        console.log("SMS認証成功:", uid);
+
+        // Firestoreに初期データを書き込む
+        const docRef = db.collection('users').doc(uid).collection('purchases').doc('current');
+        await docRef.set({
+          expiresAt: null,
+          registeredAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // 紹介コードを保存
+        const appliedRefCode = refCodeInput.value.trim() || '';
+        const profileRef = db.collection('users').doc(uid).collection('profile').doc('info');
+        await profileRef.set({
+          appliedRefCode: appliedRefCode
+        });
+
+        // alert('アカウント登録が完了しました！');
+        // onAuthStateChangedが自動で発火し、UIが切り替わる
+      })
+      .catch((error) => {
+        console.error("SMSコード確認または登録エラー:", error);
+        showMessage('認証コードが正しくないか、登録に失敗しました。', true);
+        verifySms.disabled = false;
+      });
+  });
+
+  // 2h. メール認証（ダミー）
+  on(sendCodeMail,'click',()=>alert('メールコードを送信しました（ダミー）'));
+  on(verifyMail,'click',()=>alert('メールコードを確認しました（ダミー）'));
+
+  // ==========================================================
+  // 3. 認証済み時の処理
+  // ==========================================================
+  
+  function setupMyReferralSection(uid) {
+    // uidの最初の8文字を「紹介ID」とする
+    const refId = uid.substring(0, 8);
     
-    // データ設計: users/{uid}/profile/main (プロフィールと紹介コードを保存)
-    const profileDocRef = db.collection('users').doc(uid).collection('profile').doc('main');
-
-    // 課金初期データ: expiresAt: null（無料）
-    const purchaseData = {
-        expiresAt: null, 
-        registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
-    };
-    await purchaseDocRef.set(purchaseData, { merge: true }); // merge: trueで既存フィールドを上書きしない
-
-    // プロフィールデータ（登録時に任意で入力されたもの）
-    const profileData = {
-        displayName: ($('#displayName') && $('#displayName').value) || null,
-        shopName: ($('#shopName') && $('#shopName').value) || null,
-        birthday: ($('#birthday') && $('#birthday').value) || null,
-        referralCodeUsed: ($('#referralIdInput') && $('#referralIdInput').value) || null, // 紹介コード
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-    };
-    await profileDocRef.set(profileData, { merge: true });
+    if (myRefId) {
+      myRefId.value = refId;
+    }
     
-    console.log("Firestore initialized for UID:", uid);
-                                             }
+    // 3a. コピーボタン
+    on(copyRefId, 'click', () => {
+      myRefId.select();
+      document.execCommand('copy');
+      if(refMessage) refMessage.textContent = 'IDをコピーしました！';
+      setTimeout(() => { if(refMessage) refMessage.textContent = ''; }, 2000);
+    });
+
+    // 3b. 紹介リンクを送るボタン
+    on(shareRefLink, 'click', async () => {
+      const shareUrl = `${APP_URL}?ref=${refId}`;
+      const shareText = `himegotoに登録しませんか？\nこのリンクから登録すると特典があります🎁\n${shareUrl}`;
+
+      try {
+        if (navigator.share) {
+          // Web Share API (スマホ)
+          await navigator.share({
+            title: 'himegotoの紹介',
+            text: shareText,
+            url: shareUrl
+          });
+        } else {
+          // PC (クリップボードにコピー)
+          await navigator.clipboard.writeText(shareUrl);
+          if(refMessage) refMessage.textContent = '紹介リンクをコピーしました！';
+          setTimeout(() => { if(refMessage) refMessage.textContent = ''; }, 3000);
+        }
+      } catch (err) {
+        console.error('シェアまたはコピーに失敗:', err);
+        if(refMessage) refMessage.textContent = 'リンクのコピーに失敗しました。';
+      }
+    });
+  }
+
+})();
