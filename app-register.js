@@ -13,16 +13,12 @@
   const refSection = $('#my-referral-section'); // 認証済み時
   
   // 登録フォーム
-  const tabSms = $('#tabSms'), tabMail = $('#tabMail');
-  const paneSms = $('#paneSms'), paneMail = $('#paneMail');
   const smsMsg = $('#smsMessage');
   const phoneInput = $('#phoneInput');
-  const sendCodeSms = $('#sendCodeSms');
+  const sendCodeSms = $('#sendCodeSms'); // ★reCAPTCHAを紐付けるボタン
   const codeSms = $('#codeSms');
   const refCodeInput = $('#refCode'); // 紹介コード入力欄
   const verifySms = $('#verifySms');
-  const sendCodeMail = $('#sendCodeMail');
-  const verifyMail = $('#verifyMail');
   
   // 紹介ID表示
   const myRefId = $('#myRefId');
@@ -47,6 +43,8 @@
       regSection.style.display = 'block'; // 登録フォームを表示
       refSection.style.display = 'none'; // 紹介ID欄を隠す
       checkUrlForReferral(); // URLに紹介コードがないかチェック
+      // 未認証時にreCAPTCHAをセットアップ
+      setupRecaptcha();
     }
   });
 
@@ -68,28 +66,14 @@
     }
   }
 
-  // 2b. タブ切替
-  function sel(tab){
-    const sms = (tab==='sms');
-    paneSms.style.display = sms ? '' : 'none';
-    paneMail.style.display = sms ? 'none' : '';
-    tabSms.classList.toggle('primary', sms);
-    tabMail.classList.toggle('primary', !sms);
-    tabSms.setAttribute('aria-selected', sms?'true':'false');
-    tabMail.setAttribute('aria-selected', !sms?'true':'false');
-    showMessage('', false);
-  }
-  on(tabSms,'click',()=>sel('sms'));
-  on(tabMail,'click',()=>sel('mail'));
-
-  // 2c. 補助関数 (メッセージ表示)
+  // 2b. 補助関数 (メッセージ表示)
   function showMessage(text, isError) {
     if (!smsMsg) return;
     smsMsg.textContent = text;
     smsMsg.style.color = isError ? '#D32F2F' : '#4CAF50';
   }
   
-  // 2d. 電話番号を国際形式(+81)に変換
+  // 2c. 電話番号を国際形式(+81)に変換
   function toInternationalFormat(phone) {
     if (!phone) return '';
     if (phone.startsWith('+')) return phone;
@@ -97,32 +81,70 @@
     return '+81' + phone;
   }
 
-  // --- 3. reCAPTCHAのセットアップ（クリック時に実行） ---
-  function getRecaptchaVerifier() {
-    // 既に初期化されていれば、それを返す
+  // 2d. reCAPTCHAのセットアップ（★最重要修正箇所★）
+  function setupRecaptcha() {
+    // 既に初期化済みの場合は何もしない
     if (window.recaptchaVerifier) {
-      return window.recaptchaVerifier;
+      // 古いものをリセット（必要な場合）
+      window.recaptchaVerifier.clear();
     }
     
-    // なければ、新しく作成
-    // HTMLの 'recaptcha-container' を使う
-    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-      'size': 'invisible',
-      'callback': (response) => { 
-        console.log("reCAPTCHA verified."); 
+    // 「コード送信」ボタンのDOM要素（sendCodeSms）に直接紐付ける
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(sendCodeSms, {
+      'size': 'invisible', // 非表示
+      'callback': (response) => {
+        // reCAPTCHA認証が成功したとき
+        console.log("reCAPTCHA verified, sending SMS...");
+        // このコールバックからSMS送信を実行
+        sendSmsInternal();
+      },
+      'expired-callback': () => {
+        // 期限切れの場合
+        showMessage('reCAPTCHAの有効期限が切れました。もう一度お試しください。', true);
+        sendCodeSms.disabled = false;
       }
     }, auth);
-    
-    return window.recaptchaVerifier;
+
+    // reCAPTCHAウィジェットを描画
+    window.recaptchaVerifier.render();
   }
 
-  // --- 4. 認証と登録のロジック ---
-
-  // 4a. 認証コード送信
-  on(sendCodeSms,'click',() => {
-    // ★修正点: reCAPTCHAの準備をここで実行
-    const appVerifier = getRecaptchaVerifier();
+  // 2e. 認証コード送信
+  // ユーザーが「コード送信」ボタンを押したときの処理
+  on(sendCodeSms, 'click', () => {
+    // reCAPTCHAがセットアップされていることを確認
+    if (!window.recaptchaVerifier) {
+        showMessage('reCAPTCHAの準備ができていません。ページを再読み込みしてください。', true);
+        return;
+    }
     
+    // reCAPTCHAの認証（'size': 'invisible' のため自動実行される）
+    // 成功すると、setupRecaptchaで設定した 'callback' が呼ばれる
+    
+    // ※注意: invisible reCAPTCHAは通常、signInWithPhoneNumberのappVerifierとして渡されると
+    // 自動で実行されますが、明示的にボタンに紐付けたため、ロジックを分割します。
+    // しかし、Firebase v9以前のcompatライブラリでは、
+    // signInWithPhoneNumberがreCAPTCHAの実行も兼ねるのが標準です。
+    // setupRecaptchaのロジックを元に戻し、signInWithPhoneNumberに任せます。
+
+    // --- ロジックを元に戻します（これが一番堅牢でした） ---
+    sendSmsInternal();
+  });
+
+  // reCAPTCHAのセットアップを(2d)から(2e)の内部に移動します
+  function sendSmsInternal() {
+    // reCAPTCHAが未設定の場合のみ、ボタンに紐付けて設定
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(sendCodeSms, {
+        'size': 'invisible',
+        'callback': (response) => { 
+            console.log("reCAPTCHA verified."); 
+            // 実際にはsignInWithPhoneNumberがreCAPTCHAをトリガーする
+        }
+      }, auth);
+    }
+    
+    const appVerifier = window.recaptchaVerifier;
     const phoneNumber = toInternationalFormat(phoneInput.value.trim());
 
     if (!phoneNumber) {
@@ -148,12 +170,17 @@
         }
         sendCodeSms.disabled = false;
         
-        // reCAPTCHAが失敗した場合、次のクリックで再初期化されるようにする
-        window.recaptchaVerifier = null;
+        // reCAPTCHAをリセット（次の試行のため）
+        if (window.recaptchaVerifier) {
+          window.recaptchaVerifier.render().then((widgetId) => {
+            grecaptcha.reset(widgetId);
+          });
+        }
       });
-  });
+  }
 
-  // 4b. 認証コード確認 と 登録処理
+
+  // 2f. 認証コード確認 と 登録処理
   on(verifySms,'click',() => {
     const code = codeSms.value.trim();
     if (!code) {
@@ -168,29 +195,25 @@
     verifySms.disabled = true;
     showMessage('コードを照合し、登録中です...', false);
 
-    // 1. 認証コードの確認
     confirmationResult.confirm(code)
       .then(async (result) => {
         const user = result.user;
         const uid = user.uid;
         console.log("SMS認証成功:", uid);
 
-        // 2. Firestoreに初期データを書き込む
         const docRef = db.collection('users').doc(uid).collection('purchases').doc('current');
         await docRef.set({
           expiresAt: null,
           registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // 3. 紹介コードを保存
         const appliedRefCode = refCodeInput.value.trim() || '';
         const profileRef = db.collection('users').doc(uid).collection('profile').doc('info');
         await profileRef.set({
           appliedRefCode: appliedRefCode
         });
-
-        // alert('アカウント登録が完了しました！'); 
-        // このアラートは不要。onAuthStateChangedが自動でUIを切り替える
+        
+        // onAuthStateChangedが自動でUIを切り替える
       })
       .catch((error) => {
         console.error("SMSコード確認または登録エラー:", error);
@@ -199,41 +222,30 @@
       });
   });
 
-  // 4c. メール認証（ダミー）
-  on(sendCodeMail,'click',()=>alert('メールコードを送信しました（ダミー）'));
-  on(verifyMail,'click',()=>alert('メールコードを確認しました（ダミー）'));
-
   // ==========================================================
-  // 5. 認証済み時の処理 (紹介ID表示)
+  // 3. 認証済み時の処理 (紹介ID表示)
   // ==========================================================
   
   function setupMyReferralSection(uid) {
-    // uidの最初の8文字を「紹介ID」とする
     const refId = uid.substring(0, 8);
     
     if (myRefId) {
       myRefId.value = refId;
     }
     
-    // 5a. コピーボタン
     on(copyRefId, 'click', () => {
       myRefId.select();
-      // navigator.clipboard.writeTextはiframe内で権限がない場合があるため、
-      // 開発ルール（`document.execCommand`）に基づき、execCommandを使用します。
       document.execCommand('copy'); 
-      
       if(refMessage) refMessage.textContent = 'IDをコピーしました！';
       setTimeout(() => { if(refMessage) refMessage.textContent = ''; }, 2000);
     });
 
-    // 5b. 紹介リンクを送るボタン
     on(shareRefLink, 'click', async () => {
       const shareUrl = `${APP_URL}?ref=${refId}`;
       const shareText = `himegotoに登録しませんか？\nこのリンクから登録すると特典があります🎁\n${shareUrl}`;
 
       try {
         if (navigator.share) {
-          // Web Share API (スマホ)
           await navigator.share({
             title: 'himegotoの紹介',
             text: shareText,
@@ -247,12 +259,11 @@
         }
       } catch (err) {
         console.error('シェアまたはコピーに失敗:', err);
-        // PCの `writeText` が失敗した場合のフォールバック
         try {
-            myRefId.value = shareUrl; // 紹介IDの代わりにURLを一時的に入力
+            myRefId.value = shareUrl;
             myRefId.select();
             document.execCommand('copy');
-            myRefId.value = refId; // 元のIDに戻す
+            myRefId.value = refId;
             if(refMessage) refMessage.textContent = '紹介リンクをコピーしました！';
             setTimeout(() => { if(refMessage) refMessage.textContent = ''; }, 3000);
         } catch(e) {
