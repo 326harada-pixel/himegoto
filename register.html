@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>登録と紹介 - himegoto（β）</title>
+  <link rel="stylesheet" href="/style.css">
+  
+  <!-- Firebase SDKの読み込み (Compat版: 古いブラウザやシンプルな記述に対応) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  
+  <!-- 認証ロジックを記述するファイル -->
+  <script src="app-register.js"></script>
+
+  <style>
+    /* 認証UI用の最小限のスタイル追記 */
+    .row.auth-step {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .hidden { display: none; }
+  </style>
+
+</head>
+<body>
+  <!-- 既存のヘッダー/ナビゲーションはそのまま残す -->
+  <header class="header">
+    <button class="hamburger" id="menuBtn" aria-label="menu">≡</button>
+    <div class="brand">himegoto</div><div class="spacer"></div><div class="version">ver.1.27β</div>
+  </header>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-header"><strong>メニュー</strong><button id="drawerClose" class="close-btn" aria-label="閉じる">✕</button></div><nav><ul class="nav">
+<li><a href="/index.html">ホーム</a></li>
+<li><a href="/help.html">アプリ用途</a></li>
+<li><a href="/help.html#howto">使い方</a></li>
+<li><a href="/qa.html">Q&amp;A</a></li>
+<li><a href="/register.html">登録と紹介</a></li>
+<li><a href="/privacy.html">プライバシーポリシー</a></li>
+<li><a href="/terms.html">規約</a></li>
+<li><a href="/terms.html#tokushoho">特定商取引法（準備中）及び運営者情報</a></li>
+<li><a href="/feedback.html">ご意見・ご要望</a></li>
+</ul></nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="container">
+    <h1>登録と紹介</h1>
+    
+    <!-- ここにSMS認証UIを組み込む -->
+    <section class="card" id="auth-section">
+      <h2>本人確認（SMS）</h2>
+      <p id="auth-status-message">現在のステータスをここに表示します。</p>
+
+      <!-- ステップ1: 電話番号入力 -->
+      <div id="step-phone-number">
+        <p class="small muted">不正利用防止のため、携帯番号によるSMS認証を行います。<br>国際フォーマット（例: +819012345678）で入力してください。</p>
+        <div class="row auth-step">
+          <input type="tel" id="phoneNumber" inputmode="tel" placeholder="電話番号（例: +8190...）">
+          <button class="primary" id="sendCodeButton">認証コードを送信</button>
+        </div>
+        <!-- reCAPTCHAコンテナ: これはFirebaseのSMS認証に必ず必要で、ボットによる不正を防ぎます -->
+        <div id="recaptcha-container" class="row" style="justify-content: center; margin-top: 10px;"></div>
+      </div>
+
+      <!-- ステップ2: 認証コード入力 (Hidden by default) -->
+      <div id="step-verification-code" class="hidden">
+        <p class="small muted">入力された電話番号に6桁の認証コードを送信しました。</p>
+        <div class="row auth-step">
+          <input type="number" id="verificationCode" placeholder="認証コードを入力">
+          <button class="primary" id="verifyCodeButton">認証してログイン</button>
+        </div>
+      </div>
+      
+      <p id="error-message" style="color: red; margin-top: 10px;"></p>
+    </section>
+
+    <!-- 紹介IDの入力 -->
+    <section class="card" id="referral-section">
+      <h2>紹介IDの入力</h2>
+      <p>紹介者のIDを入力して登録すると、<strong>あなたと紹介者の双方に「3日間 無制限」</strong>が付与されます（仕様は今後調整）。</p>
+      <div class="row">
+        <input type="text" id="referralIdInput" placeholder="紹介者IDを入力">
+        <button class="primary" id="registerReferralBtn">登録</button>
+      </div>
+      <ul class="small">
+        <li>複数人を紹介すると、その日数が加算されます。</li>
+        <li>悪用防止のため、同一端末・同一番号での多重登録は無効化されます。</li>
+      </ul>
+    </section>
+
+    <!-- ステータス -->
+    <section class="card">
+      <h2>ステータス</h2>
+      <p>現在のプラン：<strong id="plan-status">無料</strong> / 無制限の残り期間：<strong id="days-left">0日</strong></p>
+      <!-- 認証済みユーザーのIDをここに表示するためのスペース（デバッグと紹介用） -->
+      <p class="small muted" id="user-info"></p>
+    </section>
+  </main>
+
+  <script>
+    // 既存のドロワーロジック
+    const d=document.getElementById('drawer'),s=document.getElementById('scrim');
+    document.getElementById('menuBtn').addEventListener('click',()=>{d.classList.add('open');s.classList.add('show');});
+    s.addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
+    document.getElementById('drawerClose').addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
+    d.addEventListener('click',e=>{if(e.target.matches('a')){d.classList.remove('open');s.classList.remove('show');}});
+
+    // **FIREBASE 設定値の組み込み（ここが重要！）**
+    const firebaseConfig = {
+        apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU", // OK
+        authDomain: "himegoto-web.firebaseapp.com", // OK
+        projectId: "himegoto-web", // OK
+        storageBucket: "himegoto-web.firebasestorage.app", // OK
+        messagingSenderId: "368382081243", // OK
+        appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe" // OK
+    };
+    
+    // Firebase の初期化
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth(app);
+    const db = firebase.firestore(app); // Firestoreも初期化
+  </script>
+</body>
+</html>
+
