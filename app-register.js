@@ -1,6 +1,7 @@
 // app-register.js
 // 開発サポート：Gemini
 // 目的：SMS認証フローの実装と、Firestoreへの初期データ書き込み。
+// 【重要】090/080形式を+81形式に自動変換するロジックを追加
 
 const $ = (s) => document.querySelector(s);
 // register.htmlで初期化されたFirebaseインスタンスを使う
@@ -44,11 +45,8 @@ function updateUIForAuth(user) {
         verifyCodeButton.disabled = true;
         registerButton.disabled = true; // 認証完了時は、もう登録済みなのでボタンは押させない
         
-        // TODO: 認証後のプロフィール・紹介コードの保存ロジックを追加する
-        // TODO: ホームへリダイレクトするロジックを実装する (今回は動作確認優先で一時保留)
+        // TODO: ホームへリダイレクトするロジックを実装する
         
-        // ログイン後処理（Firestoreチェック）
-        // checkUserPurchases(user.uid); // 後ほど、課金システム実装時に利用
     } else {
         // 未ログイン
         showMessage(statusMessage, '携帯番号によるSMS認証が必要です。', false);
@@ -58,7 +56,7 @@ function updateUIForAuth(user) {
         isSmsVerified = false;
 
         // reCAPTCHAの初期化 (ウィンドウ全体で1回のみ)
-        if (!window.recaptchaVerifier && paneSms.style.display !== 'none') {
+        if (!window.recaptchaVerifier && paneSms && paneSms.style.display !== 'none') {
             // FirebaseのSMS認証に必須のボット対策の仕組み
             window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(recaptchaContainer, {
                 'size': 'normal',
@@ -71,6 +69,26 @@ function updateUIForAuth(user) {
     }
     errorMessage.textContent = ''; 
 }
+
+/**
+ * 日本の電話番号 (090/080...) を国際形式 (+81...) に変換する
+ * @param {string} rawNumber ユーザーが入力した生の番号
+ * @returns {string} 国際形式の番号
+ */
+function toInternationalFormat(rawNumber) {
+    // スペース、ハイフンなどを除去
+    const cleaned = rawNumber.replace(/[\s\-\(\)]/g, ''); 
+    
+    // 0から始まっており、+81が付いていない場合のみ変換
+    if (cleaned.startsWith('0') && cleaned.length >= 10 && !cleaned.startsWith('+81')) {
+        // 最初の0を削除し、+81を付与
+        return '+81' + cleaned.substring(1);
+    }
+    
+    // それ以外はそのまま返す（既に国際形式か、不正な形式）
+    return cleaned;
+}
+
 
 // ------------------------------------------
 // 1. Firebase Auth State Change (認証状態の監視)
@@ -85,17 +103,25 @@ auth.onAuthStateChanged(user => {
 // ------------------------------------------
 
 sendCodeButton && sendCodeButton.addEventListener('click', () => {
-    const phoneNumber = phoneNumberInput.value.trim();
+    const rawNumber = phoneNumberInput.value.trim();
     errorMessage.textContent = '';
     
-    // 国際形式 (+81...) への変換をユーザーに促す
-    if (!phoneNumber || phoneNumber.length < 10) {
-        showMessage(errorMessage, '有効な電話番号（国際形式推奨）を入力してください。', true);
+    if (!rawNumber || rawNumber.length < 10) {
+        showMessage(errorMessage, '有効な電話番号を入力してください。', true);
         return;
     }
     
     if (!window.recaptchaVerifier) {
         showMessage(errorMessage, 'reCAPTCHAが読み込まれていません。ページを再読み込みしてください。', true);
+        return;
+    }
+    
+    // 【重要】ここで電話番号を国際形式に変換
+    const phoneNumber = toInternationalFormat(rawNumber);
+    
+    // 最終チェック
+    if (!phoneNumber.startsWith('+') || phoneNumber.length < 12) {
+        showMessage(errorMessage, '電話番号の形式が正しくありません。（例: 090... または +8190...）', true);
         return;
     }
 
@@ -105,7 +131,7 @@ sendCodeButton && sendCodeButton.addEventListener('click', () => {
     auth.signInWithPhoneNumber(phoneNumber, window.recaptchaVerifier)
         .then((confirmation) => {
             confirmationResult = confirmation;
-            alert('認証コードを送信しました。'); // TODO: 後でカスタムモーダルに変更
+            alert('認証コードを送信しました。'); // TODO: カスタムモーダルに変更
             
             sendCodeButton.disabled = false;
             verifyCodeButton.disabled = false;
@@ -115,7 +141,7 @@ sendCodeButton && sendCodeButton.addEventListener('click', () => {
             console.error("SMS送信エラー:", error);
             let msg = '認証コードの送信に失敗しました。';
             if (error.code === 'auth/invalid-phone-number') {
-                msg = '電話番号の形式が正しくありません。（+国番号から始めていますか？）';
+                msg = '電話番号の形式が正しくありません。（090...または+8190...で入力しましたか？）';
             } else if (error.code === 'auth/quota-exceeded') {
                 msg = '送信回数の上限を超えました。しばらく待ってからお試しください。';
             }
@@ -148,7 +174,7 @@ verifyCodeButton && verifyCodeButton.addEventListener('click', () => {
     // 認証コードの検証
     confirmationResult.confirm(code)
         .then((result) => {
-            // SMS認証成功（ただし、まだFirebaseに登録は完了していない状態）
+            // SMS認証成功（ログイン完了）
             console.log("SMS認証成功:", result.user.uid);
             showMessage(statusMessage, 'SMS認証が完了しました。パスワードを設定し、「登録する」を押してください。', false);
             isSmsVerified = true;
@@ -204,16 +230,14 @@ registerButton && registerButton.addEventListener('click', async () => {
     showMessage(statusMessage, '登録処理中です...しばらくお待ちください。', false);
 
     try {
-        // SMS認証で得られた結果を使って、ユーザーを最終的に確定させる
-        // ただし、Firebase Phone AuthはSMS検証成功＝ログイン完了なので、
-        // ここでの処理は Firestoreへの初期データ作成とリダイレクトになる。
-
+        // ユーザーがログインしていることを確認
         const user = auth.currentUser;
-        if (!user || user.phoneNumber !== phoneNumberInput.value.trim()) {
+        if (!user || user.phoneNumber !== toInternationalFormat(phoneNumberInput.value.trim())) {
+             // toInternationalFormat を使って電話番号を比較
             throw new Error("認証状態が不正です。最初からやり直してください。");
         }
         
-        // Firestoreに初期データ（課金情報）を作成
+        // Firestoreに初期データ（課金情報とプロフィール）を作成
         await initializeUserFirestore(user.uid);
 
         // ホーム画面へリダイレクト（認証完了後）
@@ -233,7 +257,7 @@ registerButton && registerButton.addEventListener('click', async () => {
 // ------------------------------------------
 
 /**
- * ユーザーのFirestoreに初期データ（課金情報）を作成する
+ * ユーザーのFirestoreに初期データ（課金情報とプロフィール）を作成する
  * @param {string} uid 
  */
 async function initializeUserFirestore(uid) {
@@ -261,4 +285,4 @@ async function initializeUserFirestore(uid) {
     await profileDocRef.set(profileData, { merge: true });
     
     console.log("Firestore initialized for UID:", uid);
-                                                                                       }
+                                             }
