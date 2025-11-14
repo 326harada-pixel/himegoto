@@ -6,7 +6,7 @@
   <title>登録と紹介 - himegoto（β）</title>
   <link rel="stylesheet" href="/style.css">
   
-  <!-- Firebase SDKの読み込み (Compat版: 古いブラウザやシンプルな記述に対応) -->
+  <!-- Firebase SDKの読み込み (Compat版) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
@@ -16,20 +16,21 @@
 
   <style>
     /* 認証UI用の最小限のスタイル追記 */
-    .row.auth-step {
-      flex-direction: column;
-      align-items: stretch;
+    /* 入力フォームとボタンを縦に並べるための調整 */
+    #auth-section input, #auth-section button {
+        margin-bottom: 10px; /* 要素間に少しスペースを空ける */
     }
     .hidden { display: none; }
   </style>
 
 </head>
 <body>
-  <!-- 既存のヘッダー/ナビゲーションはそのまま残す -->
+  <!-- 既存のヘッダーの構造を維持 -->
   <header class="header">
     <button class="hamburger" id="menuBtn" aria-label="menu">≡</button>
     <div class="brand">himegoto</div><div class="spacer"></div><div class="version">ver.1.27β</div>
   </header>
+  <!-- 既存のドロワーの構造を維持 -->
   <aside class="drawer" id="drawer" aria-hidden="true">
     <div class="drawer-header"><strong>メニュー</strong><button id="drawerClose" class="close-btn" aria-label="閉じる">✕</button></div><nav><ul class="nav">
 <li><a href="/index.html">ホーム</a></li>
@@ -56,21 +57,17 @@
       <!-- ステップ1: 電話番号入力 -->
       <div id="step-phone-number">
         <p class="small muted">不正利用防止のため、携帯番号によるSMS認証を行います。<br>国際フォーマット（例: +819012345678）で入力してください。</p>
-        <div class="row auth-step">
-          <input type="tel" id="phoneNumber" inputmode="tel" placeholder="電話番号（例: +8190...）">
-          <button class="primary" id="sendCodeButton">認証コードを送信</button>
-        </div>
-        <!-- reCAPTCHAコンテナ: これはFirebaseのSMS認証に必ず必要で、ボットによる不正を防ぎます -->
-        <div id="recaptcha-container" class="row" style="justify-content: center; margin-top: 10px;"></div>
+        <input type="tel" id="phoneNumber" inputmode="tel" placeholder="電話番号（例: +8190...）">
+        <button class="primary" id="sendCodeButton">認証コードを送信</button>
+        <!-- reCAPTCHAコンテナ -->
+        <div id="recaptcha-container" style="justify-content: center; margin-top: 10px;"></div>
       </div>
 
       <!-- ステップ2: 認証コード入力 (Hidden by default) -->
       <div id="step-verification-code" class="hidden">
         <p class="small muted">入力された電話番号に6桁の認証コードを送信しました。</p>
-        <div class="row auth-step">
-          <input type="number" id="verificationCode" placeholder="認証コードを入力">
-          <button class="primary" id="verifyCodeButton">認証してログイン</button>
-        </div>
+        <input type="number" id="verificationCode" placeholder="認証コードを入力">
+        <button class="primary" id="verifyCodeButton">認証してログイン</button>
       </div>
       
       <p id="error-message" style="color: red; margin-top: 10px;"></p>
@@ -100,21 +97,39 @@
   </main>
 
   <script>
-    // 既存のドロワーロジック
-    const d=document.getElementById('drawer'),s=document.getElementById('scrim');
-    document.getElementById('menuBtn').addEventListener('click',()=>{d.classList.add('open');s.classList.add('show');});
-    s.addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
-    document.getElementById('drawerClose').addEventListener('click',()=>{d.classList.remove('open');s.classList.remove('show');});
-    d.addEventListener('click',e=>{if(e.target.matches('a')){d.classList.remove('open');s.classList.remove('show');}});
+    // 既存のドロワーロジック (drawerCloseの処理を追加・修正)
+    const d=document.getElementById('drawer'),
+          s=document.getElementById('scrim'),
+          menuBtn=document.getElementById('menuBtn'),
+          drawerClose=document.getElementById('drawerClose');
 
-    // **FIREBASE 設定値の組み込み（ここが重要！）**
+    const closeDrawer = () => {
+        d.classList.remove('open');
+        s.classList.remove('show');
+    };
+
+    menuBtn.addEventListener('click',()=>{
+        d.classList.add('open');
+        s.classList.add('show');
+    });
+    
+    // スクリム（背景）をクリック
+    s.addEventListener('click', closeDrawer);
+    
+    // 閉じるボタンをクリック
+    drawerClose.addEventListener('click', closeDrawer);
+    
+    // ドロワー内のリンクをクリック
+    d.addEventListener('click',e=>{if(e.target.matches('a')){closeDrawer();}});
+
+    // **FIREBASE 設定値の組み込み**
     const firebaseConfig = {
-        apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU", // OK
-        authDomain: "himegoto-web.firebaseapp.com", // OK
-        projectId: "himegoto-web", // OK
-        storageBucket: "himegoto-web.firebasestorage.app", // OK
-        messagingSenderId: "368382081243", // OK
-        appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe" // OK
+        apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU", 
+        authDomain: "himegoto-web.firebaseapp.com", 
+        projectId: "himegoto-web", 
+        storageBucket: "himegoto-web.firebasestorage.app", 
+        messagingSenderId: "368382081243", 
+        appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
     };
     
     // Firebase の初期化
