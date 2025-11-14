@@ -88,14 +88,8 @@
     smsMsg.textContent = text;
     smsMsg.style.color = isError ? '#D32F2F' : '#4CAF50';
   }
-
-  // 2d. reCAPTCHAの初期化
-  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-    'size': 'invisible',
-    'callback': (response) => { console.log("reCAPTCHA verified."); }
-  }, auth);
   
-  // 2e. 電話番号を国際形式(+81)に変換
+  // 2d. 電話番号を国際形式(+81)に変換
   function toInternationalFormat(phone) {
     if (!phone) return '';
     if (phone.startsWith('+')) return phone;
@@ -103,15 +97,39 @@
     return '+81' + phone;
   }
 
-  // 2f. 認証コード送信
+  // --- 3. reCAPTCHAのセットアップ（クリック時に実行） ---
+  function getRecaptchaVerifier() {
+    // 既に初期化されていれば、それを返す
+    if (window.recaptchaVerifier) {
+      return window.recaptchaVerifier;
+    }
+    
+    // なければ、新しく作成
+    // HTMLの 'recaptcha-container' を使う
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      'size': 'invisible',
+      'callback': (response) => { 
+        console.log("reCAPTCHA verified."); 
+      }
+    }, auth);
+    
+    return window.recaptchaVerifier;
+  }
+
+  // --- 4. 認証と登録のロジック ---
+
+  // 4a. 認証コード送信
   on(sendCodeSms,'click',() => {
+    // ★修正点: reCAPTCHAの準備をここで実行
+    const appVerifier = getRecaptchaVerifier();
+    
     const phoneNumber = toInternationalFormat(phoneInput.value.trim());
-    const appVerifier = window.recaptchaVerifier;
 
     if (!phoneNumber) {
       showMessage('電話番号を入力してください。', true);
       return;
     }
+
     sendCodeSms.disabled = true;
     showMessage('認証コードを送信中...', false);
 
@@ -123,12 +141,19 @@
       })
       .catch((error) => {
         console.error("SMS送信エラー:", error);
-        showMessage('SMS送信に失敗しました。番号を確認してください。', true);
+        if (error.code === 'auth/invalid-phone-number') {
+            showMessage('電話番号の形式が正しくありません。', true);
+        } else {
+            showMessage('SMS送信に失敗しました。時間をおいて再度お試しください。', true);
+        }
         sendCodeSms.disabled = false;
+        
+        // reCAPTCHAが失敗した場合、次のクリックで再初期化されるようにする
+        window.recaptchaVerifier = null;
       });
   });
 
-  // 2g. 認証コード確認 と 登録処理
+  // 4b. 認証コード確認 と 登録処理
   on(verifySms,'click',() => {
     const code = codeSms.value.trim();
     if (!code) {
@@ -143,28 +168,29 @@
     verifySms.disabled = true;
     showMessage('コードを照合し、登録中です...', false);
 
+    // 1. 認証コードの確認
     confirmationResult.confirm(code)
       .then(async (result) => {
         const user = result.user;
         const uid = user.uid;
         console.log("SMS認証成功:", uid);
 
-        // Firestoreに初期データを書き込む
+        // 2. Firestoreに初期データを書き込む
         const docRef = db.collection('users').doc(uid).collection('purchases').doc('current');
         await docRef.set({
           expiresAt: null,
           registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // 紹介コードを保存
+        // 3. 紹介コードを保存
         const appliedRefCode = refCodeInput.value.trim() || '';
         const profileRef = db.collection('users').doc(uid).collection('profile').doc('info');
         await profileRef.set({
           appliedRefCode: appliedRefCode
         });
 
-        // alert('アカウント登録が完了しました！');
-        // onAuthStateChangedが自動で発火し、UIが切り替わる
+        // alert('アカウント登録が完了しました！'); 
+        // このアラートは不要。onAuthStateChangedが自動でUIを切り替える
       })
       .catch((error) => {
         console.error("SMSコード確認または登録エラー:", error);
@@ -173,12 +199,12 @@
       });
   });
 
-  // 2h. メール認証（ダミー）
+  // 4c. メール認証（ダミー）
   on(sendCodeMail,'click',()=>alert('メールコードを送信しました（ダミー）'));
   on(verifyMail,'click',()=>alert('メールコードを確認しました（ダミー）'));
 
   // ==========================================================
-  // 3. 認証済み時の処理
+  // 5. 認証済み時の処理 (紹介ID表示)
   // ==========================================================
   
   function setupMyReferralSection(uid) {
@@ -189,15 +215,18 @@
       myRefId.value = refId;
     }
     
-    // 3a. コピーボタン
+    // 5a. コピーボタン
     on(copyRefId, 'click', () => {
       myRefId.select();
-      document.execCommand('copy');
+      // navigator.clipboard.writeTextはiframe内で権限がない場合があるため、
+      // 開発ルール（`document.execCommand`）に基づき、execCommandを使用します。
+      document.execCommand('copy'); 
+      
       if(refMessage) refMessage.textContent = 'IDをコピーしました！';
       setTimeout(() => { if(refMessage) refMessage.textContent = ''; }, 2000);
     });
 
-    // 3b. 紹介リンクを送るボタン
+    // 5b. 紹介リンクを送るボタン
     on(shareRefLink, 'click', async () => {
       const shareUrl = `${APP_URL}?ref=${refId}`;
       const shareText = `himegotoに登録しませんか？\nこのリンクから登録すると特典があります🎁\n${shareUrl}`;
@@ -218,7 +247,17 @@
         }
       } catch (err) {
         console.error('シェアまたはコピーに失敗:', err);
-        if(refMessage) refMessage.textContent = 'リンクのコピーに失敗しました。';
+        // PCの `writeText` が失敗した場合のフォールバック
+        try {
+            myRefId.value = shareUrl; // 紹介IDの代わりにURLを一時的に入力
+            myRefId.select();
+            document.execCommand('copy');
+            myRefId.value = refId; // 元のIDに戻す
+            if(refMessage) refMessage.textContent = '紹介リンクをコピーしました！';
+            setTimeout(() => { if(refMessage) refMessage.textContent = ''; }, 3000);
+        } catch(e) {
+            if(refMessage) refMessage.textContent = 'リンクのコピーに失敗しました。';
+        }
       }
     });
   }
