@@ -6,6 +6,9 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   const APP_URL = "https://himegoto.jp/register.html"; 
+  
+  // ★修正点: Firebaseの認証言語を日本語に設定
+  auth.languageCode = 'ja';
 
   // --- DOM要素 ---
   const regSection = $('#registration-section'); 
@@ -38,7 +41,7 @@
       regSection.style.display = 'block'; 
       refSection.style.display = 'none'; 
       checkUrlForReferral();
-      // ★修正点: reCAPTCHAの準備を開始
+      // reCAPTCHAの準備を開始
       setupRecaptcha();
     }
   });
@@ -78,14 +81,12 @@
 
   // 2d. reCAPTCHAのセットアップ（★最重要修正箇所★）
   function setupRecaptcha() {
-    // 既に初期化済みの場合は何もしない
     if (window.recaptchaVerifier) return;
     
-    // ★修正点: 'size': 'normal' に変更し、チェックボックスを表示
     window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-      'size': 'normal', // 'invisible' から変更
+      'size': 'normal', 
       'callback': (response) => {
-        // ★修正点: reCAPTCHAがチェックされたら、SMS送信を実行
+        // reCAPTCHAがチェックされたら、SMS送信を実行
         console.log("reCAPTCHA verified, sending SMS...");
         sendSmsInternal();
       },
@@ -94,13 +95,19 @@
       }
     }, auth);
 
-    // reCAPTCHAウィジェットを描画
-    window.recaptchaVerifier.render();
+    // ★修正点: reCAPTCHAウィジェットの「表示(render)」にエラー処理を追加
+    window.recaptchaVerifier.render().then((widgetId) => {
+        console.log('reCAPTCHA rendered, widgetId:', widgetId);
+        window.recaptchaWidgetId = widgetId;
+    }).catch((error) => {
+        // ★!! ここが重要 !!★
+        // (ドメイン未承認、CSPエラー、スクリプト競合などで表示に失敗した場合)
+        console.error("reCAPTCHA render error:", error);
+        showMessage('reCAPTCHAの表示に失敗しました。ドメイン設定を確認するか、ページを再読み込みしてください。', true);
+    });
   }
 
   // 2e. 認証コード送信
-  // ★修正点: 「コード送信」ボタンはreCAPTCHAのトリガーではなくなる
-  //    ボタンを押したときの処理は「reCAPTCHAを押してください」と促すだけにする
   on(sendCodeSms, 'click', () => {
       const phoneNumber = toInternationalFormat(phoneInput.value.trim());
       if (!phoneNumber) {
@@ -108,12 +115,11 @@
         return;
       }
       
-      // reCAPTCHAがまだチェックされていない場合
+      // reCAPTCHAがまだチェックされていない（＝confirmationResultがまだ無い）場合
       if (!confirmationResult) {
         showMessage('電話番号を入力後、「私はロボットではありません」のチェックボックスを押してください。', false);
       }
       
-      // このボタンはSMS送信を実行しなくなる
       // reCAPTCHAの 'callback' が sendSmsInternal を実行する
   });
 
@@ -127,14 +133,14 @@
       return;
     }
 
-    sendCodeSms.disabled = true; // 送信中はボタンを無効化
+    sendCodeSms.disabled = true; 
     showMessage('認証コードを送信中...', false);
 
     auth.signInWithPhoneNumber(phoneNumber, appVerifier)
       .then((result) => {
         confirmationResult = result;
         showMessage('認証コードを送信しました。', false);
-        sendCodeSms.disabled = false; // 完了したら有効化
+        sendCodeSms.disabled = false; 
       })
       .catch((error) => {
         console.error("SMS送信エラー:", error);
