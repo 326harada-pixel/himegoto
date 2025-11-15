@@ -38,6 +38,13 @@
 
 </head>
 <body>
+
+  <!-- 
+    ★修正点: reCAPTCHAコンテナを、他の要素から隔離された
+    <body>の直下に移動します。
+  -->
+  <div id="recaptcha-container-root"></div>
+
   <main class="container">
 
     <!-- 
@@ -54,10 +61,7 @@
           <button class="btn" id="sendCodeSms">コード送信</button>
         </div>
         
-        <!-- ★修正点: reCAPTCHAのチェックボックスを表示するコンテナを追加 -->
-        <div class="row" style="justify-content: center; margin-top: 10px;">
-          <div id="recaptcha-container"></div>
-        </div>
+        <!-- ★注意: reCAPTCHAの表示場所はここではなく、上記の #recaptcha-container-root になります -->
 
         <div class="row">
           <input type="text" id="codeSms" placeholder="SMSで届いた6桁コード">
