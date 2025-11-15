@@ -39,7 +39,12 @@
       regSection.style.display = 'block'; 
       refSection.style.display = 'none'; 
       checkUrlForReferral();
-      setupRecaptcha();
+      // ★修正点: DOMの準備が完了してからreCAPTCHAをセットアップ
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupRecaptcha);
+      } else {
+        setupRecaptcha();
+      }
     }
   });
 
@@ -80,7 +85,8 @@
   function setupRecaptcha() {
     if (window.recaptchaVerifier) return;
     
-    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+    // ★修正点: 隔離されたコンテナID 'recaptcha-container-root' を参照
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container-root', {
       'size': 'normal', 
       'callback': (response) => {
         console.log("reCAPTCHA verified, sending SMS...");
@@ -101,7 +107,7 @@
     });
   }
 
-  // 2e. 認証コード送信ボタンのクリック処理（★ロジック修正版★）
+  // 2e. 認証コード送信ボタンのクリック処理
   on(sendCodeSms, 'click', () => {
       const phoneNumber = toInternationalFormat(phoneInput.value.trim());
       if (!phoneNumber) {
@@ -109,24 +115,17 @@
         return;
       }
 
-      // ★★★ ここからが修正箇所 ★★★
-
       // 1. reCAPTCHAがまだチェックされていない（＝confirmationResultがまだ無い）場合
       if (!confirmationResult) {
         
         // 2. reCAPTCHAの準備自体が失敗しているか確認
-        // (setupRecaptcha が成功していれば widgetId が設定されているはず)
         if (!window.recaptchaVerifier || !window.recaptchaWidgetId) {
-            // setupRecaptcha が失敗している場合
             showMessage('reCAPTCHAの表示に失敗しました。ページを再読み込みしてください。', true);
         } else {
             // 準備はできているが、まだ押されていない場合
             showMessage('電話番号を入力後、「私はロボットではありません」のチェックボックスを押してください。', false);
         }
       }
-      
-      // reCAPTCHAの 'callback' が sendSmsInternal を実行するため、
-      // このクリックイベントでは、これ以上のSMS送信処理は行わない。
   });
 
   // (reCAPTCHAのコールバックから呼ばれる内部関数)
