@@ -21,9 +21,9 @@
       messagingSenderId: "368382081243",
       appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
     };
+    
     try {
       firebase.initializeApp(firebaseConfig);
-      // 言語設定を日本語に固定
       firebase.auth().languageCode = 'ja';
     } catch(e) {
       console.error("Firebase Init Error", e);
@@ -38,30 +38,35 @@
     /* reCAPTCHAエリアのデザイン */
     #recaptcha-container {
         min-height: 80px;
-        margin: 20px 0;
+        margin: 15px 0;
         background: #f9f9f9;
-        border: 1px dashed #ccc;
+        border: 1px solid #ddd;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
-        padding: 10px;
+        border-radius: 4px;
+        padding: 5px;
     }
-    /* デバッグログ（エラー時のみ表示） */
-    #debug-log {
-        background: #ffebee;
-        color: #b71c1c;
-        padding: 10px;
-        margin-top: 20px;
+    .status-msg {
+        font-size: 14px;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+    .status-error { color: #d32f2f; }
+    .status-success { color: #388e3c; }
+    
+    .legal-links {
         font-size: 12px;
-        border: 1px solid #ef9a9a;
-        display: none;
-        white-space: pre-wrap;
+        color: #666;
+        margin: 15px 0;
+        line-height: 1.5;
     }
+    .legal-links a { color: #e91e63; text-decoration: underline; }
   </style>
 </head>
 <body>
   <main class="container">
+
     <!-- 未認証時の登録画面 -->
     <section class="card" id="registration-section">
       <h2>アカウント登録</h2>
@@ -69,19 +74,20 @@
       <div id="paneSms">
         <p class="small muted">携帯番号によるSMS認証が必要です。</p>
         
+        <!-- ① 電話番号入力 -->
         <div class="row">
           <input type="tel" id="phoneInput" placeholder="例：09012345678">
         </div>
 
         <!-- reCAPTCHA表示エリア -->
-        <div id="recaptcha-container">
-            <span style="color:#888; font-size:12px;">読み込み中...<br>表示されない場合は再読み込みしてください</span>
-        </div>
+        <div id="recaptcha-container"></div>
 
+        <!-- ② コード送信ボタン -->
         <div class="row">
           <button class="btn" id="sendCodeSms" disabled>コード送信（チェック待ち）</button>
         </div>
         
+        <!-- ③④ コード入力・紹介コード -->
         <div class="row">
           <input type="text" id="codeSms" placeholder="SMSで届いた6桁コード" disabled>
         </div>
@@ -89,10 +95,12 @@
           <input type="text" id="refCode" placeholder="紹介コード（任意）">
         </div>
 
-        <div style="margin: 15px 0; font-size: 13px; color: #666;">
-            登録することで、
+        <!-- ⑤ 規約同意 -->
+        <div class="legal-links">
+            登録ボタンを押すことで、
             <a href="terms.html" target="_blank">利用規約</a>・
-            <a href="privacy.html" target="_blank">プライバシーポリシー</a>
+            <a href="privacy.html" target="_blank">プライバシーポリシー</a>・
+            <a href="tokusho.html" target="_blank">特定商取引法</a>
             に同意したものとみなされます。
         </div>
 
@@ -100,35 +108,43 @@
           <button class="btn primary" id="verifySms" disabled>同意して登録する</button>
         </div>
         
-        <p id="smsMessage" class="small muted" style="margin-top: 10px; font-weight: bold;"></p>
+        <p id="smsMessage" class="status-msg"></p>
       </div>
     </section>
 
-    <!-- 認証済み画面 -->
+    <!-- ⑥ 登録完了後：紹介画面 -->
     <section class="card" id="my-referral-section" style="display:none;">
       <h2>あなたの紹介ID</h2>
-      <p class="small muted">このIDをお友達に伝えて登録してもらうと、特典が付与されます。</p>
+      <p class="small muted">登録完了！このIDをお友達に伝えて登録してもらうと、特典が付与されます。</p>
       <div class="row">
-        <input type="text" id="myRefId" readonly style="background:#eee; text-align: center; font-weight: bold;">
+        <input type="text" id="myRefId" readonly style="background:#eee; text-align: center; font-weight: bold; letter-spacing: 1px;">
       </div>
       <div class="row">
         <button class="btn" id="copyRefId">IDをコピー</button>
         <button class="btn primary" id="shareRefLink">紹介リンクを送る</button>
       </div>
-      <p id="refMessage" class="small muted" style="margin-top: 10px;"></p>
+      <p id="refMessage" class="status-msg"></p>
+      
+      <div class="row" style="margin-top: 20px;">
+        <button class="btn" onclick="location.href='index.html'">ホームへ移動</button>
+      </div>
     </section>
 
+    <!-- 注意事項 -->
     <section class="card">
       <h2>注意事項</h2>
       <ul class="list">
         <li>無料版は顧客の登録数5名／1日の送信5回までです（日本時間0:00リセット）。</li>
+        <li>同一電話番号での複数アカウント登録はできません。</li>
+        <li>紹介システムの不正利用が発覚した場合、アカウントを停止することがあります。</li>
         <li>バックアップはホームの「文字列を作る」で行えます。端末変更前に必ず保存してください。</li>
-        <li>お問い合わせは公式LINEから受け付けています（実URL）。</li>
+        <!-- LINEリンク設置済み -->
+        <li>お問い合わせは公式LINEから受け付けています（<a id="lineLink" href="#" target="_blank">こちら</a>）。</li>
       </ul>
     </section>
 
-    <!-- エラーログ表示エリア -->
-    <div id="debug-log"></div>
+    <!-- エラーログ（万が一の時用） -->
+    <div id="error-log" style="display:none; color:red; font-size:12px; margin-top:20px;"></div>
   </main>
 </body>
 </html>
