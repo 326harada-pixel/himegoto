@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
-  <!-- Firebase Config (あなたの正しい設定値) -->
+  <!-- Firebase Config -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU",
@@ -21,13 +21,12 @@
       messagingSenderId: "368382081243",
       appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
     };
-    
-    // 初期化
     try {
       firebase.initializeApp(firebaseConfig);
+      // 言語設定を日本語に固定
       firebase.auth().languageCode = 'ja';
-    } catch (e) {
-      console.error("初期化エラー", e);
+    } catch(e) {
+      console.error("Firebase Init Error", e);
     }
   </script>
 
@@ -36,33 +35,34 @@
   <script src="common.js"></script>
   
   <style>
-    /* reCAPTCHA表示エリアのスタイル確保 */
+    /* reCAPTCHAエリアのデザイン */
     #recaptcha-container {
         min-height: 80px;
-        margin: 15px 0;
+        margin: 20px 0;
         background: #f9f9f9;
-        border: 1px solid #eee;
+        border: 1px dashed #ccc;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 4px;
-    }
-    /* エラーメッセージ表示用 */
-    #error-log {
-        color: red;
-        font-size: 12px;
-        margin-top: 10px;
-        display: none;
-        background: #ffebee;
+        border-radius: 8px;
         padding: 10px;
-        border: 1px solid #ffcdd2;
+    }
+    /* デバッグログ（エラー時のみ表示） */
+    #debug-log {
+        background: #ffebee;
+        color: #b71c1c;
+        padding: 10px;
+        margin-top: 20px;
+        font-size: 12px;
+        border: 1px solid #ef9a9a;
+        display: none;
+        white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
   <main class="container">
-
-    <!-- 未認証時：登録フォーム -->
+    <!-- 未認証時の登録画面 -->
     <section class="card" id="registration-section">
       <h2>アカウント登録</h2>
       
@@ -73,11 +73,13 @@
           <input type="tel" id="phoneInput" placeholder="例：09012345678">
         </div>
 
-        <!-- reCAPTCHA表示場所 -->
-        <div id="recaptcha-container"></div>
+        <!-- reCAPTCHA表示エリア -->
+        <div id="recaptcha-container">
+            <span style="color:#888; font-size:12px;">読み込み中...<br>表示されない場合は再読み込みしてください</span>
+        </div>
 
         <div class="row">
-          <button class="btn" id="sendCodeSms">コード送信</button>
+          <button class="btn" id="sendCodeSms" disabled>コード送信（チェック待ち）</button>
         </div>
         
         <div class="row">
@@ -87,8 +89,7 @@
           <input type="text" id="refCode" placeholder="紹介コード（任意）">
         </div>
 
-        <!-- 規約等のリンク -->
-        <div style="margin: 15px 0; font-size: 12px; color: #666;">
+        <div style="margin: 15px 0; font-size: 13px; color: #666;">
             登録することで、
             <a href="terms.html" target="_blank">利用規約</a>・
             <a href="privacy.html" target="_blank">プライバシーポリシー</a>
@@ -100,16 +101,15 @@
         </div>
         
         <p id="smsMessage" class="small muted" style="margin-top: 10px; font-weight: bold;"></p>
-        <div id="error-log"></div>
       </div>
     </section>
 
-    <!-- 認証済み時：紹介ID表示 -->
+    <!-- 認証済み画面 -->
     <section class="card" id="my-referral-section" style="display:none;">
       <h2>あなたの紹介ID</h2>
       <p class="small muted">このIDをお友達に伝えて登録してもらうと、特典が付与されます。</p>
       <div class="row">
-        <input type="text" id="myRefId" readonly style="background:#eee; text-align: center; font-weight: bold; letter-spacing: 2px;">
+        <input type="text" id="myRefId" readonly style="background:#eee; text-align: center; font-weight: bold;">
       </div>
       <div class="row">
         <button class="btn" id="copyRefId">IDをコピー</button>
@@ -123,9 +123,12 @@
       <ul class="list">
         <li>無料版は顧客の登録数5名／1日の送信5回までです（日本時間0:00リセット）。</li>
         <li>バックアップはホームの「文字列を作る」で行えます。端末変更前に必ず保存してください。</li>
+        <li>お問い合わせは公式LINEから受け付けています（実URL）。</li>
       </ul>
     </section>
 
+    <!-- エラーログ表示エリア -->
+    <div id="debug-log"></div>
   </main>
 </body>
 </html>
