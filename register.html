@@ -6,12 +6,12 @@
   <title>登録と紹介 - himegoto</title>
   <link rel="stylesheet" href="fix.css">
   
-  <!-- 1. Firebase SDK (v9 compat) -->
+  <!-- 1. Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
-  <!-- 2. Firebase Config (正しいキーを設定済み) -->
+  <!-- 2. Firebase Config -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU",
@@ -24,31 +24,46 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    auth.languageCode = 'ja'; // 日本語化
+    auth.languageCode = 'ja';
   </script>
 
   <script src="app-register.js"></script>
   <script src="header-loader.js"></script>
   <script src="common.js"></script>
+  
+  <style>
+    /* reCAPTCHAコンテナの強制スタイル */
+    #recaptcha-container {
+        min-height: 78px; /* チャッピー先生のアドバイス通り高さを確保 */
+        margin: 10px auto;
+        display: flex;
+        justify-content: center;
+        background: #f9f9f9; /* 場所がわかるように薄い背景 */
+        border: 1px dashed #ccc; /* 枠線を表示 */
+        align-items: center;
+    }
+  </style>
 </head>
 <body>
   <main class="container">
-    <!-- セクション1: 登録フォーム -->
     <section class="card" id="registration-section">
       <h2>アカウント登録</h2>
       
       <div id="paneSms">
         <p class="small muted">携帯番号によるSMS認証が必要です。</p>
         <div class="row">
-          <input type="tel" id="phoneInput" placeholder="電話番号（例：09012345678）">
-          <button class="btn" id="sendCodeSms">コード送信</button>
+          <input type="tel" id="phoneInput" placeholder="例：09012345678">
         </div>
 
-        <!-- ★Invisible reCAPTCHA用の空コンテナ（表示されませんが必須です） -->
-        <div id="recaptcha-container"></div>
+        <!-- ★安全地帯：ボタンの上に配置 -->
+        <div id="recaptcha-container">reCAPTCHA表示エリア</div>
+
+        <div class="row">
+          <button class="btn" id="sendCodeSms">コード送信</button>
+        </div>
         
         <div class="row">
-          <input type="text" id="codeSms" placeholder="SMSで届いた6桁コード" disabled>
+          <input type="text" id="codeSms" placeholder="届いた6桁コード" disabled>
         </div>
         <div class="row">
           <input type="text" id="refCode" placeholder="紹介コード（任意）">
@@ -57,30 +72,18 @@
           <button class="btn primary" id="verifySms" disabled>認証して登録する</button>
         </div>
         
-        <p id="smsMessage" class="small muted" style="margin-top: 10px;"></p>
+        <p id="smsMessage" class="small muted" style="margin-top: 10px; color: red; font-weight: bold;"></p>
       </div>
     </section>
 
-    <!-- セクション2: 紹介ID表示（認証済み用） -->
     <section class="card" id="my-referral-section" style="display:none;">
       <h2>あなたの紹介ID</h2>
-      <p class="small muted">このIDをお友達に伝えて登録してもらうと、特典が付与されます。</p>
       <div class="row">
-        <input type="text" id="myRefId" readonly style="background:#eee; text-align: center; font-weight: bold; letter-spacing: 2px;">
+        <input type="text" id="myRefId" readonly>
       </div>
       <div class="row">
-        <button class="btn" id="copyRefId">IDをコピー</button>
-        <button class="btn primary" id="shareRefLink">紹介リンクを送る</button>
+        <button class="btn" id="copyRefId">IDコピー</button>
       </div>
-      <p id="refMessage" class="small muted" style="margin-top: 10px;"></p>
-    </section>
-
-    <section class="card">
-      <h2>注意事項</h2>
-      <ul class="list">
-        <li>無料版は顧客の登録数5名／1日の送信5回までです（日本時間0:00リセット）。</li>
-        <li>お問い合わせは公式LINEから受け付けています。</li>
-      </ul>
     </section>
   </main>
 </body>
