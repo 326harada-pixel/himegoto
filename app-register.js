@@ -2,23 +2,16 @@
   const $ = (s) => document.querySelector(s);
   const on = (el,ev,fn) => el && el.addEventListener(ev, fn);
 
-  // ログ出力機能
-  function logError(msg) {
-    const logDiv = $('#debug-log');
-    if (logDiv) {
-      logDiv.style.display = 'block';
-      logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-    }
-    console.error(msg);
-  }
-
+  // グローバル変数
   const auth = firebase.auth();
   const db = firebase.firestore();
   const APP_URL = "https://himegoto.jp/register.html"; 
 
+  // DOM要素
   const regSection = $('#registration-section'); 
   const refSection = $('#my-referral-section'); 
   const smsMsg = $('#smsMessage');
+  const errorLog = $('#error-log');
   const phoneInput = $('#phoneInput');
   const sendCodeSms = $('#sendCodeSms'); 
   const codeSms = $('#codeSms');
@@ -26,15 +19,27 @@
   const verifySms = $('#verifySms');
   const myRefId = $('#myRefId');
   const copyRefId = $('#copyRefId');
+  const shareRefLink = $('#shareRefLink');
+  const refMessage = $('#refMessage');
   
   let confirmationResult = null; 
 
+  // メッセージ表示
   function showMessage(text, isError) {
     if (!smsMsg) return;
     smsMsg.textContent = text;
     smsMsg.style.color = isError ? '#D32F2F' : '#4CAF50';
   }
 
+  // 詳細エラー表示（Google Cloud設定ミスなどをここに表示）
+  function showErrorLog(msg) {
+    if (errorLog) {
+      errorLog.style.display = 'block';
+      errorLog.textContent = msg;
+    }
+  }
+
+  // 電話番号整形
   function toInternationalFormat(phone) {
     if (!phone) return '';
     let p = phone.replace(/[━.*+]/g, '');
@@ -46,77 +51,70 @@
   // 1. reCAPTCHA 初期化
   // -------------------------------------------------------
   function setupRecaptcha() {
-    if (window.recaptchaVerifier) {
-        // 既に描画済みならクリア
-        try { window.recaptchaVerifier.clear(); } catch(e){}
-    }
-
+    // コンテナがあるか確認
     const container = document.getElementById('recaptcha-container');
-    if (!container) {
-      logError("エラー: HTML内に #recaptcha-container が見つかりません。");
-      return;
+    if (!container) return;
+
+    // 既に初期化済みならリセット
+    if (window.recaptchaVerifier) {
+      try { window.recaptchaVerifier.clear(); } catch(e){}
     }
 
     try {
-      // size: 'normal' で明示的にチェックボックスを表示
+      // チェックボックスを表示 ('normal')
       window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
         'size': 'normal',
         'callback': (response) => {
-          showMessage("認証OK。コード送信ボタンを押してください。", false);
+          // チェックが入った時
+          showMessage("認証OK。コード送信を押してください。", false);
           sendCodeSms.disabled = false;
         },
         'expired-callback': () => {
-          showMessage("認証有効期限切れ。再読み込みしてください。", true);
+          showMessage("有効期限切れです。再読み込みしてください。", true);
+          sendCodeSms.disabled = true;
         }
       }, auth);
 
-      window.recaptchaVerifier.render().then(widgetId => {
+      // 描画実行
+      window.recaptchaVerifier.render().then((widgetId) => {
         window.recaptchaWidgetId = widgetId;
-        // 成功したらコンテナ内の「読み込み中」テキストを消す
-        // (Firebaseが上書きするはずだが念のため)
+        console.log("reCAPTCHA ready");
       }).catch(error => {
-        logError(`reCAPTCHA表示失敗: ${error.code} - ${error.message}`);
-        
-        let hint = "";
-        if (error.message && error.message.includes("domain")) {
-            hint = "【原因】ドメイン未登録の可能性大。\nFirebaseコンソール > Authentication > 設定 > 承認済みドメイン に 'himegoto.jp' を追加してください。";
-        } else if (error.message && error.message.includes("key")) {
-            hint = "【原因】APIキーが無効です。";
-        }
-        
-        showMessage(`システムエラー: ${hint || "下のログを確認してください"}`, true);
-        logError(hint);
+        console.error(error);
+        showErrorLog(`reCAPTCHAエラー: ${error.code || ''} ${error.message}`);
       });
 
     } catch (e) {
-      logError(`初期化例外: ${e.message}`);
+      showErrorLog(`初期化例外: ${e.message}`);
     }
   }
 
   // -------------------------------------------------------
-  // 2. 起動フロー
+  // 2. 起動時の処理
   // -------------------------------------------------------
   auth.onAuthStateChanged(user => {
     if (user) {
+      // ログイン済み
       regSection.style.display = 'none'; 
       refSection.style.display = 'block'; 
       setupMyReferralSection(user.uid);
     } else {
+      // 未ログイン
       regSection.style.display = 'block'; 
       refSection.style.display = 'none'; 
       
-      // URLパラメータ処理
+      // 紹介コードの自動入力
       const params = new URLSearchParams(window.location.search);
       const ref = params.get('ref'); 
       if (ref && refCodeInput) refCodeInput.value = ref;
-      
-      // 少し待ってからreCAPTCHA描画（他スクリプトとの競合回避）
+
+      // 少し待ってからreCAPTCHAを表示
       setTimeout(setupRecaptcha, 500);
     }
   });
 
   // -------------------------------------------------------
-  // 3. 送信処理
+  // 3. コード送信処理
   // -------------------------------------------------------
   on(sendCodeSms, 'click', () => {
     const rawPhone = phoneInput.value.trim();
@@ -126,18 +124,16 @@
     }
     const phoneNumber = toInternationalFormat(rawPhone);
 
+    // reCAPTCHAが準備できていない場合
     if (!window.recaptchaVerifier || !window.recaptchaWidgetId) {
-      // まだreCAPTCHAが出ていない場合
-      showMessage('reCAPTCHAの読み込み待ちです...', true);
-      // 強制再試行
-      setupRecaptcha();
+      showMessage('reCAPTCHAを読み込んでいます...お待ちください', true);
+      setupRecaptcha(); // 再試行
       return;
     }
 
-    // reCAPTCHAがチェックされていない場合、Firebaseが自動的にポップアップで促すかエラーになる
-    
     sendCodeSms.disabled = true;
-    showMessage('送信処理中...', false);
+    showMessage('送信中...', false);
+    showErrorLog(''); // エラーログ消去
 
     auth.signInWithPhoneNumber(phoneNumber, window.recaptchaVerifier)
       .then((result) => {
@@ -152,21 +148,24 @@
         console.error("SMS送信エラー:", error);
         sendCodeSms.disabled = false;
         
-        let msg = `送信エラー: ${error.code}`;
-        if (error.code === 'auth/invalid-phone-number') msg = '電話番号の形式が正しくありません。';
-        if (error.code === 'auth/too-many-requests') msg = '回数制限です。しばらく待ってください。';
-        if (error.code === 'auth/captcha-check-failed') msg = 'reCAPTCHAチェックに失敗しました。';
-        
-        showMessage(msg, true);
-        logError(`送信失敗: ${error.message}`);
+        // エラー内容の振り分け
+        if (error.code === 'auth/invalid-api-key') {
+            showErrorLog("【重要】Google Cloudの設定でAPIキーが制限されています。「キーを制限しない」に変更してください。");
+        } else if (error.message && error.message.includes('domain')) {
+            showErrorLog("ドメインが許可されていません。Firebaseコンソールを確認してください。");
+        } else if (error.code === 'auth/invalid-phone-number') {
+            showMessage('電話番号の形式が正しくありません。', true);
+        } else {
+            showErrorLog(`送信エラー: ${error.code} - ${error.message}`);
+        }
         
         // リセット
-        try { window.recaptchaVerifier.reset(); } catch(e){}
+        if(window.recaptchaVerifier) window.recaptchaVerifier.reset();
       });
   });
 
   // -------------------------------------------------------
-  // 4. 登録処理
+  // 4. 登録（コード確認）処理
   // -------------------------------------------------------
   on(verifySms, 'click', () => {
     const code = codeSms.value.trim();
@@ -179,12 +178,13 @@
       .then(async (result) => {
         const user = result.user;
         
-        // Firestore初期化
+        // Firestore: 課金情報初期化
         await db.collection('users').doc(user.uid).collection('purchases').doc('current').set({
           expiresAt: null,
           registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
+        // Firestore: 紹介コード保存
         const appliedRef = refCodeInput.value.trim() || '';
         await db.collection('users').doc(user.uid).collection('profile').doc('info').set({
           appliedRefCode: appliedRef
@@ -196,12 +196,12 @@
       .catch((error) => {
         verifySms.disabled = false;
         showMessage('コードが間違っているか、有効期限切れです。', true);
-        logError(`登録エラー: ${error.message}`);
+        console.error(error);
       });
   });
 
   // -------------------------------------------------------
-  // 5. 紹介ID表示
+  // 5. 紹介ID表示（認証済み用）
   // -------------------------------------------------------
   function setupMyReferralSection(uid) {
     const refId = uid.substring(0, 8);
@@ -210,7 +210,7 @@
     on(copyRefId, 'click', () => {
       myRefId.select();
       document.execCommand('copy'); 
-      alert('IDをコピーしました');
+      if(refMessage) refMessage.textContent = 'コピーしました';
     });
 
     on(shareRefLink, 'click', async () => {
@@ -221,9 +221,10 @@
           await navigator.share({ title: 'himegoto', text: shareText, url: shareUrl });
         } else {
           await navigator.clipboard.writeText(shareUrl);
-          alert('リンクをコピーしました');
+          if(refMessage) refMessage.textContent = 'リンクをコピーしました';
         }
       } catch (e) {}
     });
   }
+
 })();
