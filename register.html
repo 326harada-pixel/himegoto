@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
-  <!-- Firebase Config -->
+  <!-- Firebase Config (あなたの正しい設定値) -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU",
@@ -21,14 +21,13 @@
       messagingSenderId: "368382081243",
       appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
     };
+    
+    // 初期化
     try {
       firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-      const db = firebase.firestore();
-      auth.languageCode = 'ja';
-    } catch(e) {
-      console.error(e);
-      alert("Firebase初期化エラー: " + e.message);
+      firebase.auth().languageCode = 'ja';
+    } catch (e) {
+      console.error("初期化エラー", e);
     }
   </script>
 
@@ -37,30 +36,33 @@
   <script src="common.js"></script>
   
   <style>
+    /* reCAPTCHA表示エリアのスタイル確保 */
     #recaptcha-container {
         min-height: 80px;
         margin: 15px 0;
-        background: #f5f5f5;
-        border: 1px solid #ddd;
+        background: #f9f9f9;
+        border: 1px solid #eee;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 4px;
     }
-    #debug-log {
+    /* エラーメッセージ表示用 */
+    #error-log {
+        color: red;
         font-size: 12px;
-        color: #d32f2f;
+        margin-top: 10px;
+        display: none;
         background: #ffebee;
         padding: 10px;
-        margin-top: 20px;
         border: 1px solid #ffcdd2;
-        white-space: pre-wrap;
-        display: none; /* エラー時のみ表示 */
     }
   </style>
 </head>
 <body>
   <main class="container">
+
+    <!-- 未認証時：登録フォーム -->
     <section class="card" id="registration-section">
       <h2>アカウント登録</h2>
       
@@ -68,15 +70,12 @@
         <p class="small muted">携帯番号によるSMS認証が必要です。</p>
         
         <div class="row">
-          <input type="tel" id="phoneInput" placeholder="電話番号（例：09012345678）">
+          <input type="tel" id="phoneInput" placeholder="例：09012345678">
         </div>
 
-        <!-- reCAPTCHA表示エリア -->
-        <div id="recaptcha-container">
-            <span style="color:#999; font-size:12px;">ここに「私はロボットではありません」が表示されます...<br>表示されない場合はページを再読み込みしてください</span>
-        </div>
+        <!-- reCAPTCHA表示場所 -->
+        <div id="recaptcha-container"></div>
 
-        <!-- 復活：コード送信ボタン -->
         <div class="row">
           <button class="btn" id="sendCodeSms">コード送信</button>
         </div>
@@ -88,12 +87,11 @@
           <input type="text" id="refCode" placeholder="紹介コード（任意）">
         </div>
 
-        <!-- 復活：規約同意リンク -->
-        <div style="margin: 15px 0; font-size: 14px; color: #666;">
+        <!-- 規約等のリンク -->
+        <div style="margin: 15px 0; font-size: 12px; color: #666;">
             登録することで、
             <a href="terms.html" target="_blank">利用規約</a>・
-            <a href="privacy.html" target="_blank">プライバシーポリシー</a>・
-            <a href="tokusho.html" target="_blank">特定商取引法</a>
+            <a href="privacy.html" target="_blank">プライバシーポリシー</a>
             に同意したものとみなされます。
         </div>
 
@@ -102,10 +100,11 @@
         </div>
         
         <p id="smsMessage" class="small muted" style="margin-top: 10px; font-weight: bold;"></p>
+        <div id="error-log"></div>
       </div>
     </section>
 
-    <!-- 認証済みユーザー用画面 -->
+    <!-- 認証済み時：紹介ID表示 -->
     <section class="card" id="my-referral-section" style="display:none;">
       <h2>あなたの紹介ID</h2>
       <p class="small muted">このIDをお友達に伝えて登録してもらうと、特典が付与されます。</p>
@@ -124,12 +123,9 @@
       <ul class="list">
         <li>無料版は顧客の登録数5名／1日の送信5回までです（日本時間0:00リセット）。</li>
         <li>バックアップはホームの「文字列を作る」で行えます。端末変更前に必ず保存してください。</li>
-        <li>お問い合わせは公式LINEから受け付けています。</li>
       </ul>
     </section>
 
-    <!-- デバッグログ表示エリア -->
-    <div id="debug-log"></div>
   </main>
 </body>
 </html>
