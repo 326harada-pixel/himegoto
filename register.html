@@ -11,9 +11,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
-  <!-- 2. Firebaseの初期化（設定） -->
+  <!-- 2. Firebaseの初期化（頂いた正しい設定値） -->
   <script>
-    // あなたのFirebase設定値
     const firebaseConfig = {
       apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU",
       authDomain: "himegoto-web.firebaseapp.com",
@@ -30,7 +29,7 @@
   </script>
 
   <!-- 3. アプリのロジック（Firebase初期化の後） -->
-  <script defer src="app-register.js"></script>
+  <script src="app-register.js"></script>
 
   <!-- 4. 既存のヘッダー/共通スクリプト -->
   <script src="header-loader.js"></script>
@@ -39,17 +38,12 @@
 </head>
 <body>
 
-  <!-- 
-    ★修正点: reCAPTCHAコンテナを、他の要素から隔離された
-    <body>の直下に移動します。
-  -->
+  <!-- reCAPTCHAコンテナ（隔離場所） -->
   <div id="recaptcha-container-root"></div>
 
   <main class="container">
 
-    <!-- 
-      セクション1: 未認証のユーザーに表示
-    -->
+    <!-- セクション1: 未認証のユーザーに表示 -->
     <section class="card" id="registration-section">
       <h2>アカウント登録</h2>
       
@@ -61,8 +55,6 @@
           <button class="btn" id="sendCodeSms">コード送信</button>
         </div>
         
-        <!-- ★注意: reCAPTCHAの表示場所はここではなく、上記の #recaptcha-container-root になります -->
-
         <div class="row">
           <input type="text" id="codeSms" placeholder="SMSで届いた6桁コード">
         </div>
@@ -79,9 +71,7 @@
       </div>
     </section>
 
-    <!-- 
-      セクション2: 認証済みのユーザーに表示 (デフォルトで非表示)
-    -->
+    <!-- セクション2: 認証済みのユーザーに表示 -->
     <section class="card" id="my-referral-section" style="display:none;">
       <h2>あなたの紹介ID</h2>
       <p class="small muted">このIDをお友達に伝えて登録してもらうと、特典が付与されます。</p>
@@ -95,8 +85,7 @@
       <p id="refMessage" class="small muted" style="margin-top: 10px;"></p>
     </section>
 
-
-    <!-- 注意事項 (共通で表示) -->
+    <!-- 注意事項 -->
     <section class="card">
       <h2>注意事項</h2>
       <ul class="list">
@@ -107,6 +96,7 @@
     </section>
 
   </main>
-  
 </body>
 </html>
+
+
