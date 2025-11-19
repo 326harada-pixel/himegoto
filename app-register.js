@@ -38,7 +38,6 @@
       refSection.style.display = 'none'; 
       checkUrlForReferral();
       
-      // DOMの準備完了を待ってからセットアップ
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', setupRecaptcha);
       } else {
@@ -55,7 +54,6 @@
     if (!smsMsg) return;
     smsMsg.textContent = text;
     smsMsg.style.color = isError ? '#D32F2F' : '#4CAF50';
-    smsMsg.style.fontWeight = isError ? 'bold' : 'normal';
   }
   
   function toInternationalFormat(phone) {
@@ -73,16 +71,12 @@
     } catch (e) {}
   }
 
-  // ==========================================================
-  // ★重要修正: 探偵モード（エラー診断機能付き）
-  // ==========================================================
   function setupRecaptcha() {
     if (window.recaptchaVerifier) return;
 
-    // 1. HTML側のコンテナが存在するかチェック
     const container = document.getElementById('recaptcha-container-root');
     if (!container) {
-      showMessage('【原因特定】HTMLの更新が反映されていません。ブラウザのキャッシュを消去するか、register.htmlが正しくアップロードされているか確認してください。（ID: recaptcha-container-root が見つかりません）', true);
+      showMessage('HTMLの更新が反映されていません。キャッシュをクリアしてください。', true);
       return;
     }
     
@@ -103,21 +97,10 @@
           window.recaptchaWidgetId = widgetId;
       }).catch((error) => {
           console.error("reCAPTCHA render error:", error);
-          
-          // ★エラーコードに基づいて原因を表示
-          let reason = '不明なエラー';
-          if (error.code === 'auth/argument-error') {
-            reason = 'HTML要素の指定ミス（register.htmlが古い可能性があります）';
-          } else if (error.message && error.message.includes('domain')) {
-            reason = '【ドメイン未承認】Firebaseコンソールで himegoto.jp を追加してください';
-          } else {
-            reason = `${error.code || ''} ${error.message}`;
-          }
-
-          showMessage(`設定エラー: ${reason}`, true);
+          showMessage(`初期化エラー: ${error.code || error.message}`, true);
       });
     } catch (e) {
-      showMessage(`初期化エラー: ${e.message}`, true);
+      showMessage(`初期化例外: ${e.message}`, true);
     }
   }
 
@@ -133,10 +116,8 @@
 
       if (!confirmationResult) {
         if (!window.recaptchaVerifier || !window.recaptchaWidgetId) {
-            // ここに来る場合、setupRecaptchaのエラーメッセージがすでに出ているはず
-            if (!smsMsg.textContent.includes('エラー')) {
-               showMessage('reCAPTCHAを読み込んでいます...しばらくお待ちください', true);
-            }
+            // ロード中の可能性もあるため、少し待つメッセージ
+            showMessage('読み込み中... 「私はロボットではありません」が表示されたらチェックしてください。', false);
         } else {
             showMessage('↑「私はロボットではありません」にチェックを入れてください。', false);
         }
@@ -163,11 +144,7 @@
       })
       .catch((error) => {
         console.error("SMS送信エラー:", error);
-        if (error.code === 'auth/invalid-phone-number') {
-            showMessage('電話番号の形式が正しくありません。', true);
-        } else {
-            showMessage(`送信失敗: ${error.code} ${error.message}`, true);
-        }
+        showMessage(`送信失敗: ${error.code} ${error.message}`, true);
         sendCodeSms.disabled = false;
         if (window.grecaptcha && window.recaptchaWidgetId) {
             grecaptcha.reset(window.recaptchaWidgetId);
@@ -202,7 +179,6 @@
           registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        // 紹介コード保存
         const appliedRef = refCodeInput.value.trim() || '';
         await db.collection('users').doc(user.uid).collection('profile').doc('info').set({
           appliedRefCode: appliedRef
@@ -219,7 +195,7 @@
   });
 
   // ==========================================================
-  // 5. 紹介ID表示（認証済みユーザー用）
+  // 5. 紹介ID表示
   // ==========================================================
   function setupMyReferralSection(uid) {
     const refId = uid.substring(0, 8);
