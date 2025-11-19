@@ -2,6 +2,16 @@
   const $ = (s) => document.querySelector(s);
   const on = (el,ev,fn) => el && el.addEventListener(ev, fn);
 
+  // ログ出力機能
+  function logError(msg) {
+    const logDiv = $('#debug-log');
+    if (logDiv) {
+      logDiv.style.display = 'block';
+      logDiv.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+    }
+    console.error(msg);
+  }
+
   const auth = firebase.auth();
   const db = firebase.firestore();
   const APP_URL = "https://himegoto.jp/register.html"; 
@@ -33,49 +43,53 @@
   }
 
   // -------------------------------------------------------
-  // 1. reCAPTCHA 初期化 (診断モード)
+  // 1. reCAPTCHA 初期化
   // -------------------------------------------------------
   function setupRecaptcha() {
+    if (window.recaptchaVerifier) {
+        // 既に描画済みならクリア
+        try { window.recaptchaVerifier.clear(); } catch(e){}
+    }
+
     const container = document.getElementById('recaptcha-container');
     if (!container) {
-      showMessage('エラー: reCAPTCHAコンテナが見つかりません。HTMLを確認してください。', true);
+      logError("エラー: HTML内に #recaptcha-container が見つかりません。");
       return;
-    }
-    // 初期化済みなら何もしない
-    if (window.recaptchaVerifier) {
-        container.innerHTML = ""; // 中身をクリアして再描画の準備
-        window.recaptchaVerifier.clear();
     }
 
     try {
-      // size: 'normal' (チェックボックスあり) で明示的に表示
+      // size: 'normal' で明示的にチェックボックスを表示
       window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
         'size': 'normal',
         'callback': (response) => {
-          console.log("reCAPTCHA OK");
-          showMessage("認証OK！「コード送信」を押してください。", false);
+          showMessage("認証OK。コード送信ボタンを押してください。", false);
           sendCodeSms.disabled = false;
         },
         'expired-callback': () => {
-          showMessage('認証期限切れ。再読込してください。', true);
+          showMessage("認証有効期限切れ。再読み込みしてください。", true);
         }
       }, auth);
 
-      showMessage('reCAPTCHAを読み込んでいます...', false);
-
       window.recaptchaVerifier.render().then(widgetId => {
         window.recaptchaWidgetId = widgetId;
-        showMessage('', false); // メッセージクリア
-        // コンテナの文字を消す
-        if(container.childNodes.length === 0) container.innerText = "";
+        // 成功したらコンテナ内の「読み込み中」テキストを消す
+        // (Firebaseが上書きするはずだが念のため)
       }).catch(error => {
-        console.error("Render Error:", error);
-        // ★ここで真犯人を表示します
-        showMessage(`【表示エラー】${error.code} : ${error.message}`, true);
+        logError(`reCAPTCHA表示失敗: ${error.code} - ${error.message}`);
+        
+        let hint = "";
+        if (error.message && error.message.includes("domain")) {
+            hint = "【原因】ドメイン未登録の可能性大。\nFirebaseコンソール > Authentication > 設定 > 承認済みドメイン に 'himegoto.jp' を追加してください。";
+        } else if (error.message && error.message.includes("key")) {
+            hint = "【原因】APIキーが無効です。";
+        }
+        
+        showMessage(`システムエラー: ${hint || "下のログを確認してください"}`, true);
+        logError(hint);
       });
 
     } catch (e) {
-      showMessage(`【初期化エラー】${e.message}`, true);
+      logError(`初期化例外: ${e.message}`);
     }
   }
 
@@ -86,13 +100,18 @@
     if (user) {
       regSection.style.display = 'none'; 
       refSection.style.display = 'block'; 
-      if (myRefId) myRefId.value = user.uid.substring(0, 8);
+      setupMyReferralSection(user.uid);
     } else {
       regSection.style.display = 'block'; 
       refSection.style.display = 'none'; 
       
-      // DOM読み込み後に実行
-      setTimeout(setupRecaptcha, 1000); // 念のため1秒待ってから描画（他スクリプトとの競合回避）
+      // URLパラメータ処理
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref'); 
+      if (ref && refCodeInput) refCodeInput.value = ref;
+      
+      // 少し待ってからreCAPTCHA描画（他スクリプトとの競合回避）
+      setTimeout(setupRecaptcha, 500);
     }
   });
 
@@ -107,13 +126,15 @@
     }
     const phoneNumber = toInternationalFormat(rawPhone);
 
-    if (!window.recaptchaVerifier) {
-      showMessage('エラー: reCAPTCHAが準備できていません。', true);
+    if (!window.recaptchaVerifier || !window.recaptchaWidgetId) {
+      // まだreCAPTCHAが出ていない場合
+      showMessage('reCAPTCHAの読み込み待ちです...', true);
+      // 強制再試行
+      setupRecaptcha();
       return;
     }
 
-    // チェックボックスが押されているか確認（normalの場合）
-    // verifyされていないと signInWithPhoneNumber はエラーになるか、自動でポップアップする
+    // reCAPTCHAがチェックされていない場合、Firebaseが自動的にポップアップで促すかエラーになる
     
     sendCodeSms.disabled = true;
     showMessage('送信処理中...', false);
@@ -121,7 +142,7 @@
     auth.signInWithPhoneNumber(phoneNumber, window.recaptchaVerifier)
       .then((result) => {
         confirmationResult = result;
-        showMessage('送信完了！コードを入力してください。', false);
+        showMessage('送信完了！届いたコードを入力してください。', false);
         sendCodeSms.disabled = false;
         sendCodeSms.textContent = "再送信";
         codeSms.disabled = false;
@@ -130,10 +151,17 @@
       .catch((error) => {
         console.error("SMS送信エラー:", error);
         sendCodeSms.disabled = false;
-        showMessage(`【送信エラー】${error.code}: ${error.message}`, true);
         
-        // reCAPTCHAリセット
-        if (window.recaptchaVerifier) window.recaptchaVerifier.reset();
+        let msg = `送信エラー: ${error.code}`;
+        if (error.code === 'auth/invalid-phone-number') msg = '電話番号の形式が正しくありません。';
+        if (error.code === 'auth/too-many-requests') msg = '回数制限です。しばらく待ってください。';
+        if (error.code === 'auth/captcha-check-failed') msg = 'reCAPTCHAチェックに失敗しました。';
+        
+        showMessage(msg, true);
+        logError(`送信失敗: ${error.message}`);
+        
+        // リセット
+        try { window.recaptchaVerifier.reset(); } catch(e){}
       });
   });
 
@@ -150,32 +178,52 @@
     confirmationResult.confirm(code)
       .then(async (result) => {
         const user = result.user;
+        
+        // Firestore初期化
         await db.collection('users').doc(user.uid).collection('purchases').doc('current').set({
           expiresAt: null,
           registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        const ref = refCodeInput.value.trim();
-        if(ref) {
-            await db.collection('users').doc(user.uid).collection('profile').doc('info').set({ appliedRefCode: ref }, { merge: true });
-        }
+        const appliedRef = refCodeInput.value.trim() || '';
+        await db.collection('users').doc(user.uid).collection('profile').doc('info').set({
+          appliedRefCode: appliedRef
+        }, { merge: true });
 
-        alert('登録完了！');
+        alert('登録完了！ホームへ移動します');
         location.href = 'index.html';
       })
       .catch((error) => {
         verifySms.disabled = false;
-        showMessage(`【認証エラー】${error.code}: ${error.message}`, true);
+        showMessage('コードが間違っているか、有効期限切れです。', true);
+        logError(`登録エラー: ${error.message}`);
       });
   });
 
-  // 紹介コピー
-  on(copyRefId, 'click', () => {
-      if(myRefId) {
-          myRefId.select();
-          document.execCommand('copy');
-          alert("コピーしました");
-      }
-  });
+  // -------------------------------------------------------
+  // 5. 紹介ID表示
+  // -------------------------------------------------------
+  function setupMyReferralSection(uid) {
+    const refId = uid.substring(0, 8);
+    if (myRefId) myRefId.value = refId;
+    
+    on(copyRefId, 'click', () => {
+      myRefId.select();
+      document.execCommand('copy'); 
+      alert('IDをコピーしました');
+    });
 
+    on(shareRefLink, 'click', async () => {
+      const shareUrl = `${APP_URL}?ref=${refId}`;
+      const shareText = `himegotoに登録しませんか？\n特典付きリンクはこちら🎁\n${shareUrl}`;
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: 'himegoto', text: shareText, url: shareUrl });
+        } else {
+          await navigator.clipboard.writeText(shareUrl);
+          alert('リンクをコピーしました');
+        }
+      } catch (e) {}
+    });
+  }
 })();
