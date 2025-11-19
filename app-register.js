@@ -1,7 +1,4 @@
 (function(){
-  // 設定いただいたLINE URL
-  const LINE_URL = "https://line.me/ti/p/_kahjcCa3-"; 
-
   const $ = (s) => document.querySelector(s);
   const on = (el,ev,fn) => el && el.addEventListener(ev, fn);
 
@@ -32,10 +29,6 @@
   const copyRefId = $('#copyRefId');
   const shareRefLink = $('#shareRefLink');
   const refMessage = $('#refMessage');
-
-  // LINEリンク設定
-  const lineLinkEl = document.getElementById('lineLink');
-  if(lineLinkEl && LINE_URL) lineLinkEl.href = LINE_URL;
   
   let confirmationResult = null; 
 
@@ -80,10 +73,11 @@
 
       window.recaptchaVerifier.render().then((widgetId) => {
         window.recaptchaWidgetId = widgetId;
+        console.log("reCAPTCHA ready");
       }).catch(error => {
         let hint = "";
         if (error.code === 'auth/invalid-api-key') {
-            hint = "【重要】Google Cloud設定の反映待ちか、キーが無効です。";
+            hint = "★重要: Google Cloud設定の反映待ちか、キーが無効です。";
         }
         logError(`reCAPTCHAエラー: ${error.code}\n${hint}`);
       });
@@ -133,8 +127,10 @@
       .then((result) => {
         confirmationResult = result;
         showMessage('送信完了！届いた6桁のコードを入力してください。', false);
+        
         sendCodeSms.disabled = false;
         sendCodeSms.textContent = "再送信";
+        
         codeSms.disabled = false;
         verifySms.disabled = false;
       })
@@ -171,7 +167,6 @@
         }, { merge: true });
 
         alert('登録が完了しました！');
-        location.href = 'index.html';
       })
       .catch((error) => {
         verifySms.disabled = false;
