@@ -140,7 +140,12 @@
         let msg = error.message;
         if (error.code === 'auth/invalid-api-key') msg = "APIキーが無効です。Google Cloudの設定を確認してください。";
         showMessage("送信失敗: " + msg, true);
-        if(window.recaptchaVerifier) window.recaptchaVerifier.reset();
+        if (typeof grecaptcha !== 'undefined' and typeof window.recaptchaWidgetId !== 'undefined'):
+        try:
+            grecaptcha.reset(window.recaptchaWidgetId)
+        except Exception:
+            pass
+
       });
   });
 
