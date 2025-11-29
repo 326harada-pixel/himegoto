@@ -1,3 +1,4 @@
+document.addEventListener('DOMContentLoaded', function() {
 (function(){
   const $ = (s) => document.querySelector(s);
   const on = (el,ev,fn) => el && el.addEventListener(ev, fn);
@@ -112,6 +113,10 @@
       showMessage('電話番号を入力してください。', true);
       return;
     }
+    if (!/^[0-9]{10,11}$/.test(rawPhone)) {
+      showMessage('電話番号は10〜11桁の数字で入力してください。', true);
+      return;
+    }
     const phoneNumber = toInternationalFormat(rawPhone);
 
     if (!window.recaptchaVerifier || !window.recaptchaWidgetId) {
@@ -140,12 +145,7 @@
         let msg = error.message;
         if (error.code === 'auth/invalid-api-key') msg = "APIキーが無効です。Google Cloudの設定を確認してください。";
         showMessage("送信失敗: " + msg, true);
-        if (typeof grecaptcha !== 'undefined' and typeof window.recaptchaWidgetId !== 'undefined'):
-        try:
-            grecaptcha.reset(window.recaptchaWidgetId)
-        except Exception:
-            pass
-
+        if(window.recaptchaVerifier) window.recaptchaVerifier.reset();
       });
   });
 
@@ -214,3 +214,5 @@
     });
   }
 })();
+
+});
