@@ -1,4 +1,3 @@
-document.addEventListener('DOMContentLoaded', function() {
 (function(){
   const $ = (s) => document.querySelector(s);
   const on = (el,ev,fn) => el && el.addEventListener(ev, fn);
@@ -113,10 +112,6 @@ document.addEventListener('DOMContentLoaded', function() {
       showMessage('電話番号を入力してください。', true);
       return;
     }
-    if (!/^[0-9]{10,11}$/.test(rawPhone)) {
-      showMessage('電話番号は10〜11桁の数字で入力してください。', true);
-      return;
-    }
     const phoneNumber = toInternationalFormat(rawPhone);
 
     if (!window.recaptchaVerifier || !window.recaptchaWidgetId) {
@@ -215,4 +210,4 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 })();
 
-});
+window.onload = function(){ try{ setupRecaptcha(); }catch(e){ console.error(e);} };
