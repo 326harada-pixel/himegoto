@@ -47,10 +47,13 @@
     return '+81' + p;
   }
 
-  // 1. reCAPTCHA 初期化
+  // reCAPTCHA 初期化
   function setupRecaptcha() {
     const container = document.getElementById('recaptcha-container');
-    if (!container) return;
+    if (!container) {
+      logError("recaptcha-container が見つかりません。HTML側のIDを確認してください。");
+      return;
+    }
 
     if (window.recaptchaVerifier) {
       try { window.recaptchaVerifier.clear(); } catch(e){}
@@ -60,7 +63,7 @@
     try {
       window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
         'size': 'normal',
-        'callback': (response) => {
+        'callback': () => {
           showMessage("認証OK。コード送信ボタンを押してください。", false);
           sendCodeSms.disabled = false;
           sendCodeSms.textContent = "コード送信";
@@ -69,43 +72,48 @@
           showMessage("有効期限切れです。チェックし直してください。", true);
           sendCodeSms.disabled = true;
         }
-      }, auth);
+      });
 
       window.recaptchaVerifier.render().then((widgetId) => {
         window.recaptchaWidgetId = widgetId;
-        console.log("reCAPTCHA ready");
       }).catch(error => {
         let hint = "";
         if (error.code === 'auth/invalid-api-key') {
-            hint = "★重要: Google Cloud設定の反映待ちか、キーが無効です。";
+            hint = "★重要: Google Cloud の API キー設定が未反映の可能性。";
         }
-        logError(`reCAPTCHAエラー: ${error.code}\n${hint}`);
+        logError(`reCAPTCHA エラー: ${error.code}\n${hint}`);
       });
 
     } catch (e) {
-      logError(`初期化エラー: ${e.message}`);
+      logError(`reCAPTCHA 初期化エラー: ${e.message}`);
     }
   }
 
-  // 2. 起動処理
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      regSection.style.display = 'none'; 
-      refSection.style.display = 'block'; 
-      setupMyReferralSection(user.uid);
-    } else {
-      regSection.style.display = 'block'; 
-      refSection.style.display = 'none'; 
-      
-      const params = new URLSearchParams(window.location.search);
-      const ref = params.get('ref'); 
-      if (ref && refCodeInput) refCodeInput.value = ref;
+  // 起動処理
+  document.addEventListener("DOMContentLoaded", () => {
 
-      setTimeout(setupRecaptcha, 500);
-    }
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        if (regSection) regSection.style.display = 'none';
+        if (refSection) refSection.style.display = 'block';
+        setupMyReferralSection(user.uid);
+
+      } else {
+        if (regSection) regSection.style.display = 'block';
+        if (refSection) refSection.style.display = 'none';
+
+        // 紹介コード付きURL対応
+        const params = new URLSearchParams(window.location.search);
+        const ref = params.get('ref'); 
+        if (ref && refCodeInput) refCodeInput.value = ref;
+
+        setTimeout(setupRecaptcha, 500);
+      }
+    });
+
   });
 
-  // 3. コード送信
+  // コード送信
   on(sendCodeSms, 'click', () => {
     const rawPhone = phoneInput.value.trim();
     if (!rawPhone) {
@@ -115,7 +123,7 @@
     const phoneNumber = toInternationalFormat(rawPhone);
 
     if (!window.recaptchaVerifier || !window.recaptchaWidgetId) {
-      showMessage('reCAPTCHAを読み込んでいます...', true);
+      showMessage('reCAPTCHA を読み込んでいます…', true);
       setupRecaptcha();
       return;
     }
@@ -135,16 +143,16 @@
         verifySms.disabled = false;
       })
       .catch((error) => {
-        console.error("SMS送信エラー:", error);
         sendCodeSms.disabled = false;
         let msg = error.message;
-        if (error.code === 'auth/invalid-api-key') msg = "APIキーが無効です。Google Cloudの設定を確認してください。";
+        if (error.code === 'auth/invalid-api-key') msg = "APIキーが無効です。";
+
         showMessage("送信失敗: " + msg, true);
         if(window.recaptchaVerifier) window.recaptchaVerifier.reset();
       });
   });
 
-  // 4. 登録
+  // 登録
   on(verifySms, 'click', () => {
     const code = codeSms.value.trim();
     if (!code || !confirmationResult) return;
@@ -167,18 +175,19 @@
         }, { merge: true });
 
         alert('登録が完了しました！');
+        location.reload();
       })
       .catch((error) => {
         verifySms.disabled = false;
         if (error.code === 'auth/invalid-verification-code') {
-            showMessage('コードが違います。再入力してください。', true);
+            showMessage('コードが違います。', true);
         } else {
             showMessage("認証エラー: " + error.message, true);
         }
       });
   });
 
-  // 5. 紹介
+  // 紹介関連
   function setupMyReferralSection(uid) {
     const refId = uid.substring(0, 8);
     if (myRefId) myRefId.value = refId;
@@ -194,7 +203,7 @@
 
     on(shareRefLink, 'click', async () => {
       const shareUrl = `${APP_URL}?ref=${refId}`;
-      const shareText = `himegotoに登録しませんか？\n特典付きリンクはこちら🎁\n${shareUrl}`;
+      const shareText = `himegoto に登録しませんか？\n特典付きリンクはこちら🎁\n${shareUrl}`;
       try {
         if (navigator.share) {
           await navigator.share({ title: 'himegoto', text: shareText, url: shareUrl });
@@ -208,4 +217,5 @@
       } catch (e) {}
     });
   }
+
 })();
