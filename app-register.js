@@ -107,7 +107,7 @@
         const ref = params.get('ref'); 
         if (ref && refCodeInput) refCodeInput.value = ref;
 
-        setTimeout(setupRecaptcha, 500);
+        setupRecaptcha();
       }
     });
 
