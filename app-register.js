@@ -148,7 +148,6 @@
         if (error.code === 'auth/invalid-api-key') msg = "APIキーが無効です。";
 
         showMessage("送信失敗: " + msg, true);
-        if(window.recaptchaVerifier) window.recaptchaVerifier.reset();
       });
   });
 
