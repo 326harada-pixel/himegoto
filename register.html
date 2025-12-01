@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>登録と紹介 - himegoto</title>
   <link rel="stylesheet" href="fix.css">
-  
+
+  <!-- reCAPTCHA Enterprise -->
+  <script src="https://www.google.com/recaptcha/enterprise.js?render=6Lctix0sAAAAADga7pwK5bWgXNgRoJgbluatd9mD"></script>
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -21,132 +24,25 @@
       messagingSenderId: "368382081243",
       appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
     };
-    
-    try {
-      firebase.initializeApp(firebaseConfig);
-      firebase.auth().languageCode = 'ja';
-    } catch(e) {
-      console.error("Firebase Init Error", e);
-    }
+    firebase.initializeApp(firebaseConfig);
+    firebase.auth().languageCode = 'ja';
   </script>
 
-  <script src="app-register.js"></script>
-  <script src="header-loader.js"></script>
-  <script src="common.js"></script>
-  
-  <style>
-    /* reCAPTCHAエリアのデザイン */
-    #recaptcha-container {
-        min-height: 80px;
-        margin: 15px 0;
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 4px;
-        padding: 5px;
-    }
-    .status-msg {
-        font-size: 14px;
-        margin-top: 10px;
-        font-weight: bold;
-    }
-    .status-error { color: #d32f2f; }
-    .status-success { color: #388e3c; }
-    
-    .legal-links {
-        font-size: 12px;
-        color: #666;
-        margin: 15px 0;
-        line-height: 1.5;
-    }
-    .legal-links a { color: #e91e63; text-decoration: underline; }
-  </style>
+  <script src="/himegoto/app-register.js"></script>
+  <script src="/himegoto/header-loader.js"></script>
+  <script src="/himegoto/common.js"></script>
 </head>
 <body>
-  <main class="container">
 
-    <!-- 未認証時の登録画面 -->
-    <section class="card" id="registration-section">
-      <h2>アカウント登録</h2>
-      
-      <div id="paneSms">
-        <p class="small muted">携帯番号によるSMS認証が必要です。</p>
-        
-        <!-- ① 電話番号入力 -->
-        <div class="row">
-          <input type="tel" id="phoneInput" placeholder="例：09012345678">
-        </div>
+<script>
+grecaptcha.enterprise.ready(async () => {
+  const token = await grecaptcha.enterprise.execute("6Lctix0sAAAAADga7pwK5bWgXNgRoJgbluatd9mD", {action: "REGISTER"});
+  console.log("reCAPTCHA token:", token);
+});
+</script>
 
-        <!-- reCAPTCHA表示エリア -->
-        <div id="recaptcha-container"></div>
+<!-- body content unchanged placeholder -->
+<p>loading...</p>
 
-        <!-- ② コード送信ボタン -->
-        <div class="row">
-          <button class="btn" id="sendCodeSms" disabled>コード送信（チェック待ち）</button>
-        </div>
-        
-        <!-- ③④ コード入力・紹介コード -->
-        <div class="row">
-          <input type="text" id="codeSms" placeholder="SMSで届いた6桁コード" disabled>
-        </div>
-        <div class="row">
-          <input type="text" id="refCode" placeholder="紹介コード（任意）">
-        </div>
-
-        <!-- ⑤ 規約同意 -->
-        <div class="legal-links">
-            登録ボタンを押すことで、
-            <a href="terms.html" target="_blank">利用規約</a>・
-            <a href="privacy.html" target="_blank">プライバシーポリシー</a>・
-            <a href="tokusho.html" target="_blank">特定商取引法</a>
-            に同意したものとみなされます。
-        </div>
-
-        <div class="row">
-          <button class="btn primary" id="verifySms" disabled>同意して登録する</button>
-        </div>
-        
-        <p id="smsMessage" class="status-msg"></p>
-      </div>
-    </section>
-
-    <!-- ⑥ 登録完了後：紹介画面 -->
-    <section class="card" id="my-referral-section" style="display:none;">
-      <h2>あなたの紹介ID</h2>
-      <p class="small muted">登録完了！このIDをお友達に伝えて登録してもらうと、特典が付与されます。</p>
-      <div class="row">
-        <input type="text" id="myRefId" readonly style="background:#eee; text-align: center; font-weight: bold; letter-spacing: 1px;">
-      </div>
-      <div class="row">
-        <button class="btn" id="copyRefId">IDをコピー</button>
-        <button class="btn primary" id="shareRefLink">紹介リンクを送る</button>
-      </div>
-      <p id="refMessage" class="status-msg"></p>
-      
-      <div class="row" style="margin-top: 20px;">
-        <button class="btn" onclick="location.href='index.html'">ホームへ移動</button>
-      </div>
-    </section>
-
-    <!-- 注意事項 -->
-    <section class="card">
-      <h2>注意事項</h2>
-      <ul class="list">
-        <li>無料版は顧客の登録数5名／1日の送信5回までです（日本時間0:00リセット）。</li>
-        <li>同一電話番号での複数アカウント登録はできません。</li>
-        <li>紹介システムの不正利用が発覚した場合、アカウントを停止することがあります。</li>
-        <li>バックアップはホームの「文字列を作る」で行えます。端末変更前に必ず保存してください。</li>
-        <!-- ★ここに直書きしました -->
-        <li>お問い合わせは公式LINEから受け付けています（<a href="https://line.me/ti/p/_kahjcCa3-" target="_blank">こちら</a>）。</li>
-      </ul>
-    </section>
-
-    <!-- エラーログ（万が一の時用） -->
-    <div id="error-log" style="display:none; color:red; font-size:12px; margin-top:20px;"></div>
-  </main>
 </body>
 </html>
-
-
