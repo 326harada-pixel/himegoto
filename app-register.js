@@ -1,233 +1,88 @@
+// rebuilt minimal functional SMS flow
+let auth, db;
 
-(function(){
-  const APP_URL = "https://himegoto.jp/register.html";
-
-  const $ = (s) => document.querySelector(s);
-  const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
-
-  const auth = firebase.auth();
-  const db   = firebase.firestore();
-
-  let confirmationResult = null;
-  let recaptchaVerifier  = null;
-  let recaptchaReady     = false;
-
-  function logError(msg){
-    const el = $('#error-log');
-    if(el){
-      el.style.display = 'block';
-      el.textContent = `【エラー診断】\n${msg}`;
-    }
-    console.error(msg);
-  }
-
-  function showMessage(text, isError){
-    const smsMsg = $('#smsMessage');
-    if(!smsMsg) return;
-    smsMsg.textContent = text;
-    smsMsg.className = isError ? 'status-msg status-error' : 'status-msg status-success';
-  }
-
-  function toInternationalFormat(phone){
-    if(!phone) return '';
-    let p = phone.replace(/[━.*+\s-]/g, '');
-    if(p.startsWith('0')) return '+81' + p.substring(1);
-    return '+81' + p;
-  }
-
-  function setupRecaptcha(){
-    const container = document.getElementById('recaptcha-container');
-    if(!container){
-      logError('recaptcha-container が見つかりません');
-      return;
-    }
-
-    if(recaptchaVerifier){
-      try{ recaptchaVerifier.clear(); }catch(e){}
-      container.innerHTML = "";
-    }
-
-    try{
-      recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-        size: 'normal',
-        callback: function(){
-          recaptchaReady = true;
-          showMessage('認証OK。コード送信ボタンを押してください。', false);
-          const sendBtn = $('#sendCodeSms');
-          if(sendBtn) sendBtn.disabled = false;
-        },
-        'expired-callback': function(){
-          recaptchaReady = false;
-          showMessage('reCAPTCHAの有効期限が切れました。もう一度チェックしてください。', true);
-          const sendBtn = $('#sendCodeSms');
-          if(sendBtn) sendBtn.disabled = true;
-        }
-      }, auth);
-
-      recaptchaVerifier.render().then(function(widgetId){
-        console.log('reCAPTCHA ready: ' + widgetId);
-      }).catch(function(error){
-        logError('reCAPTCHAエラー: ' + error.code);
-      });
-    }catch(e){
-      logError('reCAPTCHA初期化エラー: ' + e.message);
-    }
-  }
-
-  function setupMyReferralSection(uid){
-    const refId = uid.substring(0, 8);
-    const myRefId     = $('#myRefId');
-    const copyRefId   = $('#copyRefId');
-    const shareRefLink= $('#shareRefLink');
-    const refMessage  = $('#refMessage');
-
-    if(myRefId) myRefId.value = refId;
-
-    on(copyRefId, 'click', function(){
-      if(!myRefId) return;
-      myRefId.select();
-      document.execCommand('copy');
-      if(refMessage){
-        refMessage.textContent = 'コピーしました';
-        refMessage.className   = 'status-msg status-success';
-      }
-    });
-
-    on(shareRefLink, 'click', async function(){
-      const shareUrl  = APP_URL + '?ref=' + refId;
-      const shareText = 'himegotoに登録しませんか？\n特典付きリンクはこちら🎁\n' + shareUrl;
-      try{
-        if(navigator.share){
-          await navigator.share({ title: 'himegoto', text: shareText, url: shareUrl });
-        }else if(navigator.clipboard){
-          await navigator.clipboard.writeText(shareUrl);
-          if(refMessage){
-            refMessage.textContent = 'リンクをコピーしました';
-            refMessage.className   = 'status-msg status-success';
-          }
-        }
-      }catch(e){
-        console.log(e);
-      }
-    });
-  }
-
-  window.addEventListener('load', function(){
-    const regSection  = $('#registration-section');
-    const refSection  = $('#my-referral-section');
-    const phoneInput  = $('#phoneInput');
-    const sendCodeSms = $('#sendCodeSms');
-    const codeSms     = $('#codeSms');
-    const refCodeInput= $('#refCode');
-    const verifySms   = $('#verifySms');
-
-    if(regSection) regSection.style.display = 'block';
-    if(refSection) refSection.style.display = 'none';
-
-    // URL の ref パラメータを紹介コードに反映
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get('ref');
-    if(ref && refCodeInput) refCodeInput.value = ref;
-
-    // reCAPTCHA 初期化
+window.onload = function(){
+  try{
+    auth = firebase.auth();
+    db   = firebase.firestore();
     setupRecaptcha();
+    bindEvents();
+  }catch(e){ console.error(e); }
+};
 
-    // 既にログイン済みなら紹介画面を表示
-    auth.onAuthStateChanged(function(user){
-      if(user){
-        if(regSection) regSection.style.display = 'none';
-        if(refSection) refSection.style.display = 'block';
-        setupMyReferralSection(user.uid);
-      }
-    });
+function qs(x){ return document.querySelector(x); }
+function msg(t, err){ const el=qs('#smsMessage'); if(!el)return;
+  el.textContent=t; el.className= err?'status-msg status-error':'status-msg status-success';
+}
 
-    // コード送信
-    on(sendCodeSms, 'click', function(){
-      if(!recaptchaVerifier || !recaptchaReady){
-        showMessage('reCAPTCHA を完了してください。', true);
-        return;
-      }
+function setupRecaptcha(){
+  try{
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container',
+      { size:'normal',
+        callback:()=>{ qs('#sendCodeSms').disabled=false; msg('認証OK',false); },
+        'expired-callback':()=>{ qs('#sendCodeSms').disabled=true; msg('有効期限切れ',true); }
+      }, auth);
+    window.recaptchaVerifier.render();
+  }catch(e){ console.error(e); }
+}
 
-      if(!phoneInput){
-        showMessage('入力欄が見つかりません。', true);
-        return;
-      }
+function toIntl(p){
+  p = p.replace(/[^0-9]/g,'');
+  if(p.startsWith('0')) return '+81'+p.slice(1);
+  return '+81'+p;
+}
 
-      const rawPhone = phoneInput.value.trim();
-      if(!rawPhone){
-        showMessage('電話番号を入力してください。', true);
-        return;
-      }
+let confirmationResult=null;
 
-      const phoneNumber = toInternationalFormat(rawPhone);
-      sendCodeSms.disabled = true;
-      showMessage('送信中...', false);
+function bindEvents(){
+  const sendBtn = qs('#sendCodeSms');
+  const phone   = qs('#phoneInput');
+  const code    = qs('#codeSms');
+  const verify  = qs('#verifySms');
+  const ref     = qs('#refCode');
 
-      auth.signInWithPhoneNumber(phoneNumber, recaptchaVerifier)
-        .then(function(result){
-          confirmationResult = result;
-          showMessage('送信完了！届いた6桁のコードを入力してください。', false);
-          if(codeSms)   codeSms.disabled   = false;
-          if(verifySms) verifySms.disabled = false;
-          sendCodeSms.disabled = false;
-        })
-        .catch(function(error){
-          console.error('SMS送信エラー:', error);
-          let msg = error.message;
-          if(error.code === 'auth/invalid-api-key'){
-            msg = 'APIキーが無効です。Google Cloudの設定を確認してください。';
-          }
-          showMessage('送信失敗: ' + msg, true);
-          sendCodeSms.disabled = false;
-        });
-    });
+  sendBtn.addEventListener('click', async ()=>{
+    const raw = phone.value.trim();
+    if(!/^[0-9]{10,11}$/.test(raw)){ msg('電話番号は10〜11桁',true); return; }
 
-    // コード検証・登録
-    on(verifySms, 'click', function(){
-      if(!confirmationResult){
-        showMessage('先にコード送信を行ってください。', true);
-        return;
-      }
-      if(!codeSms){
-        showMessage('コード入力欄が見つかりません。', true);
-        return;
-      }
+    if(!window.recaptchaVerifier){ msg('reCAPTCHA未準備',true); return; }
 
-      const code = codeSms.value.trim();
-      if(!code){
-        showMessage('6桁コードを入力してください。', true);
-        return;
-      }
-
-      verifySms.disabled = true;
-      showMessage('確認中...', false);
-
-      confirmationResult.confirm(code)
-        .then(async function(result){
-          const user = result.user;
-          await db.collection('users').doc(user.uid).collection('purchases').doc('current').set({
-            expiresAt: null,
-            registeredAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          const appliedRef = (refCodeInput && refCodeInput.value.trim()) || '';
-          await db.collection('users').doc(user.uid).collection('profile').doc('info').set({
-            appliedRefCode: appliedRef
-          }, { merge: true });
-
-          alert('登録が完了しました！');
-
-          if(regSection) regSection.style.display = 'none';
-          if(refSection) refSection.style.display = 'block';
-          setupMyReferralSection(user.uid);
-        })
-        .catch(function(error){
-          verifySms.disabled = false;
-          if(error.code === 'auth/invalid-verification-code'){
-            showMessage('コードが違います。再入力してください。', true);
-          }else{
-            showMessage('認証エラー: ' + error.message, true);
-          }
-        });
-    });
+    sendBtn.disabled=true; msg('送信中...',false);
+    try{
+      confirmationResult = await auth.signInWithPhoneNumber(toIntl(raw), window.recaptchaVerifier);
+      msg('送信完了！コード入力を',false);
+      code.disabled=false; verify.disabled=false;
+      sendBtn.disabled=false; sendBtn.textContent='再送信';
+    }catch(e){
+      console.error(e); msg('送信失敗: '+e.message,true);
+      sendBtn.disabled=false;
+      try{ window.recaptchaVerifier.reset(); }catch(_){}
+    }
   });
-})();
+
+  verify.addEventListener('click', async ()=>{
+    if(!confirmationResult) return;
+    const c = code.value.trim();
+    if(!c){ msg('コード未入力',true); return; }
+
+    verify.disabled=true; msg('確認中...',false);
+    try{
+      const result = await confirmationResult.confirm(c);
+      const uid = result.user.uid;
+
+      await db.collection('users').doc(uid).collection('purchases').doc('current')
+        .set({expiresAt:null, registeredAt: firebase.firestore.FieldValue.serverTimestamp()});
+
+      const r = ref.value.trim()||'';
+      await db.collection('users').doc(uid).collection('profile').doc('info')
+        .set({appliedRefCode:r},{merge:true});
+
+      alert('登録完了！');
+      location.reload();
+
+    }catch(e){
+      verify.disabled=false;
+      msg('認証エラー: '+e.message,true);
+    }
+  });
+}
