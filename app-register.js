@@ -29,7 +29,7 @@
   const copyRefId = $('#copyRefId');
   const shareRefLink = $('#shareRefLink');
   const refMessage = $('#refMessage');
-  
+
   let confirmationResult = null; 
 
   // メッセージ表示
@@ -135,10 +135,10 @@
       .then((result) => {
         confirmationResult = result;
         showMessage('送信完了！届いた6桁のコードを入力してください。', false);
-        
+
         sendCodeSms.disabled = false;
         sendCodeSms.textContent = "再送信";
-        
+
         codeSms.disabled = false;
         verifySms.disabled = false;
       })
@@ -163,12 +163,12 @@
     confirmationResult.confirm(code)
       .then(async (result) => {
         const user = result.user;
-        
+
         await db.collection('users').doc(user.uid).collection('purchases').doc('current').set({
           expiresAt: null,
           registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        
+
         const appliedRef = refCodeInput.value.trim() || '';
         await db.collection('users').doc(user.uid).collection('profile').doc('info').set({
           appliedRefCode: appliedRef
@@ -191,7 +191,7 @@
   function setupMyReferralSection(uid) {
     const refId = uid.substring(0, 8);
     if (myRefId) myRefId.value = refId;
-    
+
     on(copyRefId, 'click', () => {
       myRefId.select();
       document.execCommand('copy'); 
