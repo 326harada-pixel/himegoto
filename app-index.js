@@ -19,6 +19,12 @@
   const remainCust = $('#remainCustomers');  // 見出し横「残◯人」
   const remainShare = $('#remainShares');    // 見出し横「残◯回」
 
+  // ★ 残時間表示用（index.html 側に span がある前提：premiumDays / premiumHours / premiumMinutes）
+  const premiumDaysEl = document.getElementById('premiumDays');
+  const premiumHoursEl = document.getElementById('premiumHours');
+  const premiumMinutesEl = document.getElementById('premiumMinutes');
+  let premiumTimerId = null;
+
   // --- Keys / Limits ---
   const KC = 'hime_customers';
   const KS = 'hime_selected';
@@ -68,6 +74,79 @@
     let d = ensureToday(loadSend());
     const left = Math.max(0, MAX_SENDS - (d.count || 0));
     remainShare.textContent = `送信残り ${left}回`;
+  }
+
+  // ★ 残時間表示用：差分計算して3つの span に入れる
+  function startPremiumTimer(expireDate) {
+    if (!premiumDaysEl || !premiumHoursEl || !premiumMinutesEl) {
+      return; // HTML側にまだ用意されてないなら何もしない
+    }
+    if (premiumTimerId) {
+      clearInterval(premiumTimerId);
+      premiumTimerId = null;
+    }
+
+    function tick() {
+      const now = new Date();
+      const diff = expireDate.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        premiumDaysEl.textContent = '0';
+        premiumHoursEl.textContent = '0';
+        premiumMinutesEl.textContent = '0';
+        clearInterval(premiumTimerId);
+        premiumTimerId = null;
+        return;
+      }
+
+      const dayMs = 1000 * 60 * 60 * 24;
+      const hourMs = 1000 * 60 * 60;
+      const minMs = 1000 * 60;
+
+      const days = Math.floor(diff / dayMs);
+      const hours = Math.floor((diff % dayMs) / hourMs);
+      const minutes = Math.floor((diff % hourMs) / minMs);
+
+      premiumDaysEl.textContent = String(days);
+      premiumHoursEl.textContent = String(hours);
+      premiumMinutesEl.textContent = String(minutes);
+    }
+
+    tick();
+    premiumTimerId = setInterval(tick, 60 * 1000); // 1分ごと更新
+  }
+
+  // ★ Firestore から expiresAt を読んでタイマー開始
+  function loadPremiumFromFirestore() {
+    // index.html 側で firebase-app-compat / firestore-compat が読み込まれている前提
+    if (!window.firebase || !firebase.auth || !firebase.firestore) {
+      return;
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    auth.onAuthStateChanged(function (user) {
+      if (!user) return;
+
+      db.collection('users')
+        .doc(user.uid)
+        .collection('purchases')
+        .doc('current')
+        .get()
+        .then(function (snap) {
+          if (!snap.exists) return;
+          const data = snap.data() || {};
+          const expires = data.expiresAt || data.premium_until || null;
+          // Firestore Timestamp 前提
+          if (expires && typeof expires.toDate === 'function') {
+            const d = expires.toDate();
+            startPremiumTimer(d);
+          }
+        })
+        .catch(function (e) {
+          console.error('premium expiresAt load error', e);
+        });
+    });
   }
 
   // --- Render list ---
@@ -235,4 +314,5 @@
   // --- Init ---
   render();
   updateSendRemainUI();
+  loadPremiumFromFirestore(); // ★ ここで Firestore から残時間を読み込んで反映
 })();
