@@ -5,6 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ホーム - himegoto</title>
   <link rel="stylesheet" href="fix.css">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Config -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU",
+      authDomain: "himegoto-web.firebaseapp.com",
+      projectId: "himegoto-web",
+      storageBucket: "himegoto-web.firebasestorage.app",
+      messagingSenderId: "368382081243",
+      appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
+    };
+    try { firebase.initializeApp(firebaseConfig); } catch(e) {}
+  </script>
+
   <script src="header-loader.js"></script>
   <script src="common.js"></script>
   <script defer src="app-index.js"></script>
