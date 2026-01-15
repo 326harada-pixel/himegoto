@@ -26,6 +26,95 @@
   const MAX_CUSTOMERS = 5;
   const MAX_SENDS = 5;
 
+  // --- Premium (Firestore) ---
+  // 最小変更：Firestore の plan/proUntil を読める場合だけ無制限にする
+  // 参照候補：
+  //  - users/{uid}
+  //  - users/{uid}/profile/info
+  const PREMIUM = { loaded: false, isPro: false, untilMs: 0 };
+
+  function toMs(v) {
+    try {
+      if (!v) return 0;
+      if (typeof v === 'number') return v;
+      if (typeof v === 'string') {
+        const t = Date.parse(v);
+        return Number.isFinite(t) ? t : 0;
+      }
+      // Firestore Timestamp (compat)
+      if (typeof v.toDate === 'function') return v.toDate().getTime();
+      if (typeof v.seconds === 'number') return v.seconds * 1000;
+    } catch {}
+    return 0;
+  }
+
+  function setPremiumUI() {
+    // 残時間表示
+    const dEl = document.getElementById('premiumDays');
+    const hEl = document.getElementById('premiumHours');
+    const mEl = document.getElementById('premiumMinutes');
+    const now = Date.now();
+    const left = Math.max(0, (PREMIUM.untilMs || 0) - now);
+    const mins = Math.floor(left / 60000);
+    const days = Math.floor(mins / (60 * 24));
+    const hours = Math.floor((mins - days * 60 * 24) / 60);
+    const minutes = Math.max(0, mins - days * 60 * 24 - hours * 60);
+    if (dEl) dEl.textContent = String(days);
+    if (hEl) hEl.textContent = String(hours);
+    if (mEl) mEl.textContent = String(minutes);
+
+    // 上限表示（見出し横）
+    if (PREMIUM.isPro) {
+      if (remainCust) remainCust.textContent = '上限なし';
+      if (remainShare) remainShare.textContent = '送信残り 無制限';
+    }
+  }
+
+  async function loadPremiumFromFirestore() {
+    // firebase が無い場合は何もしない（ローカル保存だけで動く）
+    try {
+      if (!window.firebase || !firebase.auth || !firebase.firestore) return;
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+
+      const user = auth.currentUser || await new Promise((resolve) => {
+        const off = auth.onAuthStateChanged((u) => {
+          try { off && off(); } catch {}
+          resolve(u || null);
+        });
+      });
+      if (!user) return;
+
+      // まず users/{uid} を見る
+      let plan = '';
+      let untilMs = 0;
+      try {
+        const udoc = await db.collection('users').doc(user.uid).get();
+        const d = udoc && udoc.exists ? (udoc.data() || {}) : {};
+        plan = String(d.plan || '');
+        untilMs = toMs(d.proUntil);
+      } catch {}
+
+      // 次に profile/info も見る（上書き）
+      try {
+        const pdoc = await db.collection('users').doc(user.uid).collection('profile').doc('info').get();
+        const d = pdoc && pdoc.exists ? (pdoc.data() || {}) : {};
+        if (d.plan != null) plan = String(d.plan || '');
+        const ms2 = toMs(d.proUntil);
+        if (ms2) untilMs = ms2;
+      } catch {}
+
+      PREMIUM.loaded = true;
+      PREMIUM.untilMs = untilMs || 0;
+      PREMIUM.isPro = (plan === 'pro') && (PREMIUM.untilMs > Date.now());
+
+      // UI と残数を更新
+      setPremiumUI();
+      updateCustomerRemainUI();
+      updateSendRemainUI();
+    } catch {}
+  }
+
   // --- State I/O ---
   function load() {
     try {
@@ -60,11 +149,19 @@
   function updateCustomerRemainUI() {
     if (!remainCust) return;
     const st = load();
+    if (PREMIUM.isPro) {
+      remainCust.textContent = '上限なし';
+      return;
+    }
     const left = Math.max(0, MAX_CUSTOMERS - (st.list || []).length);
     remainCust.textContent = `残 ${left}人`;
   }
   function updateSendRemainUI() {
     if (!remainShare) return;
+    if (PREMIUM.isPro) {
+      remainShare.textContent = '送信残り 無制限';
+      return;
+    }
     let d = ensureToday(loadSend());
     const left = Math.max(0, MAX_SENDS - (d.count || 0));
     remainShare.textContent = `送信残り ${left}回`;
@@ -95,7 +192,7 @@
     const v = (nameI && nameI.value || '').trim();
     if (!v) return;
     const st = load();
-    if ((st.list || []).length >= MAX_CUSTOMERS) {
+    if (!PREMIUM.isPro && (st.list || []).length >= MAX_CUSTOMERS) {
       alert('無料版では顧客の登録は5名までです。');
       return;
     }
@@ -161,14 +258,16 @@
     if (!msg) return;
 
     // 1) 先に消費（タップで減算する仕様）
-    let d = ensureToday(loadSend());
-    if ((d.count || 0) >= MAX_SENDS) {
-      updateSendRemainUI();
-      alert('無料版では1日の送信は5回までです。');
-      return;
+    if (!PREMIUM.isPro) {
+      let d = ensureToday(loadSend());
+      if ((d.count || 0) >= MAX_SENDS) {
+        updateSendRemainUI();
+        alert('無料版では1日の送信は5回までです。');
+        return;
+      }
+      d.count = (d.count || 0) + 1;
+      saveSend(d);
     }
-    d.count = (d.count || 0) + 1;
-    saveSend(d);
     updateSendRemainUI();
 
     // 2) {name}置換 → 共有 or クリップボード
@@ -235,4 +334,5 @@
   // --- Init ---
   render();
   updateSendRemainUI();
+  loadPremiumFromFirestore();
 })();
