@@ -18,10 +18,12 @@
 
   const remainCust = $('#remainCustomers');  // 見出し横「残◯人」
   const remainShare = $('#remainShares');    // 見出し横「残◯回」
+  const kanaTabs = $('#kanaTabs');
 
   // --- Keys / Limits ---
   const KC = 'hime_customers';
   const KS = 'hime_selected';
+  const KKana = 'hime_kana_tab_v1';
   const SEND_KEY = 'hime_send_cnt_v1'; // 送信回数保存キー（既存仕様に合わせる）
   const MAX_CUSTOMERS = 5;
   const MAX_SENDS = 5;
@@ -131,6 +133,60 @@
     localStorage.setItem(KS, JSON.stringify(sel));
   }
 
+  // --- Kana Tabs ---
+  const KANA_TABS = ['全','あ','か','さ','た','な','は','ま','や','ら','わ','他'];
+  function loadKanaTab(){
+    return localStorage.getItem(KKana) || '全';
+  }
+  function saveKanaTab(v){
+    localStorage.setItem(KKana, v || '全');
+  }
+  function memoKey(n){ return `hime_memo_${n}`; }
+  function loadYomiForName(n){
+    try{
+      const o = JSON.parse(localStorage.getItem(memoKey(n)) || '{}');
+      return (o && o.yomi) ? String(o.yomi) : '';
+    }catch{ return ''; }
+  }
+
+  function toHiragana(s){
+    return String(s||'').replace(/[\u30a1-\u30f6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+  }
+
+  function kanaGroupFor(y){
+    const s = toHiragana(y||'').trim();
+    if (!s) return '他';
+    const c = s[0];
+    if ('あいうえおぁぃぅぇぉ'.includes(c)) return 'あ';
+    if ('かきくけこがぎぐげご'.includes(c)) return 'か';
+    if ('さしすせそざじずぜぞ'.includes(c)) return 'さ';
+    if ('たちつてとだぢづでどっ'.includes(c)) return 'た';
+    if ('なにぬねの'.includes(c)) return 'な';
+    if ('はひふへほばびぶべぼぱぴぷぺぽ'.includes(c)) return 'は';
+    if ('まみむめも'.includes(c)) return 'ま';
+    if ('やゆよゃゅょ'.includes(c)) return 'や';
+    if ('らりるれろ'.includes(c)) return 'ら';
+    if ('わをん'.includes(c)) return 'わ';
+    return '他';
+  }
+  function initKanaTabs(){
+    if (!kanaTabs) return;
+    const cur = loadKanaTab();
+    kanaTabs.innerHTML = '';
+    KANA_TABS.forEach(label=>{
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'kana-tab' + (label===cur ? ' active' : '');
+      b.textContent = label;
+      b.addEventListener('click',()=>{
+        saveKanaTab(label);
+        initKanaTabs();
+        render();
+      });
+      kanaTabs.appendChild(b);
+    });
+  }
+
   // --- Send Counter (per day) ---
   function loadSend() {
     try { return JSON.parse(localStorage.getItem(SEND_KEY) || '{}') || {}; }
@@ -171,7 +227,11 @@
   function render() {
     const st = load();
     lst.innerHTML = '';
+    const tab = loadKanaTab();
     (st.list || []).forEach((nm, i) => {
+      const yomi = loadYomiForName(nm) || nm;
+      const grp = kanaGroupFor(yomi);
+      if (tab !== '全' && grp !== tab) return;
       const li = document.createElement('li');
       li.innerHTML = `
         <span>${nm}</span>
@@ -332,6 +392,7 @@
   });
 
   // --- Init ---
+  initKanaTabs();
   render();
   updateSendRemainUI();
   loadPremiumFromFirestore();

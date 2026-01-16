@@ -35,3 +35,8 @@ textarea{width:100%;min-height:160px;border:1px solid #e5e7eb;border-radius:12px
 .kv{display:grid;grid-template-columns:140px 1fr;gap:10px;align-items:center}
 .kv .kv-key{color:#6b7280}
 .kv .kv-val{}
+
+.kana-tabs{display:flex;gap:8px;flex-wrap:nowrap;overflow:auto;padding:8px 2px 12px;margin:4px 0 8px;scrollbar-width:none}
+.kana-tabs::-webkit-scrollbar{display:none}
+.kana-tabs .kana-tab{border:1px solid #f5cfe0;background:#fff;color:#ff4f98;border-radius:999px;padding:6px 12px;font-size:13px;line-height:1;cursor:pointer;white-space:nowrap}
+.kana-tabs .kana-tab.active{background:#ff6ea8;color:#fff;border-color:#ff6ea8}
