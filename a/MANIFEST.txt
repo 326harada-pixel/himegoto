@@ -1,4 +1,0 @@
-BUILD	build-20251109b
-privacy.html	5389
-terms.html	5757
-tokusho.html	1200
