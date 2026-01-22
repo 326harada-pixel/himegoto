@@ -32,6 +32,22 @@
 
   let confirmationResult = null; 
 
+  function safeResetRecaptcha() {
+    // 環境差でreCAPTCHAが固まった時の復旧（失敗しても落とさない）
+    try {
+      if (window.grecaptcha && typeof window.recaptchaWidgetId !== 'undefined') {
+        window.grecaptcha.reset(window.recaptchaWidgetId);
+        return;
+      }
+    } catch (e) {}
+    try {
+      if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
+    } catch (e) {}
+    try {
+      setupRecaptcha();
+    } catch (e) {}
+  }
+
   // メッセージ表示
   function showMessage(text, isError) {
     if (!smsMsg) return;
@@ -123,7 +139,7 @@
     }
     const phoneNumber = toInternationalFormat(rawPhone);
 
-    if (!window.recaptchaVerifier || !window.recaptchaWidgetId) {
+    if (!window.recaptchaVerifier) {
       showMessage('reCAPTCHA を読み込んでいます…', true);
       setupRecaptcha();
       return;
@@ -149,7 +165,7 @@
         if (error.code === 'auth/invalid-api-key') msg = "APIキーが無効です。";
 
         showMessage("送信失敗: " + msg, true);
-        if(window.recaptchaVerifier) window.recaptchaVerifier.reset();
+        safeResetRecaptcha();
       });
   });
 
