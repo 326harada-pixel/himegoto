@@ -30,8 +30,15 @@
   const shareRefLink = $('#shareRefLink');
   const refMessage = $('#refMessage');
 
-  let confirmationResult = null; 
+  // 紹介表示
+  const refCountEl = $('#refCount');
+  const refNextEl = $('#refNext');
+  const refBonusTimesEl = $('#refBonusTimes');
 
+  let confirmationResult = null;
+  let recaptchaWidgetId = null; 
+
+  
   function safeResetRecaptcha() {
     // 環境差でreCAPTCHAが固まった時の復旧（失敗しても落とさない）
     try {
@@ -48,7 +55,7 @@
     } catch (e) {}
   }
 
-  // メッセージ表示
+// メッセージ表示
   function showMessage(text, isError) {
     if (!smsMsg) return;
     smsMsg.textContent = text;
@@ -181,15 +188,14 @@
       .then(async (result) => {
         const user = result.user;
 
+        // 登録情報（既存仕様）
         await db.collection('users').doc(user.uid).collection('purchases').doc('current').set({
           expiresAt: null,
           registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        const appliedRef = refCodeInput.value.trim() || '';
-        await db.collection('users').doc(user.uid).collection('profile').doc('info').set({
-          appliedRefCode: appliedRef
-        }, { merge: true });
+        const appliedRef = (refCodeInput ? refCodeInput.value.trim() : '') || '';
+        await handleRegistrationAndReferral(user.uid, appliedRef);
 
         alert('登録が完了しました！');
         location.reload();
@@ -208,6 +214,30 @@
   function setupMyReferralSection(uid) {
     const refId = uid.substring(0, 8);
     if (myRefId) myRefId.value = refId;
+
+    // 紹介コードの登録（未登録なら作る）
+    try {
+      db.collection('refCodes').doc(refId).set({
+        uid: uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch(e) {}
+
+    // 紹介カウント表示
+    try {
+      db.collection('users').doc(uid).collection('profile').doc('info').get().then((doc) => {
+        const d = (doc && doc.exists) ? (doc.data() || {}) : {};
+        const cnt = Number(d.refSuccessCount || 0);
+        if (refCountEl) refCountEl.textContent = String(cnt);
+
+        const mod = cnt % 3;
+        const next = (mod === 0) ? 3 : (3 - mod);
+        if (refNextEl) refNextEl.textContent = String(next);
+
+        const bonusTimes = Math.floor(cnt / 3);
+        if (refBonusTimesEl) refBonusTimesEl.textContent = String(bonusTimes);
+      });
+    } catch(e) {}
 
     on(copyRefId, 'click', () => {
       myRefId.select();
@@ -232,6 +262,101 @@
           }
         }
       } catch (e) {}
+    });
+  }
+
+  // --- 紹介の処理 ---
+  function addDaysToUntilMs(curMs, addDays) {
+    const now = Date.now();
+    const base = Math.max(now, Number(curMs || 0));
+    return base + (addDays * 24 * 60 * 60 * 1000);
+  }
+
+  function toMs(v) {
+    try {
+      if (!v) return 0;
+      if (typeof v === 'number') return v;
+      if (typeof v === 'string') {
+        const t = Date.parse(v);
+        return Number.isFinite(t) ? t : 0;
+      }
+      if (typeof v.toDate === 'function') return v.toDate().getTime();
+      if (typeof v.seconds === 'number') return v.seconds * 1000;
+    } catch(e) {}
+    return 0;
+  }
+
+  async function handleRegistrationAndReferral(uid, appliedRefCode) {
+    const myRefId = uid.substring(0, 8);
+
+    // 自分の紹介コードを登録（検索用）
+    try {
+      await db.collection('refCodes').doc(myRefId).set({
+        uid: uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch(e) {}
+
+    const myInfoRef = db.collection('users').doc(uid).collection('profile').doc('info');
+
+    // 登録者側の基本情報を補完（既存値は上書きしない）
+    await myInfoRef.set({
+      appliedRefCode: appliedRefCode || '',
+      refSuccessCount: 0,
+      refRewardedCount: 0
+    }, { merge: true });
+
+    // 紹介コードが空ならここで終わり
+    if (!appliedRefCode) return;
+
+    // 自分のコードは不可
+    if (appliedRefCode === myRefId) return;
+
+    // 紹介コード -> UID を引く
+    const codeDoc = await db.collection('refCodes').doc(appliedRefCode).get();
+    if (!codeDoc || !codeDoc.exists) return;
+    const refUid = String((codeDoc.data() || {}).uid || '');
+    if (!refUid) return;
+
+    const refInfoRef = db.collection('users').doc(refUid).collection('profile').doc('info');
+
+    // ここからは同時更新（事故防止）
+    await db.runTransaction(async (tx) => {
+      const mySnap = await tx.get(myInfoRef);
+      const myData = (mySnap && mySnap.exists) ? (mySnap.data() || {}) : {};
+
+      // すでに紹介処理済みなら何もしない
+      if (myData.refAppliedAt) return;
+
+      // 紹介された側：無制限 +1日
+      const myUntilMs = toMs(myData.proUntil);
+      const myNewUntilMs = addDaysToUntilMs(myUntilMs, 1);
+      tx.set(myInfoRef, {
+        plan: 'pro',
+        proUntil: new Date(myNewUntilMs),
+        refAppliedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        refAppliedUid: refUid
+      }, { merge: true });
+
+      // 紹介した側：紹介人数 +1、3人ごとに +3日
+      const refSnap = await tx.get(refInfoRef);
+      const refData = (refSnap && refSnap.exists) ? (refSnap.data() || {}) : {};
+      const oldSuccess = Number(refData.refSuccessCount || 0);
+      const oldRewarded = Number(refData.refRewardedCount || 0);
+      const newSuccess = oldSuccess + 1;
+      const shouldTimes = Math.floor(newSuccess / 3);
+      const addTimes = Math.max(0, shouldTimes - oldRewarded);
+
+      let refNewUntilMs = toMs(refData.proUntil);
+      if (addTimes > 0) {
+        refNewUntilMs = addDaysToUntilMs(refNewUntilMs, addTimes * 3);
+      }
+
+      tx.set(refInfoRef, {
+        refSuccessCount: newSuccess,
+        refRewardedCount: oldRewarded + addTimes,
+        ...(addTimes > 0 ? { plan: 'pro', proUntil: new Date(refNewUntilMs) } : {})
+      }, { merge: true });
     });
   }
 
