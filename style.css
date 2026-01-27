@@ -1,0 +1,20 @@
+/* minimal shared */
+:root{--card:#fff;--border:#ffd1e3;--pink:#ff6fa8}
+body{margin:0;font-family:system-ui, -apple-system, "Noto Sans JP", Meiryo, sans-serif;background:#fff7fb;color:#222}
+header.pink{position:sticky;top:0;background:var(--pink);color:#fff;padding:.8rem;display:flex;align-items:center}
+header.pink .center{margin:0 auto;font-weight:700}
+.btn{border:1px solid #f5aac6;background:#fff;border-radius:999px;padding:.45rem .8rem}
+.container{padding:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin:16px 0}
+.muted{opacity:.7}
+
+
+/* プレミアム残時間表示 */
+.premium-status{
+  margin:0 0 8px 0;
+  text-align:center;
+}
+.premium-status__text{
+  margin:0;
+  font-size:.9rem;
+}

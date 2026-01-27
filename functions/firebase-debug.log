@@ -1,0 +1,81 @@
+[debug] [2026-01-27T10:49:12.945Z] ----------------------------------------------------------------------
+[debug] [2026-01-27T10:49:12.949Z] Command:       /usr/local/bin/node /usr/local/bin/firebase deploy --only functions --debug
+[debug] [2026-01-27T10:49:12.949Z] CLI Version:   15.4.0
+[debug] [2026-01-27T10:49:12.949Z] Platform:      darwin
+[debug] [2026-01-27T10:49:12.949Z] Node Version:  v24.13.0
+[debug] [2026-01-27T10:49:12.950Z] Time:          Tue Jan 27 2026 19:49:12 GMT+0900 (日本標準時)
+[debug] [2026-01-27T10:49:12.950Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-01-27T10:49:15.445Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-27T10:49:15.446Z] > authorizing via signed-in user (326harada@gmail.com)
+[debug] [2026-01-27T10:49:15.446Z] [iam] checking project himegoto-web for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-01-27T10:49:15.447Z] Checked if tokens are valid: true, expires at: 1769513303482
+[debug] [2026-01-27T10:49:15.447Z] Checked if tokens are valid: true, expires at: 1769513303482
+[debug] [2026-01-27T10:49:15.448Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/himegoto-web:testIamPermissions [none]
+[debug] [2026-01-27T10:49:15.448Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/himegoto-web:testIamPermissions x-goog-quota-user=projects/himegoto-web
+[debug] [2026-01-27T10:49:15.448Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/himegoto-web:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-01-27T10:49:15.782Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/himegoto-web:testIamPermissions 200
+[debug] [2026-01-27T10:49:15.782Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/himegoto-web:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-01-27T10:49:15.783Z] Checked if tokens are valid: true, expires at: 1769513303482
+[debug] [2026-01-27T10:49:15.783Z] Checked if tokens are valid: true, expires at: 1769513303482
+[debug] [2026-01-27T10:49:15.783Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/himegoto-web/serviceAccounts/himegoto-web@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-01-27T10:49:15.783Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/himegoto-web/serviceAccounts/himegoto-web@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-01-27T10:49:16.821Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/himegoto-web/serviceAccounts/himegoto-web@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-01-27T10:49:16.821Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/himegoto-web/serviceAccounts/himegoto-web@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'himegoto-web'...
+[info] 
+[info] i  deploying functions 
+[debug] [2026-01-27T10:49:16.827Z] Checked if tokens are valid: true, expires at: 1769513303482
+[debug] [2026-01-27T10:49:16.828Z] Checked if tokens are valid: true, expires at: 1769513303482
+[debug] [2026-01-27T10:49:16.828Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/himegoto-web [none]
+[debug] [2026-01-27T10:49:17.063Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/himegoto-web 200
+[debug] [2026-01-27T10:49:17.063Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/himegoto-web {"projectNumber":"368382081243","projectId":"himegoto-web","lifecycleState":"ACTIVE","name":"himegoto","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-10-15T12:23:13.211139Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-01-27T10:49:17.065Z] Checked if tokens are valid: true, expires at: 1769513303482
+[debug] [2026-01-27T10:49:17.066Z] Checked if tokens are valid: true, expires at: 1769513303482
+[debug] [2026-01-27T10:49:17.066Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/himegoto-web/adminSdkConfig [none]
+[debug] [2026-01-27T10:49:17.556Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/himegoto-web/adminSdkConfig 200
+[debug] [2026-01-27T10:49:17.557Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/himegoto-web/adminSdkConfig {"projectId":"himegoto-web","storageBucket":"himegoto-web.firebasestorage.app"}
+[debug] [2026-01-27T10:49:17.557Z] Checked if tokens are valid: true, expires at: 1769513303482
+[debug] [2026-01-27T10:49:17.558Z] Checked if tokens are valid: true, expires at: 1769513303482
+[debug] [2026-01-27T10:49:17.558Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/himegoto-web/configs [none]
+[debug] [2026-01-27T10:49:18.118Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/himegoto-web/configs 200
+[debug] [2026-01-27T10:49:18.119Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/himegoto-web/configs {}
+[debug] [2026-01-27T10:49:18.122Z] Validating nodejs source
+[debug] [2026-01-27T10:49:18.926Z] > [functions] package.json contents: {
+  "name": "himegoto-functions",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^7.0.3"
+  }
+}
+[debug] [2026-01-27T10:49:18.926Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[debug] [2026-01-27T10:49:18.927Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-01-27T10:49:18.938Z] Found firebase-functions binary at '/Users/a326/Desktop/himegoto/functions/node_modules/.bin/firebase-functions'
+[info] Serving at port 8190
+
+[error] TypeError: functions.region is not a function
+    at Object.<anonymous> (/Users/a326/Desktop/himegoto/functions/index.js:27:35)
+    at Module._compile (node:internal/modules/cjs/loader:1761:14)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1481:32)
+    at Module._load (node:internal/modules/cjs/loader:1300:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+    at Module.require (node:internal/modules/cjs/loader:1504:12)
+    at require (node:internal/modules/helpers:152:16)
+    at loadModule (/Users/a326/Desktop/himegoto/functions/node_modules/firebase-functions/lib/runtime/loader.js:20:10)
+
+[debug] [2026-01-27T10:49:19.933Z] Got response code 400; body Failed to generate manifest from function source: functions.region is not a function
+[error] 
+[error] Error: Functions codebase could not be analyzed successfully. It may have a syntax or runtime error
