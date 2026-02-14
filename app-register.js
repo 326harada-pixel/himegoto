@@ -98,23 +98,26 @@
       ? clampInt(successTotal, 0, 1e9)
       : clampInt(bonusProgressRaw, 0, 1e9);
 
-    // progress は 0-4 に落とす
+    const BONUS_EVERY = 3;
+
+    // progress は 0-(BONUS_EVERY-1) に落とす
     let progress;
     if (Number.isFinite(bonusProgressRaw)) {
-      // bonusProgress が累計っぽい値なら mod 5 を取る
-      progress = clampInt(bonusProgressRaw % 5, 0, 4);
+      // bonusProgress が累計っぽい値なら mod を取る
+      progress = clampInt(bonusProgressRaw % BONUS_EVERY, 0, BONUS_EVERY - 1);
     } else if (Number.isFinite(successTotal)) {
-      progress = clampInt(successTotal % 5, 0, 4);
+      progress = clampInt(successTotal % BONUS_EVERY, 0, BONUS_EVERY - 1);
     } else {
       progress = 0;
     }
 
-    const next = progress === 0 ? 5 : (5 - progress);
+    // 次のボーナスまで: 0→あと3、3→あと3、5→あと1
+    const next = progress === 0 ? BONUS_EVERY : (BONUS_EVERY - progress);
 
     // rewardedCount が無い場合は成功数から推定（あくまで表示用）
     const rewarded = Number.isFinite(rewardedCount)
       ? clampInt(rewardedCount, 0, 1e9)
-      : (Number.isFinite(successTotal) ? Math.floor(successTotal / 5) : 0);
+      : (Number.isFinite(successTotal) ? Math.floor(successTotal / BONUS_EVERY) : 0);
 
     setText('refCount', introduced);
     setText('nextBonus', next);
@@ -268,10 +271,19 @@
   auth.onAuthStateChanged(async (user) => {
     if (!user) {
       setStatus('ログインが必要です。', true);
+      // 未ログイン: 登録フォームを表示、紹介カード/管理者パネルは隠す
+      const reg = document.getElementById('registration-section');
+      if (reg) reg.style.display = '';
       if (mySection) mySection.style.display = 'none';
+      if (adminSection) adminSection.style.display = 'none';
       return;
     }
     try {
+      // ログイン済み: 登録フォームを隠し、紹介カードを表示
+      const reg = document.getElementById('registration-section');
+      if (reg) reg.style.display = 'none';
+      if (mySection) mySection.style.display = '';
+
       await refresh(user.uid);
     } catch (e) {
       console.error('[register] refresh failed', e);
