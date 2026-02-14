@@ -55,11 +55,19 @@
     });
 
   const getUserInfoDoc = async (uid) => {
-    // users/{uid}/info/info
+    // Firestoreのデータ構造が途中で変わっても動くように
+    // 1) users/{uid} 直下を優先（現在の構造）
+    // 2) 旧構造 users/{uid}/info/info もフォールバックで見る
     try {
-      const ref = db.collection("users").doc(uid).collection("info").doc("info");
-      const snap = await ref.get();
-      return { ref, snap, data: snap.exists ? snap.data() : null };
+      const refRoot = db.collection("users").doc(uid);
+      const snapRoot = await refRoot.get();
+      if (snapRoot.exists) return { ref: refRoot, snap: snapRoot, data: snapRoot.data() };
+
+      const refLegacy = db.collection("users").doc(uid).collection("info").doc("info");
+      const snapLegacy = await refLegacy.get();
+      if (snapLegacy.exists) return { ref: refLegacy, snap: snapLegacy, data: snapLegacy.data() };
+
+      return { error: "ユーザー情報ドキュメントが見つかりません" };
     } catch (e) {
       return { error: String(e) };
     }
