@@ -4,59 +4,41 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>登録と紹介 - himegoto</title>
+
+  <!-- キャッシュ抑制（静的配信で更新が反映されない時の保険） -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <link rel="stylesheet" href="fix.css">
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-functions-compat.js"></script>
 
-  <!-- Firebase Config -->
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU",
-      authDomain: "himegoto-web.firebaseapp.com",
-      projectId: "himegoto-web",
-      storageBucket: "himegoto-web.firebasestorage.app",
-      messagingSenderId: "368382081243",
-      appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
-    };
-
-    try {
-      firebase.initializeApp(firebaseConfig);
-      firebase.auth().languageCode = 'ja';
-    } catch(e) {
-      console.error("Firebase Init Error", e);
-    }
-  </script>
-
   <style>
     #recaptcha-container {
-        min-height: 80px;
-        margin: 15px 0;
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 4px;
-        padding: 5px;
+      min-height: 80px;
+      margin: 15px 0;
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      padding: 5px;
     }
-    .status-msg {
-        font-size: 14px;
-        margin-top: 10px;
-        font-weight: bold;
-    }
+    .status-msg { font-size: 14px; margin-top: 10px; font-weight: bold; word-break: break-word; }
     .status-error { color: #d32f2f; }
     .status-success { color: #388e3c; }
-    .legal-links {
-        font-size: 12px;
-        color: #666;
-        margin: 15px 0;
-        line-height: 1.5;
-    }
+    .legal-links { font-size: 12px; color: #666; margin: 15px 0; line-height: 1.5; }
     .legal-links a { color: #e91e63; text-decoration: underline; }
+    .metrics { margin-top: 12px; font-size: 14px; color: #444; line-height: 1.8; }
+    .metrics b { color:#111; }
+    .tiny { font-size: 12px; color:#666; }
+    #debugBox { display:none; margin-top: 14px; padding: 10px; border: 1px dashed #bbb; background:#fafafa; font-size: 12px; color:#333; white-space: pre-wrap; }
   </style>
 </head>
 
@@ -71,7 +53,7 @@
         <p class="small muted">携帯番号によるSMS認証が必要です。</p>
 
         <div class="row">
-          <input type="tel" id="phoneInput" placeholder="例：09012345678">
+          <input type="tel" id="phoneInput" placeholder="例：09012345678" autocomplete="tel">
         </div>
 
         <div id="recaptcha-container"></div>
@@ -81,19 +63,19 @@
         </div>
 
         <div class="row">
-          <input type="text" id="codeSms" placeholder="SMSで届いた6桁コード" disabled>
+          <input type="text" id="codeSms" placeholder="SMSで届いた6桁コード" inputmode="numeric" autocomplete="one-time-code" disabled>
         </div>
 
         <div class="row">
-          <input type="text" id="refCode" placeholder="紹介コード（任意）">
+          <input type="text" id="refCode" placeholder="紹介コード（任意）" autocomplete="off">
         </div>
 
         <div class="legal-links">
-            登録ボタンを押すことで、
-            <a href="terms.html" target="_blank">利用規約</a>・
-            <a href="privacy.html" target="_blank">プライバシーポリシー</a>・
-            <a href="tokusho.html" target="_blank">特定商取引法</a>
-            に同意したものとみなされます。
+          登録ボタンを押すことで、
+          <a href="terms.html" target="_blank" rel="noopener">利用規約</a>・
+          <a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>・
+          <a href="tokusho.html" target="_blank" rel="noopener">特定商取引法</a>
+          に同意したものとみなされます。
         </div>
 
         <div class="row">
@@ -101,6 +83,7 @@
         </div>
 
         <p id="smsMessage" class="status-msg"></p>
+        <div id="debugBox"></div>
       </div>
     </section>
 
@@ -109,7 +92,13 @@
       <h2>あなたの紹介ID</h2>
       <p class="small muted">登録完了！このIDをお友達に伝えて登録してもらうと、特典が付与されます。</p>
 
-      <div class="row">
+      <div class="metrics">
+        紹介した人数：<b id="refCount">-</b> 人<br>
+        次のボーナスまで：<b id="refNext">-</b> 人<br>
+        ボーナス獲得回数：<b id="refBonus">-</b> 回
+      </div>
+
+      <div class="row" style="margin-top:12px;">
         <input type="text" id="myRefId" readonly style="background:#eee;text-align:center;font-weight:bold;letter-spacing:1px;">
       </div>
 
@@ -121,8 +110,10 @@
       <p id="refMessage" class="status-msg"></p>
 
       <div class="row" style="margin-top:20px;">
-        <button class="btn" onclick="location.href='index.html'">ホームへ移動</button>
+        <button class="btn" id="goHomeBtn">ホームへ移動</button>
       </div>
+
+      <p class="tiny" style="margin-top:8px;">※反映確認用：このページはCloud Functions(asia-northeast1)に直接問い合わせます。</p>
     </section>
 
     <section class="card">
@@ -132,16 +123,358 @@
         <li>同一電話番号での複数アカウント登録はできません。</li>
         <li>紹介システムの不正利用が発覚した場合、アカウントを停止することがあります。</li>
         <li>バックアップはホームの「文字列を作る」で行えます。端末変更前に必ず保存してください。</li>
-        <li>お問い合わせは公式LINEから受け付けています（<a href="https://line.me/ti/p/_kahjcCa3-" target="_blank">こちら</a>）。</li>
+        <li>お問い合わせは公式LINEから受け付けています（<a href="https://line.me/ti/p/_kahjcCa3-" target="_blank" rel="noopener">こちら</a>）。</li>
       </ul>
     </section>
 
-    <div id="error-log" style="display:none;color:red;font-size:12px;margin-top:20px;"></div>
   </main>
 
-  <!-- スクリプト（必ずDOMの後で読み込む） -->
-  <script src="header-loader.js"></script>
-  <script src="common.js"></script>
-  <script src="app-register.js"></script>
+  <!-- 既存スクリプトは残してOK（ヘッダー等が必要な場合） -->
+  <script src="header-loader.js?v=20260215-1"></script>
+  <script src="common.js?v=20260215-1"></script>
+
+  <script>
+  (function(){
+    // ====== 設定 ======
+    const APP_VERSION = "2026-02-15-1";
+    const FUNCTIONS_REGION = "asia-northeast1";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-gLP5rIErs678UewraA0vt59JbLZpzhU",
+      authDomain: "himegoto-web.firebaseapp.com",
+      projectId: "himegoto-web",
+      storageBucket: "himegoto-web.firebasestorage.app",
+      messagingSenderId: "368382081243",
+      appId: "1:368382081243:web:09e3827701cbc6d1d2f4fe"
+    };
+
+    // ====== DOM ======
+    const el = (id)=>document.getElementById(id);
+    const registrationSection = el("registration-section");
+    const referralSection = el("my-referral-section");
+
+    const phoneInput = el("phoneInput");
+    const refCodeInput = el("refCode");
+    const sendCodeBtn = el("sendCodeSms");
+    const codeInput = el("codeSms");
+    const verifyBtn = el("verifySms");
+    const smsMessage = el("smsMessage");
+    const debugBox = el("debugBox");
+
+    const myRefId = el("myRefId");
+    const refCount = el("refCount");
+    const refNext  = el("refNext");
+    const refBonus = el("refBonus");
+    const refMessage = el("refMessage");
+    const copyBtn = el("copyRefId");
+    const shareBtn = el("shareRefLink");
+    const goHomeBtn = el("goHomeBtn");
+
+    // ====== ユーティリティ ======
+    function setMsg(target, text, ok){
+      target.textContent = text || "";
+      target.className = "status-msg " + (ok ? "status-success" : "status-error");
+    }
+    function showDebug(obj){
+      debugBox.style.display = "block";
+      try { debugBox.textContent = JSON.stringify(obj, null, 2); }
+      catch(e){ debugBox.textContent = String(obj); }
+    }
+    function clearDebug(){ debugBox.style.display = "none"; debugBox.textContent=""; }
+
+    function normalizeJPPhone(raw){
+      const s = String(raw || "").trim().replace(/[\s\-()]/g, "");
+      if (!s) return "";
+      if (s.startsWith("+")) return s;
+      // 090... → +8190...
+      if (s.startsWith("0")) return "+81" + s.slice(1);
+      return s;
+    }
+
+    function getQueryRef(){
+      const p = new URLSearchParams(location.search);
+      const r = (p.get("ref") || p.get("code") || "").trim();
+      return r;
+    }
+
+    // ====== Firebase 初期化 ======
+    try {
+      firebase.initializeApp(firebaseConfig);
+      firebase.auth().languageCode = 'ja';
+    } catch(e) {
+      // already initialized など
+      console.warn("Firebase init:", e && e.message ? e.message : e);
+    }
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // 重要：リージョン指定（ここが抜けると us-central1 を見に行く）
+    const functions = firebase.app().functions(FUNCTIONS_REGION);
+    const ensureRefCode = functions.httpsCallable("ensureRefCode");
+    const applyReferral = functions.httpsCallable("applyReferral");
+
+    // ====== reCAPTCHA ======
+    let recaptchaVerifier = null;
+    let confirmationResult = null;
+
+    function initRecaptcha(){
+      if (recaptchaVerifier) return;
+
+      recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container", {
+        size: "normal",
+        callback: function(){
+          sendCodeBtn.disabled = false;
+          sendCodeBtn.textContent = "コード送信";
+        },
+        "expired-callback": function(){
+          sendCodeBtn.disabled = true;
+          sendCodeBtn.textContent = "コード送信（チェック待ち）";
+        }
+      });
+
+      recaptchaVerifier.render().catch((e)=>{
+        setMsg(smsMessage, "reCAPTCHAの初期化に失敗：" + (e && e.message ? e.message : e), false);
+        showDebug({where:"recaptcha.render", error: String(e)});
+      });
+    }
+
+    // URLのrefを初期入力（紹介リンク対策）
+    const qref = getQueryRef();
+    if (qref) {
+      refCodeInput.value = qref;
+      localStorage.setItem("pending_ref_code", qref);
+    }
+
+    initRecaptcha();
+
+    // ====== SMS送信 ======
+    sendCodeBtn.addEventListener("click", async ()=>{
+      clearDebug();
+      setMsg(smsMessage, "送信中…", true);
+
+      const phone = normalizeJPPhone(phoneInput.value);
+      if (!phone) {
+        setMsg(smsMessage, "電話番号を入力して。", false);
+        return;
+      }
+
+      // ここで入力された紹介コードを保持（サインイン後に applyReferral するため）
+      const enteredRef = String(refCodeInput.value || "").trim();
+      if (enteredRef) localStorage.setItem("pending_ref_code", enteredRef);
+
+      try {
+        confirmationResult = await auth.signInWithPhoneNumber(phone, recaptchaVerifier);
+        codeInput.disabled = false;
+        verifyBtn.disabled = false;
+        setMsg(smsMessage, "SMSを送信した。届いた6桁コードを入力して登録して。", true);
+      } catch(e) {
+        // reCAPTCHA は一度失敗すると再描画が必要になることが多い
+        try {
+          if (recaptchaVerifier) {
+            recaptchaVerifier.clear();
+            recaptchaVerifier = null;
+            document.getElementById("recaptcha-container").innerHTML = "";
+            initRecaptcha();
+          }
+        } catch(_){}
+
+        setMsg(smsMessage, "SMS送信に失敗：" + (e && e.message ? e.message : e), false);
+        showDebug({where:"signInWithPhoneNumber", phone, error: e});
+      }
+    });
+
+    // ====== コード確認 ======
+    verifyBtn.addEventListener("click", async ()=>{
+      clearDebug();
+      const code = String(codeInput.value || "").trim();
+      if (!code || code.length < 4) {
+        setMsg(smsMessage, "SMSのコードを入力して。", false);
+        return;
+      }
+      if (!confirmationResult) {
+        setMsg(smsMessage, "先に「コード送信」をして。", false);
+        return;
+      }
+
+      setMsg(smsMessage, "認証中…", true);
+
+      try {
+        await confirmationResult.confirm(code);
+        setMsg(smsMessage, "認証OK。紹介データを反映中…", true);
+        // auth state change で後続処理
+      } catch(e) {
+        setMsg(smsMessage, "コード確認に失敗：" + (e && e.message ? e.message : e), false);
+        showDebug({where:"confirm", error: e});
+      }
+    });
+
+    // ====== 紹介処理 ======
+    async function ensureUserInfoDoc(uid){
+      const ref = db.collection("users").doc(uid).collection("info").doc("info");
+      const snap = await ref.get();
+      if (!snap.exists) {
+        await ref.set({
+          appliedRefCode: "",
+          refRewardedCount: 0,
+          refSuccessCount: 0,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, {merge:true});
+      }
+      return ref;
+    }
+
+    async function applyReferralIfNeeded(uid){
+      const pending = (localStorage.getItem("pending_ref_code") || "").trim();
+      if (!pending) return {skipped:true, reason:"no pending ref"};
+
+      const infoRef = await ensureUserInfoDoc(uid);
+      const infoSnap = await infoRef.get();
+      const info = infoSnap.data() || {};
+      const already = (info.appliedRefCode || "").trim();
+
+      if (already) {
+        // 既に適用済み → pending を消す
+        localStorage.removeItem("pending_ref_code");
+        return {skipped:true, reason:"already applied", appliedRefCode: already};
+      }
+
+      try {
+        const res = await applyReferral({ refCode: pending });
+        // 返り値は関数側次第だが、最低限ここで「適用済み」として記録する
+        await infoRef.set({
+          appliedRefCode: pending,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, {merge:true});
+
+        localStorage.removeItem("pending_ref_code");
+        return {ok:true, refCode: pending, result: res && res.data ? res.data : res};
+      } catch(e) {
+        // 失敗したら pending は残しておく（後で再試行できるように）
+        return {ok:false, refCode: pending, error: (e && e.message) ? e.message : String(e), raw: e};
+      }
+    }
+
+    async function loadMyReferral(uid){
+      // まず自分の紹介コードの確保
+      const ensureRes = await ensureRefCode({});
+      const data = (ensureRes && ensureRes.data) ? ensureRes.data : ensureRes;
+
+      // 表示（フィールド名は関数側の実装に合わせて「ありそうな候補」を拾う）
+      const code =
+        (data && (data.refCode || data.code || data.myRefCode || data.id)) ||
+        "";
+
+      myRefId.value = code || "(取得失敗)";
+
+      const successCount =
+        (data && (data.refSuccessCount ?? data.successCount ?? data.count)) ??
+        "-";
+      const rewardedCount =
+        (data && (data.refRewardedCount ?? data.rewardedCount ?? data.bonusCount)) ??
+        "-";
+
+      // 次のボーナスまで（例：6人で1回なら、残り = 6 - (count % 6)）
+      // ここは仕様不明なので「関数が返してきたらそれを使う」。なければ簡易計算（6を仮）で出す。
+      let next = data && (data.nextBonusRemaining ?? data.nextRemaining ?? data.nextBonus);
+      if (next == null && typeof successCount === "number") {
+        const unit = (data && data.bonusUnit) ? Number(data.bonusUnit) : 6;
+        const mod = successCount % unit;
+        next = (mod === 0) ? unit : (unit - mod);
+      }
+
+      refCount.textContent = String(successCount);
+      refBonus.textContent = String(rewardedCount);
+      refNext.textContent = (next == null) ? "-" : String(next);
+
+      return {ensureRefCode: data};
+    }
+
+    // ====== UI制御 ======
+    function showReferralUI(){
+      registrationSection.style.display = "none";
+      referralSection.style.display = "";
+    }
+    function showRegisterUI(){
+      registrationSection.style.display = "";
+      referralSection.style.display = "none";
+    }
+
+    goHomeBtn.addEventListener("click", ()=>location.href="index.html");
+
+    copyBtn.addEventListener("click", async ()=>{
+      try {
+        await navigator.clipboard.writeText(myRefId.value || "");
+        setMsg(refMessage, "コピーした。", true);
+      } catch(e) {
+        setMsg(refMessage, "コピー失敗：" + (e && e.message ? e.message : e), false);
+      }
+    });
+
+    shareBtn.addEventListener("click", async ()=>{
+      const code = (myRefId.value || "").trim();
+      if (!code) {
+        setMsg(refMessage, "紹介IDが取得できていない。", false);
+        return;
+      }
+      const url = location.origin + location.pathname.replace(/\/register\.html?$/, "/register.html") + "?ref=" + encodeURIComponent(code);
+      const text = "himegoto 招待リンク：" + url;
+
+      try {
+        if (navigator.share) {
+          await navigator.share({title:"himegoto 招待", text, url});
+          setMsg(refMessage, "共有を送信した。", true);
+        } else {
+          await navigator.clipboard.writeText(url);
+          setMsg(refMessage, "共有機能がないためリンクをコピーした。", true);
+        }
+      } catch(e) {
+        setMsg(refMessage, "共有に失敗：" + (e && e.message ? e.message : e), false);
+      }
+    });
+
+    // ====== 認証状態 ======
+    auth.onAuthStateChanged(async (user)=>{
+      clearDebug();
+      if (!user) {
+        showRegisterUI();
+        return;
+      }
+
+      showReferralUI();
+      setMsg(refMessage, "データ確認中…", true);
+
+      // 1) まず紹介適用（新規登録者側のボーナス付与等）
+      const applied = await applyReferralIfNeeded(user.uid);
+
+      // 2) 次に自分の紹介ID/カウントを取り直し（紹介した側の増加確認）
+      let mine = null;
+      try {
+        mine = await loadMyReferral(user.uid);
+      } catch(e) {
+        setMsg(refMessage, "紹介IDの取得に失敗：" + (e && e.message ? e.message : e), false);
+        showDebug({where:"ensureRefCode", error:e});
+        return;
+      }
+
+      // 3) 結果表示
+      if (applied && applied.ok) {
+        setMsg(refMessage, "紹介を反映した（" + applied.refCode + "）。必要なら一度リロードして表示を確認して。", true);
+        showDebug({appVersion:APP_VERSION, applied, mine});
+      } else if (applied && applied.skipped) {
+        setMsg(refMessage, "紹介コードなし（または既に適用済み）。", true);
+        showDebug({appVersion:APP_VERSION, applied, mine});
+      } else if (applied && applied.ok === false) {
+        setMsg(refMessage, "紹介反映に失敗：" + applied.error, false);
+        showDebug({appVersion:APP_VERSION, applied, mine});
+      } else {
+        setMsg(refMessage, "状態不明（ログを確認して）。", false);
+        showDebug({appVersion:APP_VERSION, applied, mine});
+      }
+    });
+
+  })();
+  </script>
 </body>
 </html>
