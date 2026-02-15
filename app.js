@@ -147,30 +147,90 @@
   const textArea=document.getElementById('backup-text');
   const restoreBtn=document.getElementById('backup-restore-text');
 
-  function exportState(){
+  function u8ToB64Url(u8){
+    let s='';
+    const CHUNK=0x8000;
+    for(let i=0;i<u8.length;i+=CHUNK){
+      s+=String.fromCharCode.apply(null, u8.subarray(i,i+CHUNK));
+    }
+    return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  function b64UrlToU8(b64url){
+    const b64=b64url.replace(/-/g,'+').replace(/_/g,'/') + '==='.slice((b64url.length+3)%4);
+    const bin=atob(b64);
+    const u8=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    return u8;
+  }
+
+  async function gzipToB64Url(str){
+    if(!('CompressionStream' in window)) return null;
+    const cs=new CompressionStream('gzip');
+    const input=new Blob([new TextEncoder().encode(str)]).stream();
+    const out=input.pipeThrough(cs);
+    const ab=await new Response(out).arrayBuffer();
+    return u8ToB64Url(new Uint8Array(ab));
+  }
+  async function gunzipFromB64Url(b64url){
+    if(!('DecompressionStream' in window)) return null;
+    const ds=new DecompressionStream('gzip');
+    const input=new Blob([b64UrlToU8(b64url)]).stream();
+    const out=input.pipeThrough(ds);
+    const ab=await new Response(out).arrayBuffer();
+    return new TextDecoder().decode(new Uint8Array(ab));
+  }
+
+  async function exportState(){
     const obj={};
     Object.keys(localStorage).forEach(k=>obj[k]=localStorage.getItem(k));
-    return 'HIME1.'+btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+    const json=JSON.stringify(obj);
+
+    const gz=await gzipToB64Url(json);
+    if(gz) return 'HIME2.'+gz;
+
+    // fallback (古い方式)
+    return 'HIME1.'+btoa(unescape(encodeURIComponent(json)));
   }
-  function importState(line){
-    if(!line||!line.startsWith('HIME1.')){ alert('文字列が正しくありません'); return; }
+
+  async function importState(line){
+    if(!line){ alert('文字列が正しくありません'); return; }
+
     try{
-      const json=decodeURIComponent(escape(atob(line.slice(6))));
-      const obj=JSON.parse(json);
-      Object.keys(obj).forEach(k=>localStorage.setItem(k,obj[k]));
-      alert('復元しました。アプリを再起動します。');
-      location.reload();
-    }catch(e){ alert('復元に失敗しました'); }
+      if(line.startsWith('HIME2.')){
+        const json=await gunzipFromB64Url(line.slice(6));
+        if(!json) throw new Error('no gunzip');
+        const obj=JSON.parse(json);
+        Object.keys(obj).forEach(k=>localStorage.setItem(k,obj[k]));
+        alert('復元しました。アプリを再起動します。');
+        location.reload();
+        return;
+      }
+
+      if(line.startsWith('HIME1.')){
+        const json=decodeURIComponent(escape(atob(line.slice(6))));
+        const obj=JSON.parse(json);
+        Object.keys(obj).forEach(k=>localStorage.setItem(k,obj[k]));
+        alert('復元しました。アプリを再起動します。');
+        location.reload();
+        return;
+      }
+
+      alert('文字列が正しくありません');
+    }catch(e){
+      alert('復元に失敗しました');
+    }
   }
-  makeBtn && makeBtn.addEventListener('click', ()=>{ if(textArea) textArea.value = exportState(); });
+
+  makeBtn && makeBtn.addEventListener('click', async()=>{ if(textArea) textArea.value = await exportState(); });
+
   copyBtn && copyBtn.addEventListener('click', async()=>{
-    const v = textArea && textArea.value ? textArea.value : exportState();
+    const v = textArea && textArea.value ? textArea.value : await exportState();
     try{ await navigator.clipboard.writeText(v); alert('コピーしました。LINEに貼って保存してください。'); }
     catch(e){ alert('コピーに失敗しました。手動で選択してコピーしてください。'); }
   });
-  restoreBtn && restoreBtn.addEventListener('click', ()=> importState(textArea?textArea.value:''));
-})();
 
+  restoreBtn && restoreBtn.addEventListener('click', async()=> importState(textArea?textArea.value:'' ));
+})();
 /* drawer-x */
 (function(){
   const drawer=document.getElementById('drawer');
