@@ -162,5 +162,20 @@
   <script src="header-loader.js"></script>
   <script src="common.js"></script>
   <script src="app-register.js"></script>
+
+<script>
+function __himeReferralDisplay(d){
+  const s = (d && d.refSuccessCount) || 0;
+  const r = (d && d.refRewardedCount) || 0;
+  const b = r*3;
+  const a=document.getElementById('refSuccess');
+  const b1=document.getElementById('refBonusDays');
+  const c=document.getElementById('refRewarded');
+  if(a) a.textContent=s;
+  if(b1) b1.textContent=b;
+  if(c) c.textContent=r;
+}
+</script>
+
 </body>
 </html>
