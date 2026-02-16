@@ -53,11 +53,148 @@
 
   const copyBtn = $('copyRefCode');
   const shareBtn = $('shareRefLink');
+// ===== SMS Auth (reCAPTCHA + SMSコード送信/確認) =====
+const phoneInput = $('phoneInput');
+const sendCodeSmsBtn = $('sendCodeSms');
+const codeSmsInput = $('codeSms');
+const verifySmsBtn = $('verifySms');
+const refCodeInput = $('refCodeInput');
+const smsMessage = $('smsMessage');
+const recaptchaContainer = $('recaptcha-container');
+
+let recaptchaVerifier = null;
+let confirmationResult = null;
+
+function setSmsMessage(msg, isError = false) {
+  if (!smsMessage) return;
+  smsMessage.textContent = msg || '';
+  smsMessage.style.color = isError ? '#d32f2f' : '#e91e63';
+}
+
+function toE164JP(raw) {
+  const s = (raw || '').trim().replace(/\s|-/g, '');
+  if (!s) return '';
+  if (s.startsWith('+')) return s;
+  // 090/080/070/... -> +81 90...
+  if (s.startsWith('0')) return '+81' + s.slice(1);
+  // 81... -> +81...
+  if (s.startsWith('81')) return '+' + s;
+  return s; // 最後の手段（入力そのまま）
+}
+
+function ensureRecaptcha() {
+  if (!recaptchaContainer || !firebase?.auth) return;
+  if (recaptchaVerifier) return;
+
+  try {
+    recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'normal',
+      callback: () => {
+        if (sendCodeSmsBtn) sendCodeSmsBtn.disabled = false;
+        setSmsMessage('reCAPTCHA成功！', false);
+      },
+      'expired-callback': () => {
+        if (sendCodeSmsBtn) sendCodeSmsBtn.disabled = true;
+        setSmsMessage('reCAPTCHAの有効期限が切れました。もう一度チェックしてください。', true);
+      },
+    });
+
+    recaptchaVerifier.render().then(() => {
+      // 初期状態は送信ボタン無効（チェックが付いたら有効化）
+      if (sendCodeSmsBtn) sendCodeSmsBtn.disabled = true;
+    });
+  } catch (e) {
+    console.error('reCAPTCHA init failed:', e);
+    setSmsMessage('reCAPTCHAの初期化に失敗しました。ページ再読み込みしてください。', true);
+  }
+}
+
+async function sendSmsCode() {
+  try {
+    if (!sendCodeSmsBtn || !phoneInput) return;
+    const phone = toE164JP(phoneInput.value);
+    if (!phone) {
+      setSmsMessage('電話番号を入力してください。', true);
+      return;
+    }
+    ensureRecaptcha();
+    if (!recaptchaVerifier) {
+      setSmsMessage('reCAPTCHAが準備できていません。少し待って再試行してください。', true);
+      return;
+    }
+
+    sendCodeSmsBtn.disabled = true;
+    setSmsMessage('送信中…', false);
+
+    confirmationResult = await auth.signInWithPhoneNumber(phone, recaptchaVerifier);
+
+    if (codeSmsInput) codeSmsInput.disabled = false;
+    if (verifySmsBtn) verifySmsBtn.disabled = false;
+
+    setSmsMessage('SMSを送信しました。届いた6桁コードを入力してください。', false);
+  } catch (e) {
+    console.error('sendSmsCode error:', e);
+    // reCAPTCHAをリセット（再チェック必要）
+    try { recaptchaVerifier?.reset?.(); } catch (_) {}
+    if (sendCodeSmsBtn) sendCodeSmsBtn.disabled = true;
+    setSmsMessage('SMS送信に失敗しました。reCAPTCHAを再チェックしてからもう一度。', true);
+  }
+}
+
+async function verifySmsCodeAndRegister() {
+  try {
+    if (!verifySmsBtn || !codeSmsInput) return;
+    const code = (codeSmsInput.value || '').trim();
+    if (!code) {
+      setSmsMessage('6桁コードを入力してください。', true);
+      return;
+    }
+    if (!confirmationResult) {
+      setSmsMessage('先に「コード送信」を押してください。', true);
+      return;
+    }
+
+    verifySmsBtn.disabled = true;
+    setSmsMessage('確認中…', false);
+
+    const cred = await confirmationResult.confirm(code);
+    const user = cred.user;
+
+    // ①紹介IDの確保（無ければ作成）
+    let ensured = null;
+    try {
+      ensured = await ensureRefCode();
+    } catch (e) {
+      console.warn('ensureRefCode failed:', e);
+    }
+
+    // ②紹介コード適用（任意）
+    const ref = (refCodeInput?.value || '').trim();
+    if (ref) {
+      try {
+        await applyReferral({ refCode: ref });
+      } catch (e) {
+        console.warn('applyReferral failed:', e);
+        // applyReferral失敗は致命ではない。メッセだけ出す。
+        setSmsMessage('登録は完了しましたが、紹介コードの適用に失敗しました。', true);
+      }
+    }
+
+    setSmsMessage('登録完了！', false);
+
+    // 画面更新（auth.onAuthStateChangedが走る）
+    return user;
+  } catch (e) {
+    console.error('verifySmsCode error:', e);
+    verifySmsBtn.disabled = false;
+    setSmsMessage('コード確認に失敗しました。コードが正しいか確認してください。', true);
+  }
+}
 
   // ===== Core: load user state =====
   async function ensureRefCodeForUser(uid) {
     // 既存のユーザードキュメントを読み、refCode がなければ Cloud Function に作ってもらう
-    const userRef = db.collection('users').doc(uid);
+    const userRef = db.collection('users').doc(uid).collection('profile').doc('info');
     const snap = await userRef.get();
 
     let data = snap.exists ? snap.data() : {};
@@ -287,116 +424,12 @@
       });
     }
   
-  // ===== Phone Auth (Firebase) + reCAPTCHA =====
-  const phoneInput = document.getElementById("phoneInput");
-  const codeSmsInput = document.getElementById("codeSms");
-  const refInput = document.getElementById("refInput");
-  const sendBtn = document.getElementById("sendCodeSms");
-  const verifyBtn = document.getElementById("verifySms");
-  const recaptchaContainer = document.getElementById("recaptcha-container");
+// SMS認証ボタン
+if (sendCodeSmsBtn) sendCodeSmsBtn.addEventListener('click', sendSmsCode);
+if (verifySmsBtn) verifySmsBtn.addEventListener('click', verifySmsCodeAndRegister);
 
-  let confirmationResult = null;
-  let recaptchaVerifier = null;
-  let recaptchaRendered = false;
-
-  function normalizePhoneJP(raw) {
-    const v = (raw || "").trim().replace(/[\s-]/g, "");
-    if (!v) return "";
-    if (v.startsWith("+")) return v;
-    // Accept JP domestic format: 0XXXXXXXXXX -> +81XXXXXXXXX (drop leading 0)
-    if (v.startsWith("0") && v.length >= 10) return "+81" + v.slice(1);
-    // fallback: treat as already E.164-like without '+'
-    if (/^\d{10,15}$/.test(v)) return "+" + v;
-    return v;
-  }
-
-  function ensureRecaptcha() {
-    if (!recaptchaContainer) return;
-    if (recaptchaVerifier) return;
-    try {
-      recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container", {
-        size: "normal",
-      });
-      recaptchaVerifier.render().then(() => {
-        recaptchaRendered = true;
-      }).catch(() => {});
-    } catch (e) {
-      // If already rendered or blocked, ignore here; user will see error on send.
-    }
-  }
-
-  if (sendBtn || verifyBtn) {
-    ensureRecaptcha();
-  }
-
-  if (sendBtn) {
-    sendBtn.addEventListener("click", async () => {
-      try {
-        ensureRecaptcha();
-        const phone = normalizePhoneJP(phoneInput ? phoneInput.value : "");
-        if (!phone || !phone.startsWith("+")) {
-          alert("電話番号を正しく入力してください（例: 090... または +81...）。");
-          return;
-        }
-        if (!recaptchaVerifier) {
-          alert("reCAPTCHA の初期化に失敗しました。広告ブロッカー等を一時停止して再試行してください。");
-          return;
-        }
-        sendBtn.disabled = true;
-        const result = await auth.signInWithPhoneNumber(phone, recaptchaVerifier);
-        confirmationResult = result;
-        alert("SMSを送信しました。届いた6桁コードを入力してください。");
-      } catch (err) {
-        console.error(err);
-        alert("SMS送信に失敗しました。時間をおいて再試行してください。");
-        try { if (recaptchaVerifier) recaptchaVerifier.clear(); } catch(e){}
-        recaptchaVerifier = null;
-        ensureRecaptcha();
-      } finally {
-        sendBtn.disabled = false;
-      }
-    });
-  }
-
-  if (verifyBtn) {
-    verifyBtn.addEventListener("click", async () => {
-      try {
-        const code = (codeSmsInput ? codeSmsInput.value : "").trim();
-        if (!confirmationResult) {
-          alert("先に「コード送信」を押してください。");
-          return;
-        }
-        if (!/^\d{6}$/.test(code)) {
-          alert("6桁コードを入力してください。");
-          return;
-        }
-        verifyBtn.disabled = true;
-        await confirmationResult.confirm(code);
-
-        // Ensure refCode + stats doc exists
-        const user = auth.currentUser;
-        if (user) {
-          await ensureRefCodeForUser(user.uid);
-          // apply referral code if entered
-          const ref = (refInput ? refInput.value : "").trim();
-          if (ref) {
-            try {
-              await fnApplyReferral({ refCode: ref });
-            } catch (e) {
-              console.warn("applyReferral failed", e);
-            }
-          }
-          await refreshUI(user.uid);
-        }
-      } catch (err) {
-        console.error(err);
-        alert("コード確認に失敗しました。入力内容を確認して再試行してください。");
-      } finally {
-        verifyBtn.disabled = false;
-      }
-    });
-  }
-
+// reCAPTCHA準備（未ログイン時に必要）
+ensureRecaptcha();
 }
 
   // ===== Auth =====
