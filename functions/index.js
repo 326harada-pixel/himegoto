@@ -2,96 +2,197 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 
-admin.initializeApp();
-
-// すべての関数のデフォルトリージョン
 setGlobalOptions({ region: "asia-northeast1" });
 
-/**
- * 紹介コード適用（紹介された側に1日、紹介した側は3人ごとに3日）
- * Firestore:
- * - users/{uid}/profile/info  … 各ユーザーの紹介関連カウント・proUntil 等
- * - refCodes/{refCode}        … 紹介コード => owner uid 等
- */
-exports.applyReferral = onCall(async (request) => {
-  const db = admin.firestore();
+admin.initializeApp();
+const db = admin.firestore();
 
-  const invitedUid = request.auth?.uid;
-  const refCode = (request.data?.refCode || "").trim();
+function nowTs() {
+  return admin.firestore.Timestamp.now();
+}
 
-  if (!invitedUid || !refCode) {
-    throw new HttpsError("invalid-argument", "uid or refCode missing");
+function addDaysTo(ts, days) {
+  const base = ts && ts.toDate ? ts.toDate() : new Date(0);
+  const d = new Date(base.getTime());
+  d.setDate(d.getDate() + days);
+  return admin.firestore.Timestamp.fromDate(d);
+}
+
+function addDaysFromMax(ts, days) {
+  const now = new Date();
+  const base = ts && ts.toDate ? ts.toDate() : new Date(0);
+  const start = base > now ? base : now;
+  const d = new Date(start.getTime());
+  d.setDate(d.getDate() + days);
+  return admin.firestore.Timestamp.fromDate(d);
+}
+
+function makeRefCode(len = 8) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  let out = "";
+  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+
+// users/{uid}/profile/info が正のデータソース（ここに集約）
+function userInfoRef(uid) {
+  return db.collection("users").doc(uid).collection("profile").doc("info");
+}
+
+exports.ensureRefCode = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Login required.");
+  const uid = request.auth.uid;
+
+  const infoRef = userInfoRef(uid);
+
+  // already has
+  const infoSnap = await infoRef.get();
+  const existing = infoSnap.exists ? infoSnap.data() : {};
+  if (existing && existing.refCode) {
+    return { refCode: existing.refCode };
   }
 
-  const refCodeRef = db.collection("refCodes").doc(refCode);
-
-  await db.runTransaction(async (tx) => {
-    const refCodeSnap = await tx.get(refCodeRef);
-    if (!refCodeSnap.exists) {
-      throw new HttpsError("not-found", "refCode not found");
+  // transaction: create unique refCode
+  const result = await db.runTransaction(async (tx) => {
+    // Re-check inside tx
+    const insideInfo = await tx.get(infoRef);
+    const insideData = insideInfo.exists ? insideInfo.data() : {};
+    if (insideData && insideData.refCode) {
+      return { refCode: insideData.refCode };
     }
 
-    const ownerUid = refCodeSnap.data()?.uid;
-    if (!ownerUid) {
-      throw new HttpsError("failed-precondition", "refCode has no owner uid");
+    let refCode = "";
+    for (let i = 0; i < 20; i++) {
+      const candidate = makeRefCode(8);
+      const refDoc = db.collection("refCodes").doc(candidate);
+      const refSnap = await tx.get(refDoc);
+      if (!refSnap.exists) {
+        refCode = candidate;
+        tx.set(refDoc, { uid, createdAt: nowTs(), updatedAt: nowTs() }, { merge: true });
+        break;
+      }
     }
+    if (!refCode) throw new HttpsError("internal", "Failed to allocate refCode.");
 
-    if (ownerUid === invitedUid) {
-      throw new HttpsError("failed-precondition", "cannot apply own refCode");
-    }
+    // init counters on info doc
+    tx.set(
+      infoRef,
+      {
+        refCode,
+        refSuccessCount: 0,
+        refRewardedCount: 0,
+        updatedAt: nowTs(),
+        createdAt: existing && existing.createdAt ? existing.createdAt : nowTs(),
+      },
+      { merge: true }
+    );
+    // keep root doc lightweight but store refCode for legacy reads
+    tx.set(db.collection("users").doc(uid), { refCode }, { merge: true });
 
-    // 正しい保存場所: users/{uid}/profile/info
-    const ownerInfoRef = db.collection("users").doc(ownerUid).collection("profile").doc("info");
-    const invitedInfoRef = db.collection("users").doc(invitedUid).collection("profile").doc("info");
-
-    const ownerInfoSnap = await tx.get(ownerInfoRef);
-    const invitedInfoSnap = await tx.get(invitedInfoRef);
-
-    const owner = ownerInfoSnap.data() || {};
-    const invited = invitedInfoSnap.data() || {};
-
-    // すでに紹介コード適用済みなら何もしない（重複付与防止）
-    if (invited.appliedRefCode) return;
-
-    const dayMs = 86400000;
-
-    // --- invited（紹介された側）: 1日延長 ---
-    const invitedBase = invited.proUntil?.toDate?.() || new Date();
-    const invitedNew = new Date(invitedBase.getTime() + dayMs);
-
-    tx.set(invitedInfoRef, {
-      appliedRefCode: refCode,
-      proUntil: admin.firestore.Timestamp.fromDate(invitedNew),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
-
-    // --- owner（紹介した側）: 成功数+1、3人ごとに3日延長 ---
-    const success = (owner.refSuccessCount || 0) + 1;
-    let rewarded = owner.refRewardedCount || 0;
-
-    const ownerUpdate = {
-      refSuccessCount: success,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    if (success % 3 === 0) {
-      rewarded += 1;
-      const ownerBase = owner.proUntil?.toDate?.() || new Date();
-      const ownerNew = new Date(ownerBase.getTime() + 3 * dayMs);
-
-      ownerUpdate.refRewardedCount = rewarded;
-      ownerUpdate.proUntil = admin.firestore.Timestamp.fromDate(ownerNew);
-    }
-
-    tx.set(ownerInfoRef, ownerUpdate, { merge: true });
-
-    // refCodes側にも集計を書いておく（UI表示/管理用）
-    tx.set(refCodeRef, {
-      successCount: success,
-      rewardedCount: rewarded,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+    return { refCode };
   });
 
-  return { ok: true };
+  return result;
+});
+
+exports.applyReferral = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Login required.");
+
+  const uid = request.auth.uid;
+  const refCodeRaw = request.data && request.data.refCode ? String(request.data.refCode) : "";
+  const refCode = refCodeRaw.trim();
+
+  if (!refCode) throw new HttpsError("invalid-argument", "refCode is required.");
+  if (refCode.length < 4 || refCode.length > 16) throw new HttpsError("invalid-argument", "Invalid refCode.");
+
+  const inviteeInfoRef = userInfoRef(uid);
+
+  const out = await db.runTransaction(async (tx) => {
+    const refDocRef = db.collection("refCodes").doc(refCode);
+    const refDoc = await tx.get(refDocRef);
+    if (!refDoc.exists) throw new HttpsError("not-found", "refCode not found.");
+
+    const ownerUid = refDoc.data().uid;
+    if (!ownerUid) throw new HttpsError("internal", "Invalid refCode mapping.");
+    if (ownerUid === uid) throw new HttpsError("failed-precondition", "Self referral is not allowed.");
+
+    const inviterInfoRef = userInfoRef(ownerUid);
+
+    const [inviteeInfoSnap, inviterInfoSnap] = await Promise.all([
+      tx.get(inviteeInfoRef),
+      tx.get(inviterInfoRef),
+    ]);
+
+    const invitee = inviteeInfoSnap.exists ? (inviteeInfoSnap.data() || {}) : {};
+    const inviter = inviterInfoSnap.exists ? (inviterInfoSnap.data() || {}) : {};
+
+    // idempotent: already applied
+    if (invitee.appliedRefCode) {
+      return {
+        ok: true,
+        alreadyApplied: true,
+        ownerUid,
+        refCode: invitee.appliedRefCode,
+        refSuccessCount: inviter.refSuccessCount || 0,
+        refRewardedCount: inviter.refRewardedCount || 0,
+      };
+    }
+
+    // 1) invitee gets +1 day pro
+    const inviteeProUntil = invitee.proUntil || null;
+    const newInviteeProUntil = addDaysFromMax(inviteeProUntil, 1);
+
+    tx.set(
+      inviteeInfoRef,
+      {
+        appliedRefCode: refCode,
+        plan: "pro",
+        proUntil: newInviteeProUntil,
+        updatedAt: nowTs(),
+      },
+      { merge: true }
+    );
+
+    // 2) inviter counters + reward each 3 successes
+    const prevSuccess = Number(inviter.refSuccessCount || 0);
+    const prevRewarded = Number(inviter.refRewardedCount || 0);
+    const nextSuccess = prevSuccess + 1;
+
+    let nextRewarded = prevRewarded;
+    let extraDaysForInviter = 0;
+    if (nextSuccess % 3 === 0) {
+      nextRewarded += 1;
+      extraDaysForInviter = 3;
+    }
+
+    const inviterProUntil = inviter.proUntil || null;
+    const newInviterProUntil = extraDaysForInviter ? addDaysFromMax(inviterProUntil, extraDaysForInviter) : inviterProUntil;
+
+    tx.set(
+      inviterInfoRef,
+      {
+        refSuccessCount: nextSuccess,
+        refRewardedCount: nextRewarded,
+        ...(extraDaysForInviter ? { plan: "pro", proUntil: newInviterProUntil } : {}),
+        updatedAt: nowTs(),
+      },
+      { merge: true }
+    );
+
+    // legacy mirror (optional)
+    tx.set(db.collection("users").doc(ownerUid), { refSuccessCount: nextSuccess, refRewardedCount: nextRewarded }, { merge: true });
+    tx.set(db.collection("users").doc(uid), { appliedRefCode: refCode, plan: "pro", proUntil: newInviteeProUntil }, { merge: true });
+
+    return {
+      ok: true,
+      alreadyApplied: false,
+      ownerUid,
+      refSuccessCount: nextSuccess,
+      refRewardedCount: nextRewarded,
+      inviterBonusDaysAdded: extraDaysForInviter,
+      inviteeBonusDaysAdded: 1,
+    };
+  });
+
+  return out;
 });
