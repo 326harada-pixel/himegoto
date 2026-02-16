@@ -286,7 +286,118 @@
         }
       });
     }
+  
+  // ===== Phone Auth (Firebase) + reCAPTCHA =====
+  const phoneInput = document.getElementById("phoneInput");
+  const codeSmsInput = document.getElementById("codeSms");
+  const refInput = document.getElementById("refInput");
+  const sendBtn = document.getElementById("sendCodeSms");
+  const verifyBtn = document.getElementById("verifySms");
+  const recaptchaContainer = document.getElementById("recaptcha-container");
+
+  let confirmationResult = null;
+  let recaptchaVerifier = null;
+  let recaptchaRendered = false;
+
+  function normalizePhoneJP(raw) {
+    const v = (raw || "").trim().replace(/[\s-]/g, "");
+    if (!v) return "";
+    if (v.startsWith("+")) return v;
+    // Accept JP domestic format: 0XXXXXXXXXX -> +81XXXXXXXXX (drop leading 0)
+    if (v.startsWith("0") && v.length >= 10) return "+81" + v.slice(1);
+    // fallback: treat as already E.164-like without '+'
+    if (/^\d{10,15}$/.test(v)) return "+" + v;
+    return v;
   }
+
+  function ensureRecaptcha() {
+    if (!recaptchaContainer) return;
+    if (recaptchaVerifier) return;
+    try {
+      recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container", {
+        size: "normal",
+      });
+      recaptchaVerifier.render().then(() => {
+        recaptchaRendered = true;
+      }).catch(() => {});
+    } catch (e) {
+      // If already rendered or blocked, ignore here; user will see error on send.
+    }
+  }
+
+  if (sendBtn || verifyBtn) {
+    ensureRecaptcha();
+  }
+
+  if (sendBtn) {
+    sendBtn.addEventListener("click", async () => {
+      try {
+        ensureRecaptcha();
+        const phone = normalizePhoneJP(phoneInput ? phoneInput.value : "");
+        if (!phone || !phone.startsWith("+")) {
+          alert("電話番号を正しく入力してください（例: 090... または +81...）。");
+          return;
+        }
+        if (!recaptchaVerifier) {
+          alert("reCAPTCHA の初期化に失敗しました。広告ブロッカー等を一時停止して再試行してください。");
+          return;
+        }
+        sendBtn.disabled = true;
+        const result = await auth.signInWithPhoneNumber(phone, recaptchaVerifier);
+        confirmationResult = result;
+        alert("SMSを送信しました。届いた6桁コードを入力してください。");
+      } catch (err) {
+        console.error(err);
+        alert("SMS送信に失敗しました。時間をおいて再試行してください。");
+        try { if (recaptchaVerifier) recaptchaVerifier.clear(); } catch(e){}
+        recaptchaVerifier = null;
+        ensureRecaptcha();
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+  }
+
+  if (verifyBtn) {
+    verifyBtn.addEventListener("click", async () => {
+      try {
+        const code = (codeSmsInput ? codeSmsInput.value : "").trim();
+        if (!confirmationResult) {
+          alert("先に「コード送信」を押してください。");
+          return;
+        }
+        if (!/^\d{6}$/.test(code)) {
+          alert("6桁コードを入力してください。");
+          return;
+        }
+        verifyBtn.disabled = true;
+        await confirmationResult.confirm(code);
+
+        // Ensure refCode + stats doc exists
+        const user = auth.currentUser;
+        if (user) {
+          await ensureRefCodeForUser(user.uid);
+          // apply referral code if entered
+          const ref = (refInput ? refInput.value : "").trim();
+          if (ref) {
+            try {
+              await fnApplyReferral({ refCode: ref });
+            } catch (e) {
+              console.warn("applyReferral failed", e);
+            }
+          }
+          await refreshUI(user.uid);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("コード確認に失敗しました。入力内容を確認して再試行してください。");
+      } finally {
+        verifyBtn.disabled = false;
+      }
+    });
+  }
+
+}
 
   // ===== Auth =====
   bindButtons();
