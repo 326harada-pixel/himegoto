@@ -109,16 +109,36 @@
       <h2>あなたの紹介ID</h2>
       <p class="small muted">登録完了！このIDをお友達に伝えて登録してもらうと、特典が付与されます。</p>
 
+      <!-- 紹介統計（表示のみ。値は app-register.js が users/{uid} から読み込む） -->
+      <div class="small" style="line-height:1.8;margin:10px 0 6px 0;">
+        <div>紹介した人数： <strong id="refCount">-</strong> 人</div>
+        <div>次のボーナスまで： あと <strong id="nextBonus">-</strong> 人</div>
+        <div>ボーナス獲得回数： <strong id="bonusCount">-</strong> 回</div>
+      </div>
+
       <div class="row">
         <input type="text" id="myRefId" readonly style="background:#eee;text-align:center;font-weight:bold;letter-spacing:1px;">
       </div>
 
       <div class="row">
-        <button class="btn" id="copyRefId">IDをコピー</button>
+        <button class="btn" id="copyRefCode">IDをコピー</button>
         <button class="btn primary" id="shareRefLink">紹介リンクを送る</button>
       </div>
 
+      <p id="refStatus" class="status-msg"></p>
       <p id="refMessage" class="status-msg"></p>
+
+      <!-- 管理者デバッグ：isAdmin==true のときだけ表示（users/{uid}.isAdmin） -->
+      <div id="adminPanel" style="display:none; margin-top:14px; border:2px dashed #ff5aa5; border-radius:14px; padding:14px; background:#fff;">
+        <h3 style="margin:0 0 6px 0; font-size:18px;">管理者デバッグ</h3>
+        <div class="small muted" style="margin-bottom:10px;">紹介特典の付与・状態確認用（isAdmin のみ表示）</div>
+        <div class="row">
+          <button class="btn" id="adminShowStatus">紹介状態を表示</button>
+          <button class="btn primary" id="adminForceApply">紹介特典を強制実行（テスト用）</button>
+        </div>
+        <div class="small muted" style="margin-top:8px;">結果</div>
+        <p id="adminResult" class="status-msg"></p>
+      </div>
 
       <div class="row" style="margin-top:20px;">
         <button class="btn" onclick="location.href='index.html'">ホームへ移動</button>
@@ -143,40 +163,5 @@
   <script src="header-loader.js"></script>
   <script src="common.js"></script>
   <script src="app-register.js"></script>
-
-<script>
-/* FIX: 「IDをコピー」ボタンが死んでた件（イベント未登録） */
-(function(){
-  const btn = document.getElementById('copyRefId');
-  const input = document.getElementById('myRefId');
-  const msg = document.getElementById('refMessage');
-
-  if(!btn || !input) return;
-
-  btn.addEventListener('click', async () => {
-    const code = (input.value || '').trim();
-
-    if(!code){
-      if(msg) msg.textContent = 'IDがまだ表示されていません';
-      return;
-    }
-
-    try{
-      await navigator.clipboard.writeText(code);
-      if(msg){ msg.textContent = 'IDをコピーしました'; }
-    }catch(e){
-      // 互換用フォールバック（古い環境）
-      try{
-        input.focus();
-        input.select();
-        input.setSelectionRange(0, 99999);
-        document.execCommand('copy');
-        if(msg){ msg.textContent = 'IDをコピーしました'; }
-      }catch(_){}
-    }
-  });
-})();
-</script>
-
 </body>
 </html>
