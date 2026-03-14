@@ -58,7 +58,7 @@ const phoneInput = $('phoneInput');
 const sendCodeSmsBtn = $('sendCodeSms');
 const codeSmsInput = $('codeSms');
 const verifySmsBtn = $('verifySms');
-const refCodeInput = $('refCodeInput') || $('refCode');
+const refCodeInput = $('refCodeInput');
 const smsMessage = $('smsMessage');
 const recaptchaContainer = $('recaptcha-container');
 
@@ -172,7 +172,7 @@ async function verifySmsCodeAndRegister() {
     const ref = (refCodeInput?.value || '').trim();
     if (ref) {
       try {
-        await fnApplyReferral()({ refCode: ref });
+        await applyReferral({ refCode: ref });
       } catch (e) {
         console.warn('applyReferral failed:', e);
         // applyReferral失敗は致命ではない。メッセだけ出す。
@@ -181,8 +181,6 @@ async function verifySmsCodeAndRegister() {
     }
 
     setSmsMessage('登録完了！', false);
-
-    try { await refresh(user.uid); } catch (_) {}
 
     // 画面更新（auth.onAuthStateChangedが走る）
     return user;
@@ -260,30 +258,23 @@ async function verifySmsCodeAndRegister() {
       ? clampInt(successTotal, 0, 1e9)
       : clampInt(bonusProgressRaw, 0, 1e9);
 
+    
     const BONUS_EVERY = 3;
 
-    // progress は 0-(BONUS_EVERY-1) に落とす
-    let progress;
-    if (Number.isFinite(bonusProgressRaw)) {
-      // bonusProgress が累計っぽい値なら mod を取る
-      progress = clampInt(bonusProgressRaw % BONUS_EVERY, 0, BONUS_EVERY - 1);
-    } else if (Number.isFinite(successTotal)) {
-      progress = clampInt(successTotal % BONUS_EVERY, 0, BONUS_EVERY - 1);
-    } else {
-      progress = 0;
-    }
+    const introduced = clampInt(successTotal,0,1e9);
 
-    // 次のボーナスまで: 0→あと3、3→あと3、5→あと1
+    const progress = clampInt(successTotal % BONUS_EVERY,0,BONUS_EVERY-1);
+
     const next = progress === 0 ? BONUS_EVERY : (BONUS_EVERY - progress);
 
-    // rewardedCount が無い場合は成功数から推定（あくまで表示用）
     const rewarded = Number.isFinite(rewardedCount)
-      ? clampInt(rewardedCount, 0, 1e9)
-      : (Number.isFinite(successTotal) ? Math.floor(successTotal / BONUS_EVERY) : 0);
+      ? clampInt(rewardedCount,0,1e9)
+      : Math.floor(successTotal / BONUS_EVERY);
 
     setText('refCount', introduced);
     setText('nextBonus', next);
     setText('bonusCount', rewarded);
+
   }
 
   function showAdminPanelIfNeeded(userData) {
@@ -444,7 +435,7 @@ ensureRecaptcha();
       const reg = document.getElementById('registration-section');
       if (reg) reg.style.display = '';
       if (mySection) mySection.style.display = 'none';
-      if (adminPanel) adminPanel.style.display = 'none';
+      if (adminSection) adminSection.style.display = 'none';
       return;
     }
     try {
