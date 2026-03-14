@@ -58,7 +58,7 @@ const phoneInput = $('phoneInput');
 const sendCodeSmsBtn = $('sendCodeSms');
 const codeSmsInput = $('codeSms');
 const verifySmsBtn = $('verifySms');
-const refCodeInput = $('refCodeInput');
+const refCodeInput = $('refCodeInput') || $('refCode');
 const smsMessage = $('smsMessage');
 const recaptchaContainer = $('recaptcha-container');
 
@@ -442,7 +442,7 @@ ensureRecaptcha();
       const reg = document.getElementById('registration-section');
       if (reg) reg.style.display = '';
       if (mySection) mySection.style.display = 'none';
-      if (adminSection) adminSection.style.display = 'none';
+      if (adminPanel) adminPanel.style.display = 'none';
       return;
     }
     try {
