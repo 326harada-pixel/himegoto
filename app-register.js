@@ -172,7 +172,7 @@ async function verifySmsCodeAndRegister() {
     const ref = (refCodeInput?.value || '').trim();
     if (ref) {
       try {
-        await applyReferral({ refCode: ref });
+        await fnApplyReferral()({ refCode: ref });
       } catch (e) {
         console.warn('applyReferral failed:', e);
         // applyReferral失敗は致命ではない。メッセだけ出す。
@@ -181,6 +181,8 @@ async function verifySmsCodeAndRegister() {
     }
 
     setSmsMessage('登録完了！', false);
+
+    try { await refresh(user.uid); } catch (_) {}
 
     // 画面更新（auth.onAuthStateChangedが走る）
     return user;
