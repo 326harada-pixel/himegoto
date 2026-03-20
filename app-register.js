@@ -173,6 +173,30 @@ async function verifySmsCodeAndRegister() {
     if (ref) {
       try {
         await fnApplyReferral()({ refCode: ref });
+
+    const refUserSnap = await db.collection('users')
+      .where('refCode', '==', ref)
+      .limit(1)
+      .get();
+
+    if (!refUserSnap.empty) {
+      const refUserDoc = refUserSnap.docs[0];
+      const refUserRef = refUserDoc.ref;
+      const refData = refUserDoc.data();
+
+      const currentSuccess = Number(refData.refSuccessCount) || 0;
+
+      const success = currentSuccess + 1;
+      const rewarded = Math.floor(success / 3);
+      const progress = success % 3;
+
+      await refUserRef.set({
+        refSuccessCount: success,
+        refRewardedCount: rewarded,
+        refBonusProgress: progress,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
       } catch (e) {
         console.warn('applyReferral failed:', e);
         // applyReferral失敗は致命ではない。メッセだけ出す。
