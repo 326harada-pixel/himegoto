@@ -58,7 +58,7 @@ const phoneInput = $('phoneInput');
 const sendCodeSmsBtn = $('sendCodeSms');
 const codeSmsInput = $('codeSms');
 const verifySmsBtn = $('verifySms');
-const refCodeInput = $('refCodeInput');
+const refCodeInput = $('refCodeInput') || $('refCode');
 const smsMessage = $('smsMessage');
 const recaptchaContainer = $('recaptcha-container');
 
@@ -163,7 +163,7 @@ async function verifySmsCodeAndRegister() {
     // ①紹介IDの確保（無ければ作成）
     let ensured = null;
     try {
-      ensured = await ensureRefCode();
+      ensured = await fnEnsureRefCode()({});
     } catch (e) {
       console.warn('ensureRefCode failed:', e);
     }
@@ -172,7 +172,7 @@ async function verifySmsCodeAndRegister() {
     const ref = (refCodeInput?.value || '').trim();
     if (ref) {
       try {
-        await applyReferral({ refCode: ref });
+        await fnApplyReferral()({ refCode: ref });
       } catch (e) {
         console.warn('applyReferral failed:', e);
         // applyReferral失敗は致命ではない。メッセだけ出す。
@@ -182,7 +182,15 @@ async function verifySmsCodeAndRegister() {
 
     setSmsMessage('登録完了！', false);
 
-    // 画面更新（auth.onAuthStateChangedが走る）
+    try {
+      const reg = document.getElementById('registration-section');
+      if (reg) reg.style.display = 'none';
+      if (mySection) mySection.style.display = '';
+      await refresh(user.uid);
+    } catch (e) {
+      console.warn('[register] post-register refresh failed', e);
+    }
+
     return user;
   } catch (e) {
     console.error('verifySmsCode error:', e);
@@ -242,39 +250,18 @@ async function verifySmsCodeAndRegister() {
   }
 
   function renderStats(userData) {
-    // 互換：
-    // - refSuccessCount: 紹介成立の累計
-    // - refRewardedCount: ボーナス獲得回数
-    // - refBonusProgress: 次のボーナスまでの進捗(0-4) もしくは成立数（環境で揺れる）
-
-    const successTotal = safeNum(userData.refSuccessCount, 0);
-    const rewardedCount = safeNum(userData.refRewardedCount, 0);
-    const bonusProgressRaw = safeNum(userData.refBonusProgress, 0);
-
-    // 表示優先順位
-    // 1) successTotal があるならそれを「紹介した人数」
-    // 2) なければ bonusProgressRaw を「紹介した人数」扱いにする（※少なくとも '-' にはしない）
-    const introduced = Number.isFinite(successTotal)
-      ? clampInt(successTotal, 0, 1e9)
-      : clampInt(bonusProgressRaw, 0, 1e9);
-
-    
+    const successTotal = safeNum(userData && userData.refSuccessCount, 0);
+    const rewardedCount = safeNum(userData && userData.refRewardedCount, 0);
     const BONUS_EVERY = 3;
 
-    const introduced = clampInt(successTotal,0,1e9);
-
-    const progress = clampInt(successTotal % BONUS_EVERY,0,BONUS_EVERY-1);
-
+    const introduced = clampInt(successTotal, 0, 1e9);
+    const progress = clampInt(successTotal % BONUS_EVERY, 0, BONUS_EVERY - 1);
     const next = progress === 0 ? BONUS_EVERY : (BONUS_EVERY - progress);
-
-    const rewarded = Number.isFinite(rewardedCount)
-      ? clampInt(rewardedCount,0,1e9)
-      : Math.floor(successTotal / BONUS_EVERY);
+    const rewarded = clampInt(rewardedCount, 0, 1e9);
 
     setText('refCount', introduced);
     setText('nextBonus', next);
     setText('bonusCount', rewarded);
-
   }
 
   function showAdminPanelIfNeeded(userData) {
@@ -422,7 +409,7 @@ if (sendCodeSmsBtn) sendCodeSmsBtn.addEventListener('click', sendSmsCode);
 if (verifySmsBtn) verifySmsBtn.addEventListener('click', verifySmsCodeAndRegister);
 
 // reCAPTCHA準備（未ログイン時に必要）
-ensureRecaptcha();
+if (!auth.currentUser) ensureRecaptcha();
 }
 
   // ===== Auth =====
@@ -435,7 +422,7 @@ ensureRecaptcha();
       const reg = document.getElementById('registration-section');
       if (reg) reg.style.display = '';
       if (mySection) mySection.style.display = 'none';
-      if (adminSection) adminSection.style.display = 'none';
+      if (adminPanel) adminPanel.style.display = 'none';
       return;
     }
     try {
