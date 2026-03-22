@@ -81,13 +81,14 @@ exports.ensureRefCode = onCall(async (request) => {
         refCode,
         refSuccessCount: 0,
         refRewardedCount: 0,
+        refBonusProgress: 0,
         updatedAt: nowTs(),
         createdAt: existing && existing.createdAt ? existing.createdAt : nowTs(),
       },
       { merge: true }
     );
     // keep root doc lightweight but store refCode for legacy reads
-    tx.set(db.collection("users").doc(uid), { refCode }, { merge: true });
+    tx.set(db.collection("users").doc(uid), { refCode, refSuccessCount: 0, refRewardedCount: 0, refBonusProgress: 0 }, { merge: true });
 
     return { refCode };
   });
@@ -135,6 +136,7 @@ exports.applyReferral = onCall(async (request) => {
         refCode: invitee.appliedRefCode,
         refSuccessCount: inviter.refSuccessCount || 0,
         refRewardedCount: inviter.refRewardedCount || 0,
+        refBonusProgress: inviter.refBonusProgress || 0,
       };
     }
 
@@ -155,13 +157,12 @@ exports.applyReferral = onCall(async (request) => {
 
     // 2) inviter counters + reward each 3 successes
     const prevSuccess = Number(inviter.refSuccessCount || 0);
-    const prevRewarded = Number(inviter.refRewardedCount || 0);
     const nextSuccess = prevSuccess + 1;
+    const nextRewarded = Math.floor(nextSuccess / 3);
+    const nextProgress = nextSuccess % 3;
 
-    let nextRewarded = prevRewarded;
     let extraDaysForInviter = 0;
     if (nextSuccess % 3 === 0) {
-      nextRewarded += 1;
       extraDaysForInviter = 3;
     }
 
@@ -173,6 +174,7 @@ exports.applyReferral = onCall(async (request) => {
       {
         refSuccessCount: nextSuccess,
         refRewardedCount: nextRewarded,
+        refBonusProgress: nextProgress,
         ...(extraDaysForInviter ? { plan: "pro", proUntil: newInviterProUntil } : {}),
         updatedAt: nowTs(),
       },
@@ -180,7 +182,7 @@ exports.applyReferral = onCall(async (request) => {
     );
 
     // legacy mirror (optional)
-    tx.set(db.collection("users").doc(ownerUid), { refSuccessCount: nextSuccess, refRewardedCount: nextRewarded }, { merge: true });
+    tx.set(db.collection("users").doc(ownerUid), { refSuccessCount: nextSuccess, refRewardedCount: nextRewarded, refBonusProgress: nextProgress }, { merge: true });
     tx.set(db.collection("users").doc(uid), { appliedRefCode: refCode, plan: "pro", proUntil: newInviteeProUntil }, { merge: true });
 
     return {
@@ -189,6 +191,7 @@ exports.applyReferral = onCall(async (request) => {
       ownerUid,
       refSuccessCount: nextSuccess,
       refRewardedCount: nextRewarded,
+      refBonusProgress: nextProgress,
       inviterBonusDaysAdded: extraDaysForInviter,
       inviteeBonusDaysAdded: 1,
     };
