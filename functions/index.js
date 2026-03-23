@@ -136,7 +136,6 @@ exports.applyReferral = onCall(async (request) => {
         refCode: invitee.appliedRefCode,
         refSuccessCount: inviter.refSuccessCount || 0,
         refRewardedCount: inviter.refRewardedCount || 0,
-        refBonusProgress: inviter.refBonusProgress || 0,
       };
     }
 
@@ -155,16 +154,12 @@ exports.applyReferral = onCall(async (request) => {
       { merge: true }
     );
 
-    // 2) inviter counters + reward each 3 successes
+    // 2) inviter counters + reward each 3 successes（毎回再計算）
     const prevSuccess = Number(inviter.refSuccessCount || 0);
     const nextSuccess = prevSuccess + 1;
     const nextRewarded = Math.floor(nextSuccess / 3);
     const nextProgress = nextSuccess % 3;
-
-    let extraDaysForInviter = 0;
-    if (nextSuccess % 3 === 0) {
-      extraDaysForInviter = 3;
-    }
+    const extraDaysForInviter = nextRewarded > Number(inviter.refRewardedCount || 0) ? 3 : 0;
 
     const inviterProUntil = inviter.proUntil || null;
     const newInviterProUntil = extraDaysForInviter ? addDaysFromMax(inviterProUntil, extraDaysForInviter) : inviterProUntil;
@@ -182,7 +177,16 @@ exports.applyReferral = onCall(async (request) => {
     );
 
     // legacy mirror (optional)
-    tx.set(db.collection("users").doc(ownerUid), { refSuccessCount: nextSuccess, refRewardedCount: nextRewarded, refBonusProgress: nextProgress }, { merge: true });
+    tx.set(
+      db.collection("users").doc(ownerUid),
+      {
+        refSuccessCount: nextSuccess,
+        refRewardedCount: nextRewarded,
+        refBonusProgress: nextProgress,
+        ...(extraDaysForInviter ? { plan: "pro", proUntil: newInviterProUntil } : {}),
+      },
+      { merge: true }
+    );
     tx.set(db.collection("users").doc(uid), { appliedRefCode: refCode, plan: "pro", proUntil: newInviteeProUntil }, { merge: true });
 
     return {
