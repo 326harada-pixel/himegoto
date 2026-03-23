@@ -139,9 +139,24 @@ exports.applyReferral = onCall(async (request) => {
       };
     }
 
-    // 1) invitee gets +1 day pro
+    // 1) invitee gets +1 day pro + ensure invitee has own refCode
     const inviteeProUntil = invitee.proUntil || null;
     const newInviteeProUntil = addDaysFromMax(inviteeProUntil, 1);
+
+    // サブ垢自身のrefCodeが未発行の場合はここで発行する
+    let inviteeRefCode = invitee.refCode || "";
+    if (!inviteeRefCode) {
+      for (let i = 0; i < 20; i++) {
+        const candidate = makeRefCode(8);
+        const candidateRef = db.collection("refCodes").doc(candidate);
+        const candidateSnap = await tx.get(candidateRef);
+        if (!candidateSnap.exists) {
+          inviteeRefCode = candidate;
+          tx.set(candidateRef, { uid, createdAt: nowTs(), updatedAt: nowTs() }, { merge: true });
+          break;
+        }
+      }
+    }
 
     tx.set(
       inviteeInfoRef,
@@ -150,6 +165,13 @@ exports.applyReferral = onCall(async (request) => {
         plan: "pro",
         proUntil: newInviteeProUntil,
         updatedAt: nowTs(),
+        ...(inviteeRefCode && !invitee.refCode ? {
+          refCode: inviteeRefCode,
+          refSuccessCount: invitee.refSuccessCount ?? 0,
+          refRewardedCount: invitee.refRewardedCount ?? 0,
+          refBonusProgress: invitee.refBonusProgress ?? 0,
+          uid,
+        } : {}),
       },
       { merge: true }
     );
