@@ -391,7 +391,10 @@
     const d = {};
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (/^hime/i.test(k)) d[k] = localStorage.getItem(k);
+      // 対象：顧客リスト・顧客メモ・メッセージ本文のみ
+      if (k === 'hime_customers' || k === 'hime_msg' || /^hime_memo_/i.test(k)) {
+        d[k] = localStorage.getItem(k);
+      }
     }
     return d;
   };
