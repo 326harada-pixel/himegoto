@@ -182,7 +182,9 @@ async function verifySmsCodeAndRegister() {
 
     setSmsMessage('登録完了！', false);
 
-    // 画面更新（auth.onAuthStateChangedが走る）
+    // 画面更新（onAuthStateChangedが再発火しないケースに備えて明示的に呼ぶ）
+    await refresh(user.uid);
+
     return user;
   } catch (e) {
     console.error('verifySmsCode error:', e);
