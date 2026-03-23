@@ -182,9 +182,7 @@ async function verifySmsCodeAndRegister() {
 
     setSmsMessage('登録完了！', false);
 
-    // 画面更新（onAuthStateChangedが再発火しないケースに備えて明示的に呼ぶ）
-    await refresh(user.uid);
-
+    // 画面更新（auth.onAuthStateChangedが走る）
     return user;
   } catch (e) {
     console.error('verifySmsCode error:', e);
@@ -330,7 +328,7 @@ async function verifySmsCodeAndRegister() {
 
     if (navigator.share) {
       try {
-        await navigator.share({ text, url: url.toString() });
+        await navigator.share({ text });
         setRefMessage('紹介リンクを共有しました。', true);
         return;
       } catch (_) {

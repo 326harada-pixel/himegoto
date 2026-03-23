@@ -353,8 +353,39 @@
   const rs = document.getElementById('restoreFromString');
   const ar = document.getElementById('backupStringArea');
 
-  const enc = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
-  const dec = (b) => JSON.parse(decodeURIComponent(escape(atob(b))));
+  // gzip圧縮エンコード（旧Base64より短くなる）
+  async function enc(o) {
+    const json = JSON.stringify(o);
+    const bytes = new TextEncoder().encode(json);
+    const cs = new CompressionStream('gzip');
+    const writer = cs.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    const buf = await new Response(cs.readable).arrayBuffer();
+    const arr = new Uint8Array(buf);
+    let str = '';
+    arr.forEach(b => str += String.fromCharCode(b));
+    return 'z:' + btoa(str);
+  }
+
+  // gzip解凍デコード（旧Base64との後方互換あり）
+  async function dec(raw) {
+    const s = raw.trim();
+    // 旧形式（z:プレフィックスなし）はBase64として処理
+    if (!s.startsWith('z:')) {
+      return JSON.parse(decodeURIComponent(escape(atob(s))));
+    }
+    const b64 = s.slice(2);
+    const str = atob(b64);
+    const arr = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) arr[i] = str.charCodeAt(i);
+    const ds = new DecompressionStream('gzip');
+    const writer = ds.writable.getWriter();
+    writer.write(arr);
+    writer.close();
+    const buf = await new Response(ds.readable).arrayBuffer();
+    return JSON.parse(new TextDecoder().decode(buf));
+  }
 
   const collect = () => {
     const d = {};
@@ -368,10 +399,10 @@
     Object.keys(data || {}).forEach((k) => localStorage.setItem(k, data[k]));
   };
 
-  on(mk, 'click', () => {
+  on(mk, 'click', async () => {
     if (!ar) return;
     try {
-      ar.value = enc(collect());
+      ar.value = await enc(collect());
     } catch {
       alert('バックアップ文字列の作成に失敗しました。');
     }
@@ -380,10 +411,22 @@
     if (!ar || !ar.value) return;
     try { await navigator.clipboard.writeText(ar.value); } catch {}
   });
-  on(rs, 'click', () => {
+
+  // LINEで送るボタン
+  const lineBtn = document.getElementById('sendToLine');
+  on(lineBtn, 'click', () => {
+    if (!ar || !ar.value) {
+      alert('先に「文字列を作る」を押してください。');
+      return;
+    }
+    const encoded = encodeURIComponent(ar.value);
+    location.href = 'https://line.me/R/share?text=' + encoded;
+  });
+
+  on(rs, 'click', async () => {
     if (!ar || !ar.value) return;
     try {
-      apply(dec(ar.value.trim()));
+      apply(await dec(ar.value.trim()));
       alert('復元しました。再読み込みします。');
       location.reload();
     } catch {
