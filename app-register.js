@@ -182,15 +182,7 @@ async function verifySmsCodeAndRegister() {
 
     setSmsMessage('登録完了！', false);
 
-    try {
-      const reg = document.getElementById('registration-section');
-      if (reg) reg.style.display = 'none';
-      if (mySection) mySection.style.display = '';
-      await refresh(user.uid);
-    } catch (e) {
-      console.warn('[register] post-register refresh failed', e);
-    }
-
+    // 画面更新（auth.onAuthStateChangedが走る）
     return user;
   } catch (e) {
     console.error('verifySmsCode error:', e);
@@ -422,7 +414,7 @@ ensureRecaptcha();
       const reg = document.getElementById('registration-section');
       if (reg) reg.style.display = '';
       if (mySection) mySection.style.display = 'none';
-      if (adminPanel) adminPanel.style.display = 'none';
+      if (adminSection) adminSection.style.display = 'none';
       return;
     }
     try {
