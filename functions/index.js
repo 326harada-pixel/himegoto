@@ -74,6 +74,10 @@ exports.ensureRefCode = onCall(async (request) => {
     }
     if (!refCode) throw new HttpsError("internal", "Failed to allocate refCode.");
 
+    // 初回登録特典：7日無制限（既存proUntilがある場合は末尾に加算）
+    const existingProUntil = existing && existing.proUntil ? existing.proUntil : null;
+    const newProUntil = addDaysFromMax(existingProUntil, 7);
+
     // init counters on info doc
     tx.set(
       infoRef,
@@ -82,6 +86,8 @@ exports.ensureRefCode = onCall(async (request) => {
         refSuccessCount: 0,
         refRewardedCount: 0,
         refBonusProgress: 0,
+        plan: "pro",
+        proUntil: newProUntil,
         updatedAt: nowTs(),
         createdAt: existing && existing.createdAt ? existing.createdAt : nowTs(),
       },
