@@ -87,23 +87,14 @@
       });
       if (!user) return;
 
-      // まず users/{uid} を見る
+      // users/{uid}/profile/info のみを参照（root参照禁止）
       let plan = '';
       let untilMs = 0;
       try {
-        const udoc = await db.collection('users').doc(user.uid).get();
-        const d = udoc && udoc.exists ? (udoc.data() || {}) : {};
-        plan = String(d.plan || '');
-        untilMs = toMs(d.proUntil);
-      } catch {}
-
-      // 次に profile/info も見る（上書き）
-      try {
         const pdoc = await db.collection('users').doc(user.uid).collection('profile').doc('info').get();
         const d = pdoc && pdoc.exists ? (pdoc.data() || {}) : {};
-        if (d.plan != null) plan = String(d.plan || '');
-        const ms2 = toMs(d.proUntil);
-        if (ms2) untilMs = ms2;
+        plan = String(d.plan || '');
+        untilMs = toMs(d.proUntil);
       } catch {}
 
       PREMIUM.loaded = true;
