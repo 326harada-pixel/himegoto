@@ -231,3 +231,27 @@ exports.applyReferral = onCall(async (request) => {
 
   return out;
 });
+
+// Stripe課金：CheckoutSession作成
+exports.createCheckoutSession = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Login required.");
+  const uid = request.auth.uid;
+
+  const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price: "price_1TJhusBLIMNsyBRMMt3A1j4D",
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    success_url: "https://himegoto.jp/register.html?purchase=success",
+    cancel_url: "https://himegoto.jp/register.html?purchase=cancel",
+    metadata: { uid },
+  });
+
+  return { url: session.url };
+});
