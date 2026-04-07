@@ -87,14 +87,23 @@
       });
       if (!user) return;
 
-      // users/{uid}/profile/info のみを参照（root参照禁止）
+      // まず users/{uid} を見る
       let plan = '';
       let untilMs = 0;
       try {
-        const pdoc = await db.collection('users').doc(user.uid).collection('profile').doc('info').get();
-        const d = pdoc && pdoc.exists ? (pdoc.data() || {}) : {};
+        const udoc = await db.collection('users').doc(user.uid).get();
+        const d = udoc && udoc.exists ? (udoc.data() || {}) : {};
         plan = String(d.plan || '');
         untilMs = toMs(d.proUntil);
+      } catch {}
+
+      // 次に profile/info も見る（上書き）
+      try {
+        const pdoc = await db.collection('users').doc(user.uid).collection('profile').doc('info').get();
+        const d = pdoc && pdoc.exists ? (pdoc.data() || {}) : {};
+        if (d.plan != null) plan = String(d.plan || '');
+        const ms2 = toMs(d.proUntil);
+        if (ms2) untilMs = ms2;
       } catch {}
 
       PREMIUM.loaded = true;
@@ -244,7 +253,7 @@
     if (!v) return;
     const st = load();
     if (!PREMIUM.isPro && (st.list || []).length >= MAX_CUSTOMERS) {
-      alert('無料版では顧客の登録は5名までです。');
+      showPurchasePopup('無料版では顧客の登録は5名までです。\n30日無制限プランにアップグレードすると上限なしになります。');
       return;
     }
     st.list.push(v);
@@ -313,7 +322,7 @@
       let d = ensureToday(loadSend());
       if ((d.count || 0) >= MAX_SENDS) {
         updateSendRemainUI();
-        alert('無料版では1日の送信は5回までです。');
+        showPurchasePopup('無料版では1日の送信は5回までです。\n30日無制限プランにアップグレードすると無制限になります。');
         return;
       }
       d.count = (d.count || 0) + 1;
@@ -434,3 +443,40 @@
   updateSendRemainUI();
   loadPremiumFromFirestore();
 })();
+
+// 購入ポップアップ
+function showPurchasePopup(msg) {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#fff;border-radius:16px;padding:24px 20px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.2);text-align:center;';
+  const p = document.createElement('p');
+  p.textContent = msg;
+  p.style.cssText = 'color:#333;font-size:14px;line-height:1.7;margin:0 0 20px;';
+  const buyBtn = document.createElement('button');
+  buyBtn.textContent = '550円で30日無制限にする';
+  buyBtn.style.cssText = 'display:block;width:100%;background:#e91e8c;color:#fff;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:bold;cursor:pointer;margin-bottom:10px;';
+  buyBtn.addEventListener('click', async () => {
+    try {
+      if (!window.firebase) return;
+      const functions = firebase.app().functions('asia-northeast1');
+      const fn = functions.httpsCallable('createCheckoutSession');
+      const result = await fn({});
+      if (result.data && result.data.url) {
+        location.href = result.data.url;
+      }
+    } catch (e) {
+      alert('購入ページの読み込みに失敗しました。');
+    }
+  });
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '閉じる';
+  closeBtn.style.cssText = 'display:block;width:100%;background:none;border:1px solid #ccc;border-radius:8px;padding:10px;font-size:14px;cursor:pointer;color:#666;';
+  closeBtn.addEventListener('click', () => document.body.removeChild(ov));
+  ov.addEventListener('click', (e) => { if (e.target === ov) document.body.removeChild(ov); });
+  box.appendChild(p);
+  box.appendChild(buyBtn);
+  box.appendChild(closeBtn);
+  ov.appendChild(box);
+  document.body.appendChild(ov);
+}
