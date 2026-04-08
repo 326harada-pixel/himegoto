@@ -34,15 +34,16 @@
 
   <!-- プレミアム残時間表示 -->
   <section class="premium-status">
-    <p class="premium-status__text muted small">
-      無制限残時間
-      <span id="premiumDays">0</span>日
-      <span id="premiumHours">0</span>時間
-      <span id="premiumMinutes">0</span>分
-    </p>
-    <button id="purchaseBtn" class="btn primary" style="display:none;margin:6px auto 0;font-size:13px;padding:6px 16px;">550円で30日無制限にする</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <p class="premium-status__text muted small" style="margin:0;">
+        無制限残時間
+        <span id="premiumDays">0</span>日
+        <span id="premiumHours">0</span>時間
+        <span id="premiumMinutes">0</span>分
+      </p>
+      <button id="purchaseBtn" class="btn primary" style="flex-shrink:0;font-size:13px;padding:6px 16px;">30日購入</button>
+    </div>
   </section>
-
 
   <!-- 顧客リスト -->
   <section class="card">

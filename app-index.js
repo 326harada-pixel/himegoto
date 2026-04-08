@@ -72,7 +72,7 @@
       if (remainShare) remainShare.textContent = '送信残り 無制限';
       if (purchaseBtn) purchaseBtn.style.display = 'none';
     } else {
-      if (purchaseBtn) purchaseBtn.style.display = '';
+      if (purchaseBtn) purchaseBtn.style.display = 'inline-block';
     }
   }
 
@@ -257,7 +257,7 @@
     if (!v) return;
     const st = load();
     if (!PREMIUM.isPro && (st.list || []).length >= MAX_CUSTOMERS) {
-      alert('無料版では顧客の登録は5名までです。');
+      showPurchasePopup('無料版では顧客の登録は5名までです。');
       return;
     }
     st.list.push(v);
@@ -326,7 +326,7 @@
       let d = ensureToday(loadSend());
       if ((d.count || 0) >= MAX_SENDS) {
         updateSendRemainUI();
-        alert('無料版では1日の送信は5回までです。');
+        showPurchasePopup('無料版では1日の送信は5回までです。');
         return;
       }
       d.count = (d.count || 0) + 1;
@@ -440,6 +440,43 @@
       alert('文字列の形式が正しくありません。');
     }
   });
+
+  // --- 購入ポップアップ ---
+  function showPurchasePopup(msg) {
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:#fff;border-radius:16px;padding:24px 20px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.2);text-align:center;';
+    const p = document.createElement('p');
+    p.textContent = msg;
+    p.style.cssText = 'color:#333;font-size:14px;line-height:1.7;margin:0 0 20px;';
+    const buyBtn = document.createElement('button');
+    buyBtn.textContent = '30日購入';
+    buyBtn.style.cssText = 'display:block;width:100%;background:#e91e8c;color:#fff;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:bold;cursor:pointer;margin-bottom:10px;';
+    buyBtn.addEventListener('click', async () => {
+      try {
+        if (!window.firebase) return;
+        const functions = firebase.app().functions('asia-northeast1');
+        const fn = functions.httpsCallable('createCheckoutSession');
+        const result = await fn({});
+        if (result.data && result.data.url) {
+          location.href = result.data.url;
+        }
+      } catch (e) {
+        alert('購入ページの読み込みに失敗しました。');
+      }
+    });
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '閉じる';
+    closeBtn.style.cssText = 'display:block;width:100%;background:none;border:1px solid #ccc;border-radius:8px;padding:10px;font-size:14px;cursor:pointer;color:#666;';
+    closeBtn.addEventListener('click', () => document.body.removeChild(ov));
+    ov.addEventListener('click', (e) => { if (e.target === ov) document.body.removeChild(ov); });
+    box.appendChild(p);
+    box.appendChild(buyBtn);
+    box.appendChild(closeBtn);
+    ov.appendChild(box);
+    document.body.appendChild(ov);
+  }
 
   // --- 購入ボタン ---
   const purchaseBtn = $('#purchaseBtn');
