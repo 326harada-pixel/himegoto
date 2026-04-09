@@ -233,7 +233,7 @@ exports.applyReferral = onCall(async (request) => {
 });
 
 // Stripe課金：CheckoutSession作成
-exports.createCheckoutSession = onCall(async (request) => {
+exports.createCheckoutSession = onCall({ secrets: ["STRIPE_SECRET_KEY"] }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Login required.");
   const uid = request.auth.uid;
 
