@@ -70,7 +70,17 @@
     if (PREMIUM.isPro) {
       if (remainCust) remainCust.textContent = '上限なし';
       if (remainShare) remainShare.textContent = '送信残り 無制限';
-      if (purchaseBtn) purchaseBtn.style.display = 'none';
+      if (days < 7) {
+        if (dEl) dEl.style.color = 'red';
+        if (hEl) hEl.style.color = 'red';
+        if (mEl) mEl.style.color = 'red';
+        if (purchaseBtn) purchaseBtn.style.display = 'inline-block';
+      } else {
+        if (dEl) dEl.style.color = '';
+        if (hEl) hEl.style.color = '';
+        if (mEl) mEl.style.color = '';
+        if (purchaseBtn) purchaseBtn.style.display = 'none';
+      }
     } else {
       if (purchaseBtn) purchaseBtn.style.display = 'inline-block';
     }
