@@ -1,6 +1,7 @@
 // api/stripe-webhook.js
 // Stripeからの支払い完了通知を受け取り、proUntilを加算する
 
+const Stripe = require("stripe");
 const admin = require("firebase-admin");
 
 if (!admin.apps.length) {
@@ -29,14 +30,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const sig = req.headers["stripe-signature"];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  console.log("STRIPE_WEBHOOK_SECRET exists:", !!webhookSecret);
+  console.log("sig exists:", !!sig);
+
   let event;
 
   try {
-    const body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-    event = JSON.parse(body);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const rawBody = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
-    console.error("Parse error:", err.message);
-    return res.status(400).json({ error: "Parse error" });
+    console.error("Webhook signature error:", err.message);
+    console.error("webhookSecret length:", webhookSecret ? webhookSecret.length : 0);
+    return res.status(400).json({ error: "Invalid signature" });
   }
 
   if (event.type === "checkout.session.completed") {
