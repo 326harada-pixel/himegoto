@@ -1,4 +1,4 @@
-/* himegoto ver.1.31β stable */
+/* himegoto ver.1.6 */
 (function(){
   const ready = (fn)=> (document.readyState==='loading') ? document.addEventListener('DOMContentLoaded', fn, {once:true}) : fn();
   ready(init);
@@ -240,14 +240,4 @@
   closeBtns.forEach(b=>b.addEventListener('click', close));
 })();
 
-/* beta-daily */
-(function(){
-  try{
-    const k='hime_notice_daily_v1';
-    const d=(new Date()).toISOString().slice(0,10);
-    if(localStorage.getItem(k)!==d){
-      localStorage.setItem(k,d);
-      alert('【お知らせ】\n現在ベータ版のため、内部を不定期で更新しています。\n急に使えなくなったり画面がおかしくなることがありますが、すぐ直していきます。ご了承ください。');
-    }
-  }catch(e){}
-})();
+
