@@ -25,6 +25,21 @@ function addDaysFromMax(ts, days) {
   return admin.firestore.Timestamp.fromDate(d);
 }
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -39,12 +54,11 @@ export default async function handler(req, res) {
   let event;
 
   try {
+    const rawBody = await getRawBody(req);
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    const rawBody = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
     console.error("Webhook signature error:", err.message);
-    console.error("webhookSecret length:", webhookSecret ? webhookSecret.length : 0);
     return res.status(400).json({ error: "Invalid signature" });
   }
 
@@ -82,9 +96,3 @@ export default async function handler(req, res) {
 
   return res.status(200).json({ received: true });
 }
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
